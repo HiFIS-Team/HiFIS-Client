@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/*
+ * 디자인 토큰 — Tailwind v4는 @theme 블록에 정의한다.
+ * 색상·타이포·간격·라운드는 디자인 확정 후 아래에 @theme { ... } 로 추가.
+ * (claude.md "디자인 시스템 먼저" 원칙 — 임의 hex/px 금지)
+ */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  /* TODO: 한국어 웹폰트(Pretendard 등)는 디자인 단계에서 확정 */
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
+}
