@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/branches";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
+import { RowActionButton } from "@/components/RowActionButton";
 import { Td, Th, TableMessage } from "@/components/Table";
 import type { Branch } from "@/lib/api/types";
 import { BranchFormDialog } from "./BranchFormDialog";
@@ -141,14 +142,12 @@ export default function AdminBranchesPage() {
                     <Td>
                       <LinkCell url={b.naver_place_url} />
                     </Td>
-                    <Td className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => setFormTarget(b)}
-                        className="font-medium text-primary hover:text-primary-hover"
-                      >
-                        수정
-                      </button>
+                    <Td>
+                      <div className="flex justify-end">
+                        <RowActionButton onClick={() => setFormTarget(b)}>
+                          수정
+                        </RowActionButton>
+                      </div>
                     </Td>
                   </tr>
                 ))}

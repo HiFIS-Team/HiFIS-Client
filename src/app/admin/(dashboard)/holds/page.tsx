@@ -22,12 +22,12 @@ export default function AdminHoldsPage() {
   const toast = useToast();
 
   const membersQuery = useQuery({
-    queryKey: ["admin", "members"],
-    queryFn: getAdminMembers,
+    queryKey: ["admin", "members", "all"],
+    queryFn: () => getAdminMembers(),
   });
   const ptQuery = useQuery({
-    queryKey: ["admin", "pt-applications"],
-    queryFn: getAdminPtApplications,
+    queryKey: ["admin", "pt-applications", "all"],
+    queryFn: () => getAdminPtApplications(),
   });
 
   const [sourceType, setSourceType] = useState("MEMBER");

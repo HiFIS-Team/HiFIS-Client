@@ -13,6 +13,7 @@ import {
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { RowActionButton } from "@/components/RowActionButton";
 import { Td, Th, TableMessage } from "@/components/Table";
 import type { Admin } from "@/lib/api/types";
 
@@ -150,39 +151,37 @@ export default function AdminAdminsPage() {
                     <Td>
                       <AdminStatusBadge status={a.status} />
                     </Td>
-                    <Td className="text-right">
-                      {a.status === "PENDING_APPROVAL" ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => approveMutation.mutate(a.id)}
-                            className="font-medium text-primary hover:text-primary-hover"
-                          >
-                            승인
-                          </button>
-                          <button
-                            type="button"
+                    <Td>
+                      <div className="flex justify-end gap-2">
+                        {a.status === "PENDING_APPROVAL" ? (
+                          <>
+                            <RowActionButton
+                              onClick={() => approveMutation.mutate(a.id)}
+                            >
+                              승인
+                            </RowActionButton>
+                            <RowActionButton
+                              variant="danger"
+                              onClick={() =>
+                                setConfirmTarget({ action: "reject", admin: a })
+                              }
+                            >
+                              거부
+                            </RowActionButton>
+                          </>
+                        ) : a.role === "FC" && a.status === "ACTIVE" ? (
+                          <RowActionButton
+                            variant="danger"
                             onClick={() =>
-                              setConfirmTarget({ action: "reject", admin: a })
+                              setConfirmTarget({ action: "delete", admin: a })
                             }
-                            className="ml-4 font-medium text-red-600 hover:text-red-700"
                           >
-                            거부
-                          </button>
-                        </>
-                      ) : a.role === "FC" && a.status === "ACTIVE" ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setConfirmTarget({ action: "delete", admin: a })
-                          }
-                          className="font-medium text-red-600 hover:text-red-700"
-                        >
-                          삭제
-                        </button>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                            삭제
+                          </RowActionButton>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </div>
                     </Td>
                   </tr>
                 ))}

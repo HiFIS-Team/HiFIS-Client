@@ -6,9 +6,11 @@ export function createMember(payload: MemberCreate): Promise<Member> {
   return apiFetch<Member>("/members", { method: "POST", body: payload });
 }
 
-// GET /admin/members — 회원 목록 조회 (관리자, FC는 자기 지점만)
-export function getAdminMembers(): Promise<Member[]> {
-  return apiFetch<Member[]>("/admin/members", { auth: true });
+// GET /admin/members — 회원 목록 조회 (관리자)
+// branchId 지정 시 해당 지점만 (SUPER_ADMIN 필터용). FC는 토큰 기준 자동 분기.
+export function getAdminMembers(branchId?: string): Promise<Member[]> {
+  const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+  return apiFetch<Member[]>(`/admin/members${query}`, { auth: true });
 }
 
 // DELETE /admin/members/{id} — 회원 삭제 (관리자)

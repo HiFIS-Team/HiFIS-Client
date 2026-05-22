@@ -11,9 +11,13 @@ export function createReservation(
   });
 }
 
-// GET /admin/reservations — 예약 목록 조회 (관리자, FC는 자기 지점만)
-export function getAdminReservations(): Promise<Reservation[]> {
-  return apiFetch<Reservation[]>("/admin/reservations", { auth: true });
+// GET /admin/reservations — 예약 목록 조회 (관리자)
+// branchId 지정 시 해당 지점만 (SUPER_ADMIN 필터용). FC는 토큰 기준 자동 분기.
+export function getAdminReservations(
+  branchId?: string,
+): Promise<Reservation[]> {
+  const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+  return apiFetch<Reservation[]>(`/admin/reservations${query}`, { auth: true });
 }
 
 // DELETE /admin/reservations/{id} — 예약 삭제 (관리자)

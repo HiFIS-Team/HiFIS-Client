@@ -15,6 +15,7 @@ import {
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatWon } from "@/lib/format";
@@ -189,21 +190,18 @@ export default function AdminPassesPage() {
                     <Td className="font-medium">{p.name}</Td>
                     <Td>{formatWon(p.cash_price)}</Td>
                     <Td>{formatWon(p.card_price)}</Td>
-                    <Td className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => setFormTarget(p)}
-                        className="font-medium text-primary hover:text-primary-hover"
-                      >
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(p)}
-                        className="ml-4 font-medium text-red-600 hover:text-red-700"
-                      >
-                        삭제
-                      </button>
+                    <Td>
+                      <div className="flex justify-end gap-2">
+                        <RowActionButton onClick={() => setFormTarget(p)}>
+                          수정
+                        </RowActionButton>
+                        <RowActionButton
+                          variant="danger"
+                          onClick={() => setDeleteTarget(p)}
+                        >
+                          삭제
+                        </RowActionButton>
+                      </div>
                     </Td>
                   </tr>
                 ))}

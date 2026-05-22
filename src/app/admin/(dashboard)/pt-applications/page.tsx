@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
   deletePtApplication,
@@ -10,7 +11,9 @@ import {
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { RowActionButton } from "@/components/RowActionButton";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { PTApplication } from "@/lib/api/types";
@@ -22,13 +25,24 @@ export default function AdminPtApplicationsPage() {
   const [deleteTarget, setDeleteTarget] = useState<PTApplication | null>(null);
   const [editTarget, setEditTarget] = useState<PTApplication | null>(null);
 
-  const ptQuery = useQuery({
-    queryKey: ["admin", "pt-applications"],
-    queryFn: getAdminPtApplications,
+  const meQuery = useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: getMe,
+    retry: false,
   });
+  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
+  });
+
+  // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
+  const [branchFilter, setBranchFilter] = useState("");
+  const branchId = isSuper ? branchFilter || undefined : undefined;
+
+  const ptQuery = useQuery({
+    queryKey: ["admin", "pt-applications", branchId ?? "all"],
+    queryFn: () => getAdminPtApplications(branchId),
   });
 
   const deleteMutation = useMutation({
@@ -52,6 +66,24 @@ export default function AdminPtApplicationsPage() {
       <p className="mt-1 text-sm text-gray-500">
         키오스크 PT 신청서로 접수된 개인 레슨 신청입니다.
       </p>
+
+      {isSuper && (
+        <div className="mt-5 max-w-xs">
+          <Select
+            id="branch-filter"
+            label="지점"
+            options={[
+              { value: "", label: "전체 지점" },
+              ...(branchesQuery.data ?? []).map((b) => ({
+                value: b.id,
+                label: b.name,
+              })),
+            ]}
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="mt-6">
         {ptQuery.isLoading ? (
@@ -89,21 +121,18 @@ export default function AdminPtApplicationsPage() {
                     </Td>
                     <Td>{formatWon(a.final_price)}</Td>
                     <Td className="text-gray-500">{formatDate(a.created_at)}</Td>
-                    <Td className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => setEditTarget(a)}
-                        className="font-medium text-primary hover:text-primary-hover"
-                      >
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(a)}
-                        className="ml-4 font-medium text-red-600 hover:text-red-700"
-                      >
-                        삭제
-                      </button>
+                    <Td>
+                      <div className="flex justify-end gap-2">
+                        <RowActionButton onClick={() => setEditTarget(a)}>
+                          수정
+                        </RowActionButton>
+                        <RowActionButton
+                          variant="danger"
+                          onClick={() => setDeleteTarget(a)}
+                        >
+                          삭제
+                        </RowActionButton>
+                      </div>
                     </Td>
                   </tr>
                 ))}
