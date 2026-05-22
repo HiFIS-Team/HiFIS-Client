@@ -1,19 +1,40 @@
 @import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable.css";
 
 /*
- * 디자인 토큰 — Tailwind v4는 @theme 블록에 정의한다.
- * 색상·타이포·간격·라운드는 디자인 확정 후 아래에 @theme { ... } 로 추가.
- * (claude.md "디자인 시스템 먼저" 원칙 — 임의 hex/px 금지)
+ * 디자인 토큰 (claude.md "디자인 시스템 먼저")
+ * Tailwind v4 기본 팔레트·간격·라운드는 그대로 사용하고,
+ * 커스텀이 필요한 강조색·폰트만 여기 @theme 에 정의한다.
+ * 모든 화면은 임의 hex/px 대신 이 토큰과 Tailwind 기본값만 사용.
  */
+@theme {
+  /* 강조색(브랜드) — 보라. 버튼·링크·선택 항목·포커스에 사용 */
+  --color-primary: #7c3aed; /* violet-600 */
+  --color-primary-hover: #6d28d9; /* violet-700 */
+
+  /* 본문 폰트 — Pretendard (한국어 UI 표준, self-host) */
+  --font-sans:
+    "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
 
 html,
 body {
   height: 100%;
 }
 
-body {
-  /* TODO: 한국어 웹폰트(Pretendard 등)는 디자인 단계에서 확정 */
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic",
-    sans-serif;
+/* 토스트 등장 애니메이션 */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.18s ease-out;
 }

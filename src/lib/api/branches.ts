@@ -1,0 +1,41 @@
+import { apiFetch } from "./client";
+import type { Branch } from "./types";
+
+// GET /branches — 지점 목록 (공개)
+export function getBranches(): Promise<Branch[]> {
+  return apiFetch<Branch[]>("/branches");
+}
+
+// 지점 등록·수정 입력
+export interface BranchInput {
+  name: string;
+  phone: string;
+  kakao_url: string | null;
+  naver_place_url: string | null;
+}
+
+// GET /admin/branches — 지점 목록 (SUPER_ADMIN)
+export function getAdminBranches(): Promise<Branch[]> {
+  return apiFetch<Branch[]>("/admin/branches", { auth: true });
+}
+
+// POST /admin/branches — 지점 등록 (SUPER_ADMIN)
+export function createBranch(payload: BranchInput): Promise<Branch> {
+  return apiFetch<Branch>("/admin/branches", {
+    method: "POST",
+    body: payload,
+    auth: true,
+  });
+}
+
+// PATCH /admin/branches/{id} — 지점 수정 (SUPER_ADMIN)
+export function updateBranch(
+  id: string,
+  payload: BranchInput,
+): Promise<Branch> {
+  return apiFetch<Branch>(`/admin/branches/${id}`, {
+    method: "PATCH",
+    body: payload,
+    auth: true,
+  });
+}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { ToastProvider } from "@/providers/ToastProvider";
 
 export const metadata: Metadata = {
   title: "피트니스스타",
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full">
       <body className="min-h-full antialiased">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   );

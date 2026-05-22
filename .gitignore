@@ -43,3 +43,6 @@ public/swe-worker*.js.map
 
 # Claude Code (로컬 전용 — GitHub에 올리지 않음)
 .claude/
+
+# 디자인 미리보기 스크린샷 (로컬 전용)
+/preview/
