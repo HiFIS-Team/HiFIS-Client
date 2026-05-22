@@ -136,35 +136,34 @@ export default function AdminPassesPage() {
         </div>
       )}
 
-      <div className="mt-6 flex gap-1 border-b border-gray-200">
-        {TABS.map((t) => (
-          <button
-            key={t.type}
-            type="button"
-            onClick={() => setActiveType(t.type)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
-              activeType === t.type
-                ? "border-primary text-primary"
-                : "border-transparent text-gray-500 hover:text-gray-800"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-4 flex justify-end">
+      <div className="mt-6 flex items-end justify-between border-b border-gray-200">
+        <div className="flex gap-1">
+          {TABS.map((t) => (
+            <button
+              key={t.type}
+              type="button"
+              onClick={() => setActiveType(t.type)}
+              className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
+                activeType === t.type
+                  ? "border-primary text-primary"
+                  : "border-transparent text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           onClick={() => setFormTarget("new")}
           disabled={!branchId}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+          className="mb-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
         >
           {typeLabel} 등록
         </button>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-4">
         {!branchId ? (
           <TableMessage>지점을 선택해 주세요.</TableMessage>
         ) : passesQuery.isLoading ? (
