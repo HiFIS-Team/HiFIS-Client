@@ -10,6 +10,7 @@ import { getPtPasses } from "@/lib/api/passes";
 import { createPtApplication } from "@/lib/api/ptApplications";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
+import { formatDate } from "@/lib/format";
 import { TextField } from "@/components/TextField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
@@ -19,6 +20,18 @@ import { Button } from "@/components/Button";
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
+}
+
+// PT 회원에게 제공되는 헬스권 이용 기간 (일) — 고정값
+const PT_DURATION_DAYS = 40;
+
+// YYYY-MM-DD 에 일수를 더한다
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${mm}-${dd}`;
 }
 
 function enumOpts(arr: EnumOption[]): SelectOption[] {
@@ -62,7 +75,11 @@ export function PtForm({ branchId }: { branchId: string }) {
     queryFn: () => getPtPasses(branchId),
   });
 
-  const [form, setForm] = useState<FormState>(INITIAL);
+  // 시작일은 등록일(오늘), 종료일은 +40일로 시작 — PT 헬스권 기간은 40일 고정
+  const [form, setForm] = useState<FormState>(() => {
+    const t = todayStr();
+    return { ...INITIAL, start_date: t, end_date: addDays(t, PT_DURATION_DAYS) };
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const mutation = useMutation({ mutationFn: createPtApplication });
 
@@ -103,6 +120,15 @@ export function PtForm({ branchId }: { branchId: string }) {
     });
   };
 
+  // 이용 시작일 변경 — 종료일은 항상 시작일 + 40일 (PT 헬스권 기간 고정)
+  const onStartDateChange = (value: string) => {
+    setForm((f) => ({
+      ...f,
+      start_date: value,
+      end_date: value ? addDays(value, PT_DURATION_DAYS) : "",
+    }));
+  };
+
   if (mutation.isSuccess) {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16 text-center">
@@ -139,10 +165,8 @@ export function PtForm({ branchId }: { branchId: string }) {
     if (!form.address.trim()) e.address = "주소를 입력해 주세요.";
     if (!form.pt_pass_id) e.pt_pass_id = "수강권을 선택해 주세요.";
 
+    // 종료일은 시작일 + 40일로 자동 계산되므로 시작일만 검증
     if (!form.start_date) e.start_date = "이용 시작일을 선택해 주세요.";
-    if (!form.end_date) e.end_date = "이용 종료일을 선택해 주세요.";
-    else if (form.start_date && form.end_date < form.start_date)
-      e.end_date = "종료일은 시작일보다 빠를 수 없습니다.";
 
     if (!form.payment_method) e.payment_method = "결제 방법을 선택해 주세요.";
     if (form.final_price === "")
@@ -277,19 +301,21 @@ export function PtForm({ branchId }: { branchId: string }) {
             required
             type="date"
             value={form.start_date}
-            onChange={(e) => set({ start_date: e.target.value })}
+            onChange={(e) => onStartDateChange(e.target.value)}
             error={errors.start_date}
+            hint="등록일(오늘)로 채워져 있어요. 바꾸면 종료일이 다시 계산돼요."
           />
-          <TextField
-            id="end-date"
-            label="이용 종료일"
-            required
-            type="date"
-            min={form.start_date || undefined}
-            value={form.end_date}
-            onChange={(e) => set({ end_date: e.target.value })}
-            error={errors.end_date}
-          />
+          <div>
+            <p className="block text-sm/6 font-medium text-gray-900">
+              이용 종료일
+            </p>
+            <div className="mt-2 rounded-md bg-gray-100 px-3 py-2.5 text-base text-gray-600">
+              {form.end_date ? formatDate(form.end_date) : "—"}
+            </div>
+            <p className="mt-1.5 text-sm text-gray-500">
+              PT 회원은 헬스권 40일이 제공돼요. 시작일 기준 자동 설정됩니다.
+            </p>
+          </div>
         </Section>
 
         <Section title="결제">
