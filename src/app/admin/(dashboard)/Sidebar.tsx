@@ -32,7 +32,6 @@ const NAV: NavGroup[] = [
   {
     label: "운영",
     items: [
-      { href: "/admin/holds", label: "홀딩" },
       { href: "/admin/passes", label: "상품 관리" },
       { href: "/admin/branches", label: "지점 관리", superOnly: true },
     ],
