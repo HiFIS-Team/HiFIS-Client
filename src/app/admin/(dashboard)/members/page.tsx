@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import { deleteMember, getAdminMembers } from "@/lib/api/members";
+import { getMembershipPasses } from "@/lib/api/passes";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -14,6 +20,7 @@ import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { Member } from "@/lib/api/types";
+import { HoldDialog } from "../HoldDialog";
 import { MemberDetailDialog } from "./MemberDetailDialog";
 import { MemberEditDialog } from "./MemberEditDialog";
 
@@ -23,6 +30,7 @@ export default function AdminMembersPage() {
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
   const [editTarget, setEditTarget] = useState<Member | null>(null);
   const [viewTarget, setViewTarget] = useState<Member | null>(null);
+  const [holdTarget, setHoldTarget] = useState<Member | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -34,6 +42,21 @@ export default function AdminMembersPage() {
     queryKey: ["branches"],
     queryFn: getBranches,
   });
+
+  // 이용 기간 대신 회원권명을 표시 — 지점별 회원권 목록을 모아 id→이름 맵 구성
+  const passQueries = useQueries({
+    queries: (branchesQuery.data ?? []).map((b) => ({
+      queryKey: ["membership-passes", b.id],
+      queryFn: () => getMembershipPasses(b.id),
+    })),
+  });
+  function membershipPassName(id: string): string {
+    for (const q of passQueries) {
+      const hit = q.data?.find((p) => p.id === id);
+      if (hit) return hit.name;
+    }
+    return "-";
+  }
 
   // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
   const [branchFilter, setBranchFilter] = useState("");
@@ -100,7 +123,7 @@ export default function AdminMembersPage() {
                   <Th>이름</Th>
                   <Th>전화번호</Th>
                   <Th>상태</Th>
-                  <Th>이용 기간</Th>
+                  <Th>회원권</Th>
                   <Th>결제 금액</Th>
                   <Th>신청일</Th>
                   <Th> </Th>
@@ -115,9 +138,7 @@ export default function AdminMembersPage() {
                     <Td>
                       <StatusBadge status={m.status} />
                     </Td>
-                    <Td className="text-gray-500">
-                      {formatDate(m.start_date)} ~ {formatDate(m.end_date)}
-                    </Td>
+                    <Td>{membershipPassName(m.membership_pass_id)}</Td>
                     <Td>{formatWon(m.final_price)}</Td>
                     <Td className="text-gray-500">{formatDate(m.created_at)}</Td>
                     <Td>
@@ -127,6 +148,9 @@ export default function AdminMembersPage() {
                           onClick={() => setViewTarget(m)}
                         >
                           보기
+                        </RowActionButton>
+                        <RowActionButton onClick={() => setHoldTarget(m)}>
+                          홀딩
                         </RowActionButton>
                         <RowActionButton onClick={() => setEditTarget(m)}>
                           수정
@@ -160,6 +184,20 @@ export default function AdminMembersPage() {
           key={editTarget.id}
           member={editTarget}
           onClose={() => setEditTarget(null)}
+        />
+      )}
+
+      {holdTarget && (
+        <HoldDialog
+          key={holdTarget.id}
+          sourceType="MEMBER"
+          sourceId={holdTarget.id}
+          name={holdTarget.name}
+          phone={holdTarget.phone}
+          onClose={() => setHoldTarget(null)}
+          onSuccess={() =>
+            queryClient.invalidateQueries({ queryKey: ["admin", "members"] })
+          }
         />
       )}
 

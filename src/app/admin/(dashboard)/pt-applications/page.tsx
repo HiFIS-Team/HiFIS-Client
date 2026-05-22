@@ -1,13 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
   deletePtApplication,
   getAdminPtApplications,
 } from "@/lib/api/ptApplications";
+import { getPtPasses } from "@/lib/api/passes";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -17,6 +23,7 @@ import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { PTApplication } from "@/lib/api/types";
+import { HoldDialog } from "../HoldDialog";
 import { PtDetailDialog } from "./PtDetailDialog";
 import { PtEditDialog } from "./PtEditDialog";
 
@@ -26,6 +33,7 @@ export default function AdminPtApplicationsPage() {
   const [deleteTarget, setDeleteTarget] = useState<PTApplication | null>(null);
   const [editTarget, setEditTarget] = useState<PTApplication | null>(null);
   const [viewTarget, setViewTarget] = useState<PTApplication | null>(null);
+  const [holdTarget, setHoldTarget] = useState<PTApplication | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -37,6 +45,21 @@ export default function AdminPtApplicationsPage() {
     queryKey: ["branches"],
     queryFn: getBranches,
   });
+
+  // 이용 기간 대신 수강권명을 표시 — 지점별 PT 수강권 목록을 모아 id→이름 맵 구성
+  const passQueries = useQueries({
+    queries: (branchesQuery.data ?? []).map((b) => ({
+      queryKey: ["pt-passes", b.id],
+      queryFn: () => getPtPasses(b.id),
+    })),
+  });
+  function ptPassName(id: string): string {
+    for (const q of passQueries) {
+      const hit = q.data?.find((p) => p.id === id);
+      if (hit) return hit.name;
+    }
+    return "-";
+  }
 
   // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
   const [branchFilter, setBranchFilter] = useState("");
@@ -103,7 +126,7 @@ export default function AdminPtApplicationsPage() {
                   <Th>이름</Th>
                   <Th>전화번호</Th>
                   <Th>상태</Th>
-                  <Th>이용 기간</Th>
+                  <Th>수강권</Th>
                   <Th>결제 금액</Th>
                   <Th>신청일</Th>
                   <Th> </Th>
@@ -118,9 +141,7 @@ export default function AdminPtApplicationsPage() {
                     <Td>
                       <StatusBadge status={a.status} />
                     </Td>
-                    <Td className="text-gray-500">
-                      {formatDate(a.start_date)} ~ {formatDate(a.end_date)}
-                    </Td>
+                    <Td>{ptPassName(a.pt_pass_id)}</Td>
                     <Td>{formatWon(a.final_price)}</Td>
                     <Td className="text-gray-500">{formatDate(a.created_at)}</Td>
                     <Td>
@@ -130,6 +151,9 @@ export default function AdminPtApplicationsPage() {
                           onClick={() => setViewTarget(a)}
                         >
                           보기
+                        </RowActionButton>
+                        <RowActionButton onClick={() => setHoldTarget(a)}>
+                          홀딩
                         </RowActionButton>
                         <RowActionButton onClick={() => setEditTarget(a)}>
                           수정
@@ -163,6 +187,22 @@ export default function AdminPtApplicationsPage() {
           key={editTarget.id}
           app={editTarget}
           onClose={() => setEditTarget(null)}
+        />
+      )}
+
+      {holdTarget && (
+        <HoldDialog
+          key={holdTarget.id}
+          sourceType="PT_APPLICATION"
+          sourceId={holdTarget.id}
+          name={holdTarget.name}
+          phone={holdTarget.phone}
+          onClose={() => setHoldTarget(null)}
+          onSuccess={() =>
+            queryClient.invalidateQueries({
+              queryKey: ["admin", "pt-applications"],
+            })
+          }
         />
       )}
 
