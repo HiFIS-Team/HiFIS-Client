@@ -17,3 +17,14 @@ export function formatDate(iso: string): string {
 export function formatWon(amount: number): string {
   return `${amount.toLocaleString()}원`;
 }
+
+// ISO 일시 → 한국어 날짜+시각
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

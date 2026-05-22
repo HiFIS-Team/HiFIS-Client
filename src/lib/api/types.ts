@@ -155,3 +155,16 @@ export interface AdminSignupRequest {
   password: string;
   branch_id: string;
 }
+
+// --- 알림톡 이력 (GET /admin/messages) ---
+export interface Message {
+  id: string;
+  branch_id: string;
+  source_type: string;
+  source_id: string;
+  recipient: string;
+  trigger_type: string;
+  content: string;
+  status: string; // SUCCESS | FAIL
+  sent_at: string;
+}
