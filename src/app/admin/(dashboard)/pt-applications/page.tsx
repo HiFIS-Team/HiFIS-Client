@@ -18,7 +18,7 @@ import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
 import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
@@ -64,6 +64,8 @@ export default function AdminPtApplicationsPage() {
   // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
+  // 상태 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
+  const [statusFilter, setStatusFilter] = useState("");
 
   const ptQuery = useQuery({
     queryKey: ["admin", "pt-applications", branchId ?? "all"],
@@ -84,6 +86,9 @@ export default function AdminPtApplicationsPage() {
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
 
   const applications = ptQuery.data ?? [];
+  const visibleApplications = statusFilter
+    ? applications.filter((a) => a.status === statusFilter)
+    : applications;
 
   return (
     <div>
@@ -92,30 +97,41 @@ export default function AdminPtApplicationsPage() {
         키오스크 PT 신청서로 접수된 개인 레슨 신청입니다.
       </p>
 
-      {isSuper && (
-        <div className="mt-5 max-w-xs">
+      <div className="mt-5 flex flex-wrap gap-3">
+        {isSuper && (
+          <div className="w-48">
+            <Select
+              id="branch-filter"
+              label="지점"
+              options={[
+                { value: "", label: "전체 지점" },
+                ...(branchesQuery.data ?? []).map((b) => ({
+                  value: b.id,
+                  label: b.name,
+                })),
+              ]}
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+            />
+          </div>
+        )}
+        <div className="w-48">
           <Select
-            id="branch-filter"
-            label="지점"
-            options={[
-              { value: "", label: "전체 지점" },
-              ...(branchesQuery.data ?? []).map((b) => ({
-                value: b.id,
-                label: b.name,
-              })),
-            ]}
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
+            id="status-filter"
+            label="상태"
+            options={STATUS_FILTERS}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           />
         </div>
-      )}
+      </div>
 
       <div className="mt-6">
         {ptQuery.isLoading ? (
           <TableMessage>불러오는 중…</TableMessage>
         ) : ptQuery.isError ? (
           <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
-        ) : applications.length === 0 ? (
+        ) : visibleApplications.length === 0 ? (
           <TableMessage>등록된 PT가 없습니다.</TableMessage>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -133,7 +149,7 @@ export default function AdminPtApplicationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {applications.map((a) => (
+                {visibleApplications.map((a) => (
                   <tr key={a.id} className="text-gray-800">
                     <Td>{branchName(a.branch_id)}</Td>
                     <Td className="font-medium">{a.name}</Td>
