@@ -25,7 +25,7 @@ const NAV: NavItem[] = [
   { href: "/admin/messages", label: "알림톡 이력", ready: true },
   { href: "/admin/holds", label: "홀딩", ready: true },
   { href: "/admin/branches", label: "지점 관리", ready: true, superOnly: true },
-  { href: "/admin/admins", label: "관리자 관리", ready: false, superOnly: true },
+  { href: "/admin/admins", label: "관리자 관리", ready: true, superOnly: true },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
