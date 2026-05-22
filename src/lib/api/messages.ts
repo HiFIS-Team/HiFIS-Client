@@ -2,8 +2,12 @@ import { apiFetch } from "./client";
 import type { Message } from "./types";
 
 // GET /admin/messages — 알림톡 발송 이력 (관리자, FC는 자기 지점만, 최신순)
-export function getAdminMessages(): Promise<Message[]> {
-  return apiFetch<Message[]>("/admin/messages", { auth: true });
+// branchId 전달 시 해당 지점만 (SUPER_ADMIN 지점 필터용)
+export function getAdminMessages(branchId?: string): Promise<Message[]> {
+  const path = branchId
+    ? `/admin/messages?branch_id=${encodeURIComponent(branchId)}`
+    : "/admin/messages";
+  return apiFetch<Message[]>(path, { auth: true });
 }
 
 // 발송 종류(trigger_type) 한국어 라벨.

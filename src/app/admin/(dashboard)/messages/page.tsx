@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import { getAdminMessages, TRIGGER_LABELS } from "@/lib/api/messages";
 import { RowActionButton } from "@/components/RowActionButton";
+import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
@@ -27,13 +29,24 @@ function MsgStatusBadge({ status }: { status: string }) {
 export default function AdminMessagesPage() {
   const [viewTarget, setViewTarget] = useState<Message | null>(null);
 
-  const messagesQuery = useQuery({
-    queryKey: ["admin", "messages"],
-    queryFn: getAdminMessages,
+  const meQuery = useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: getMe,
+    retry: false,
   });
+  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
+  });
+
+  // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
+  const [branchFilter, setBranchFilter] = useState("");
+  const branchId = isSuper ? branchFilter || undefined : undefined;
+
+  const messagesQuery = useQuery({
+    queryKey: ["admin", "messages", branchId ?? "all"],
+    queryFn: () => getAdminMessages(branchId),
   });
 
   const branchName = (id: string) =>
@@ -47,6 +60,24 @@ export default function AdminMessagesPage() {
       <p className="mt-1 text-sm text-gray-500">
         발송된 알림톡 기록입니다. (최신순)
       </p>
+
+      {isSuper && (
+        <div className="mt-5 max-w-xs">
+          <Select
+            id="branch-filter"
+            label="지점"
+            options={[
+              { value: "", label: "전체 지점" },
+              ...(branchesQuery.data ?? []).map((b) => ({
+                value: b.id,
+                label: b.name,
+              })),
+            ]}
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="mt-6">
         {messagesQuery.isLoading ? (
