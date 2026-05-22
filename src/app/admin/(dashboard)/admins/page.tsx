@@ -14,6 +14,7 @@ import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
+import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import type { Admin } from "@/lib/api/types";
 
@@ -52,6 +53,8 @@ export default function AdminAdminsPage() {
     retry: false,
   });
   const isSuper = meQuery.data?.role === "SUPER_ADMIN";
+  // 지점 필터 ("" = 전체)
+  const [branchFilter, setBranchFilter] = useState("");
 
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
@@ -113,6 +116,11 @@ export default function AdminAdminsPage() {
   const branchName = (id: string | null) =>
     id ? (branchesQuery.data?.find((b) => b.id === id)?.name ?? "-") : "-";
   const admins = adminsQuery.data ?? [];
+  // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
+  const visibleAdmins = admins.filter(
+    (a) =>
+      !branchFilter || a.role === "SUPER_ADMIN" || a.branch_id === branchFilter,
+  );
 
   return (
     <div>
@@ -121,12 +129,28 @@ export default function AdminAdminsPage() {
         FC 가입 승인·거부 및 계정 관리.
       </p>
 
+      <div className="mt-5 max-w-xs">
+        <Select
+          id="branch-filter"
+          label="지점"
+          options={[
+            { value: "", label: "전체 지점" },
+            ...(branchesQuery.data ?? []).map((b) => ({
+              value: b.id,
+              label: b.name,
+            })),
+          ]}
+          value={branchFilter}
+          onChange={(e) => setBranchFilter(e.target.value)}
+        />
+      </div>
+
       <div className="mt-6">
         {adminsQuery.isLoading ? (
           <TableMessage>불러오는 중…</TableMessage>
         ) : adminsQuery.isError ? (
           <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
-        ) : admins.length === 0 ? (
+        ) : visibleAdmins.length === 0 ? (
           <TableMessage>관리자가 없습니다.</TableMessage>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -142,7 +166,7 @@ export default function AdminAdminsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {admins.map((a) => (
+                {visibleAdmins.map((a) => (
                   <tr key={a.id} className="text-gray-800">
                     <Td className="font-medium">{a.name}</Td>
                     <Td>{a.email}</Td>
