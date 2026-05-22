@@ -19,7 +19,7 @@ const NAV: NavItem[] = [
   { href: "/admin", label: "대시보드", ready: true },
   { href: "/admin/reservations", label: "예약", ready: true },
   { href: "/admin/members", label: "회원", ready: true },
-  { href: "/admin/pt-applications", label: "PT 신청", ready: false },
+  { href: "/admin/pt-applications", label: "PT 신청", ready: true },
   { href: "/admin/passes", label: "상품 관리", ready: false },
   { href: "/admin/stats", label: "통계", ready: false },
   { href: "/admin/messages", label: "알림톡 이력", ready: false },
