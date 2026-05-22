@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
 import type { Admin } from "@/lib/api/types";
+import { NotificationBell } from "./NotificationBell";
 
 interface NavItem {
   href: string;
@@ -72,9 +73,12 @@ export function Sidebar({ admin }: { admin: Admin }) {
 
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50">
-      <div className="px-5 py-5">
-        <span className="text-lg font-bold text-gray-900">HiFIS</span>
-        <span className="ml-1.5 text-sm text-gray-500">관리자</span>
+      <div className="flex items-center justify-between px-5 py-5">
+        <div>
+          <span className="text-lg font-bold text-gray-900">HiFIS</span>
+          <span className="ml-1.5 text-sm text-gray-500">관리자</span>
+        </div>
+        <NotificationBell />
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
