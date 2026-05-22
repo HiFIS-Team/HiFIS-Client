@@ -17,6 +17,7 @@ import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { PTApplication } from "@/lib/api/types";
+import { PtDetailDialog } from "./PtDetailDialog";
 import { PtEditDialog } from "./PtEditDialog";
 
 export default function AdminPtApplicationsPage() {
@@ -24,6 +25,7 @@ export default function AdminPtApplicationsPage() {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<PTApplication | null>(null);
   const [editTarget, setEditTarget] = useState<PTApplication | null>(null);
+  const [viewTarget, setViewTarget] = useState<PTApplication | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -123,6 +125,12 @@ export default function AdminPtApplicationsPage() {
                     <Td className="text-gray-500">{formatDate(a.created_at)}</Td>
                     <Td>
                       <div className="flex justify-end gap-2">
+                        <RowActionButton
+                          variant="neutral"
+                          onClick={() => setViewTarget(a)}
+                        >
+                          보기
+                        </RowActionButton>
                         <RowActionButton onClick={() => setEditTarget(a)}>
                           수정
                         </RowActionButton>
@@ -141,6 +149,14 @@ export default function AdminPtApplicationsPage() {
           </div>
         )}
       </div>
+
+      {viewTarget && (
+        <PtDetailDialog
+          key={viewTarget.id}
+          app={viewTarget}
+          onClose={() => setViewTarget(null)}
+        />
+      )}
 
       {editTarget && (
         <PtEditDialog

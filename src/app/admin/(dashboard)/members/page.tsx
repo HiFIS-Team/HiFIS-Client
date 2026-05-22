@@ -14,6 +14,7 @@ import { Select } from "@/components/Select";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { Member } from "@/lib/api/types";
+import { MemberDetailDialog } from "./MemberDetailDialog";
 import { MemberEditDialog } from "./MemberEditDialog";
 
 export default function AdminMembersPage() {
@@ -21,6 +22,7 @@ export default function AdminMembersPage() {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
   const [editTarget, setEditTarget] = useState<Member | null>(null);
+  const [viewTarget, setViewTarget] = useState<Member | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -120,6 +122,12 @@ export default function AdminMembersPage() {
                     <Td className="text-gray-500">{formatDate(m.created_at)}</Td>
                     <Td>
                       <div className="flex justify-end gap-2">
+                        <RowActionButton
+                          variant="neutral"
+                          onClick={() => setViewTarget(m)}
+                        >
+                          보기
+                        </RowActionButton>
                         <RowActionButton onClick={() => setEditTarget(m)}>
                           수정
                         </RowActionButton>
@@ -138,6 +146,14 @@ export default function AdminMembersPage() {
           </div>
         )}
       </div>
+
+      {viewTarget && (
+        <MemberDetailDialog
+          key={viewTarget.id}
+          member={viewTarget}
+          onClose={() => setViewTarget(null)}
+        />
+      )}
 
       {editTarget && (
         <MemberEditDialog
