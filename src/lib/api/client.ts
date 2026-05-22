@@ -24,6 +24,16 @@ export class ApiError extends Error {
   }
 }
 
+// 에러를 사용자에게 보여줄 한국어 메시지로 변환.
+// 429(호출 제한)는 재시도 안내 문구로, 그 외 ApiError는 백엔드 detail 그대로.
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 429) return "요청이 많습니다. 잠시 후 다시 시도해 주세요.";
+    return error.detail;
+  }
+  return "오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+}
+
 interface RequestOptions extends Omit<RequestInit, "body"> {
   // JSON 본문 — 객체를 넘기면 자동 직렬화된다
   body?: unknown;
@@ -60,7 +70,7 @@ async function refreshAccessToken(): Promise<boolean> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        // TODO: 요청/응답 스키마는 백엔드(HiFIS-Server)에서 확인
+        // POST /admin/refresh : { refresh_token } → 새 access·refresh 발급
         const res = await fetch(`${BASE_URL}/admin/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

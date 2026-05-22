@@ -125,3 +125,33 @@ export interface PTApplication {
   status: string;
   created_at: string;
 }
+
+// --- 관리자 (인증) ---
+export type AdminRole = "SUPER_ADMIN" | "FC";
+export type AdminStatus = "PENDING_EMAIL" | "PENDING_APPROVAL" | "ACTIVE";
+
+export interface Admin {
+  id: string;
+  email: string;
+  name: string;
+  role: AdminRole;
+  status: AdminStatus;
+  branch_id: string | null;
+  created_at: string;
+}
+
+// POST /admin/login·/refresh 응답
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  admin: Admin;
+}
+
+// POST /admin/signup 요청 (FC 셀프 회원가입)
+export interface AdminSignupRequest {
+  email: string;
+  name: string;
+  password: string;
+  branch_id: string;
+}
