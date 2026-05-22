@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBranches } from "@/lib/api/branches";
 import { getAdminMessages, TRIGGER_LABELS } from "@/lib/api/messages";
+import { RowActionButton } from "@/components/RowActionButton";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDateTime, formatPhone } from "@/lib/format";
+import type { Message } from "@/lib/api/types";
+import { MessageDetailDialog } from "./MessageDetailDialog";
 
 // 알림톡 발송 상태 배지 — SUCCESS(성공) / FAIL(실패)
 function MsgStatusBadge({ status }: { status: string }) {
@@ -21,6 +25,8 @@ function MsgStatusBadge({ status }: { status: string }) {
 }
 
 export default function AdminMessagesPage() {
+  const [viewTarget, setViewTarget] = useState<Message | null>(null);
+
   const messagesQuery = useQuery({
     queryKey: ["admin", "messages"],
     queryFn: getAdminMessages,
@@ -60,6 +66,7 @@ export default function AdminMessagesPage() {
                   <Th>종류</Th>
                   <Th>상태</Th>
                   <Th>내용</Th>
+                  <Th> </Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -75,12 +82,19 @@ export default function AdminMessagesPage() {
                       <MsgStatusBadge status={m.status} />
                     </Td>
                     <Td>
-                      <span
-                        title={m.content}
-                        className="block max-w-sm truncate text-gray-600"
-                      >
+                      <span className="block max-w-sm truncate text-gray-600">
                         {m.content}
                       </span>
+                    </Td>
+                    <Td>
+                      <div className="flex justify-end">
+                        <RowActionButton
+                          variant="neutral"
+                          onClick={() => setViewTarget(m)}
+                        >
+                          보기
+                        </RowActionButton>
+                      </div>
                     </Td>
                   </tr>
                 ))}
@@ -89,6 +103,14 @@ export default function AdminMessagesPage() {
           </div>
         )}
       </div>
+
+      {viewTarget && (
+        <MessageDetailDialog
+          key={viewTarget.id}
+          message={viewTarget}
+          onClose={() => setViewTarget(null)}
+        />
+      )}
     </div>
   );
 }

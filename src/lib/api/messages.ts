@@ -24,3 +24,11 @@ export const TRIGGER_LABELS: Record<string, string> = {
   EXPIRED_TODAY: "만기 당일",
   EXPIRED_FOLLOWUP: "만기 후 안내",
 };
+
+// 알림톡 발생 출처(source_type) 한국어 라벨
+export const SOURCE_TYPE_LABELS: Record<string, string> = {
+  MEMBER: "회원",
+  PT_APPLICATION: "PT 신청",
+  RESERVATION: "예약",
+  HOLD: "홀딩",
+};
