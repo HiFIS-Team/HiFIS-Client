@@ -43,6 +43,8 @@ export default function AdminMessagesPage() {
   // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
+  // 종류(trigger_type) 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
+  const [typeFilter, setTypeFilter] = useState("");
 
   const messagesQuery = useQuery({
     queryKey: ["admin", "messages", branchId ?? "all"],
@@ -53,6 +55,9 @@ export default function AdminMessagesPage() {
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
 
   const messages = messagesQuery.data ?? [];
+  const filteredMessages = typeFilter
+    ? messages.filter((m) => m.trigger_type === typeFilter)
+    : messages;
 
   return (
     <div>
@@ -61,30 +66,47 @@ export default function AdminMessagesPage() {
         발송된 알림톡 기록입니다. (최신순)
       </p>
 
-      {isSuper && (
-        <div className="mt-5 max-w-xs">
+      <div className="mt-5 flex flex-wrap gap-3">
+        {isSuper && (
+          <div className="w-48">
+            <Select
+              id="branch-filter"
+              label="지점"
+              options={[
+                { value: "", label: "전체 지점" },
+                ...(branchesQuery.data ?? []).map((b) => ({
+                  value: b.id,
+                  label: b.name,
+                })),
+              ]}
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+            />
+          </div>
+        )}
+        <div className="w-48">
           <Select
-            id="branch-filter"
-            label="지점"
+            id="type-filter"
+            label="종류"
             options={[
-              { value: "", label: "전체 지점" },
-              ...(branchesQuery.data ?? []).map((b) => ({
-                value: b.id,
-                label: b.name,
+              { value: "", label: "전체 종류" },
+              ...Object.entries(TRIGGER_LABELS).map(([code, label]) => ({
+                value: code,
+                label,
               })),
             ]}
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
           />
         </div>
-      )}
+      </div>
 
       <div className="mt-6">
         {messagesQuery.isLoading ? (
           <TableMessage>불러오는 중…</TableMessage>
         ) : messagesQuery.isError ? (
           <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
-        ) : messages.length === 0 ? (
+        ) : filteredMessages.length === 0 ? (
           <TableMessage>발송된 알림톡이 없습니다.</TableMessage>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -101,7 +123,7 @@ export default function AdminMessagesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {messages.map((m) => (
+                {filteredMessages.map((m) => (
                   <tr key={m.id} className="text-gray-800">
                     <Td className="text-gray-500">
                       {formatDateTime(m.sent_at)}
