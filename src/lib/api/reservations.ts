@@ -10,3 +10,16 @@ export function createReservation(
     body: payload,
   });
 }
+
+// GET /admin/reservations — 예약 목록 조회 (관리자, FC는 자기 지점만)
+export function getAdminReservations(): Promise<Reservation[]> {
+  return apiFetch<Reservation[]>("/admin/reservations", { auth: true });
+}
+
+// DELETE /admin/reservations/{id} — 예약 삭제 (관리자)
+export function deleteReservation(id: string): Promise<void> {
+  return apiFetch<void>(`/admin/reservations/${id}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}

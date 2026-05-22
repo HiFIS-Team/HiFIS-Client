@@ -17,7 +17,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/admin", label: "대시보드", ready: true },
-  { href: "/admin/reservations", label: "예약", ready: false },
+  { href: "/admin/reservations", label: "예약", ready: true },
   { href: "/admin/members", label: "회원", ready: false },
   { href: "/admin/pt-applications", label: "PT 신청", ready: false },
   { href: "/admin/passes", label: "상품 관리", ready: false },
