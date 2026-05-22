@@ -18,6 +18,8 @@ import { TextField } from "@/components/TextField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
+import { TermsDialog } from "@/components/TermsDialog";
+import { OPERATING_RULES, OPERATING_RULES_PLEDGE } from "@/lib/operatingRules";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
@@ -104,6 +106,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [termsOpen, setTermsOpen] = useState(false);
   const mutation = useMutation({ mutationFn: createMember });
 
   const set = (patch: Partial<FormState>) =>
@@ -458,13 +461,30 @@ export function MemberForm({ branchId }: { branchId: string }) {
         </Section>
 
         <Section title="동의">
-          <Checkbox
-            id="agreed-terms"
-            label="운영 회칙에 동의합니다. (필수)"
-            checked={form.agreed_terms}
-            onChange={(e) => set({ agreed_terms: e.target.checked })}
-            error={errors.agreed_terms}
-          />
+          <div>
+            {/* 준수 서약문 — 동의 대상 */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+              <p className="text-base/7 text-gray-700">
+                {OPERATING_RULES_PLEDGE}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTermsOpen(true)}
+              className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
+              운영 회칙 전문 보기
+            </button>
+            <div className="mt-4">
+              <Checkbox
+                id="agreed-terms"
+                label="위 내용에 동의합니다. (필수)"
+                checked={form.agreed_terms}
+                onChange={(e) => set({ agreed_terms: e.target.checked })}
+                error={errors.agreed_terms}
+              />
+            </div>
+          </div>
         </Section>
 
         {submitError && (
@@ -490,6 +510,13 @@ export function MemberForm({ branchId }: { branchId: string }) {
           </Button>
         </div>
       </form>
+
+      {termsOpen && (
+        <TermsDialog
+          content={OPERATING_RULES}
+          onClose={() => setTermsOpen(false)}
+        />
+      )}
     </main>
   );
 }
