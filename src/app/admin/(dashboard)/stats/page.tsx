@@ -1,0 +1,123 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getMe } from "@/lib/api/auth";
+import { getBranches } from "@/lib/api/branches";
+import {
+  getMotivationStats,
+  getReferralStats,
+  type StatsResponse,
+} from "@/lib/api/stats";
+import { Select } from "@/components/Select";
+
+// 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이)
+function StatChart({ title, data }: { title: string; data: StatsResponse }) {
+  return (
+    <section className="rounded-xl border border-gray-200 p-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+        <span className="text-sm text-gray-500">총 {data.total}건</span>
+      </div>
+      {data.items.length === 0 ? (
+        <p className="mt-4 text-sm text-gray-500">데이터가 없습니다.</p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {data.items.map((item) => {
+            const pct =
+              data.total > 0
+                ? Math.round((item.count / data.total) * 100)
+                : 0;
+            return (
+              <div key={item.code}>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-700">{item.label}</span>
+                  <span className="text-gray-500">
+                    {item.count}건 · {pct}%
+                  </span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export default function AdminStatsPage() {
+  const meQuery = useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: getMe,
+    retry: false,
+  });
+  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
+
+  const branchesQuery = useQuery({
+    queryKey: ["branches"],
+    queryFn: getBranches,
+    enabled: isSuper,
+  });
+
+  // "" = 전체 지점. FC는 토큰 기준으로 자동 분기되므로 미사용.
+  const [branchFilter, setBranchFilter] = useState("");
+  const branchId = isSuper ? branchFilter || undefined : undefined;
+
+  const referralQuery = useQuery({
+    queryKey: ["admin", "stats", "referral", branchId ?? "all"],
+    queryFn: () => getReferralStats(branchId),
+  });
+  const motivationQuery = useQuery({
+    queryKey: ["admin", "stats", "motivation", branchId ?? "all"],
+    queryFn: () => getMotivationStats(branchId),
+  });
+
+  const isLoading = referralQuery.isLoading || motivationQuery.isLoading;
+  const isError = referralQuery.isError || motivationQuery.isError;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">통계</h1>
+      <p className="mt-1 text-sm text-gray-500">
+        이번 달 신청 기준 집계입니다.
+      </p>
+
+      {isSuper && (
+        <div className="mt-5 max-w-xs">
+          <Select
+            id="branch"
+            label="지점"
+            options={[
+              { value: "", label: "전체 지점" },
+              ...(branchesQuery.data ?? []).map((b) => ({
+                value: b.id,
+                label: b.name,
+              })),
+            ]}
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="mt-6">
+        {isLoading ? (
+          <p className="text-sm text-gray-500">불러오는 중…</p>
+        ) : isError ? (
+          <p className="text-sm text-gray-500">통계를 불러오지 못했습니다.</p>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2">
+            <StatChart title="유입 경로" data={referralQuery.data!} />
+            <StatChart title="방문 목적" data={motivationQuery.data!} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
