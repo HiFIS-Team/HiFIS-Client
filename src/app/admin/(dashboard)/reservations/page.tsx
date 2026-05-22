@@ -1,24 +1,15 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBranches } from "@/lib/api/branches";
 import { deleteReservation, getAdminReservations } from "@/lib/api/reservations";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Td, Th, TableMessage } from "@/components/Table";
+import { formatDate, formatPhone } from "@/lib/format";
 import type { Reservation } from "@/lib/api/types";
-
-// 전화번호 숫자 → 하이픈 형식
-function formatPhone(value: string): string {
-  const n = value.replace(/\D/g, "");
-  if (n.length === 11) return `${n.slice(0, 3)}-${n.slice(3, 7)}-${n.slice(7)}`;
-  if (n.length === 10) return `${n.slice(0, 3)}-${n.slice(3, 6)}-${n.slice(6)}`;
-  return value;
-}
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ko-KR");
-}
 
 export default function AdminReservationsPage() {
   const toast = useToast();
@@ -117,30 +108,6 @@ export default function AdminReservationsPage() {
         }}
         onCancel={() => setDeleteTarget(null)}
       />
-    </div>
-  );
-}
-
-function Th({ children }: { children: ReactNode }) {
-  return (
-    <th className="px-4 py-3 font-medium whitespace-nowrap">{children}</th>
-  );
-}
-function Td({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <td className={`px-4 py-3 whitespace-nowrap ${className}`}>{children}</td>
-  );
-}
-function TableMessage({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-gray-200 px-4 py-16 text-center text-sm text-gray-500">
-      {children}
     </div>
   );
 }
