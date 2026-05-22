@@ -24,6 +24,31 @@ function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
 
+// 회원권 이름에서 이용 개월 수 추출 ("3개월권"→3, "1년권"→12). 못 찾으면 null.
+// 백엔드 Pass 에 기간 필드가 없어 이름으로 추정 — 추후 duration 필드가 생기면 그걸 사용할 것.
+function passDurationMonths(name: string): number | null {
+  const year = name.match(/(\d+)\s*년/);
+  if (year) return Number(year[1]) * 12;
+  const month = name.match(/(\d+)\s*개월/);
+  if (month) return Number(month[1]);
+  return null;
+}
+
+// YYYY-MM-DD 에 개월 수를 더한다 (말일 초과 시 해당 월 말일로 보정).
+function addMonths(dateStr: string, months: number): string {
+  const [y, m, day] = dateStr.split("-").map(Number);
+  const target = new Date(y, m - 1 + months, 1);
+  const lastDay = new Date(
+    target.getFullYear(),
+    target.getMonth() + 1,
+    0,
+  ).getDate();
+  target.setDate(Math.min(day, lastDay));
+  const mm = String(target.getMonth() + 1).padStart(2, "0");
+  const dd = String(target.getDate()).padStart(2, "0");
+  return `${target.getFullYear()}-${mm}-${dd}`;
+}
+
 // enum 옵션 → Select 옵션
 function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
@@ -134,6 +159,33 @@ export function MemberForm({ branchId }: { branchId: string }) {
     setForm((f) => {
       const next = { ...f, ...patch };
       return { ...next, final_price: String(totalFor(next)) };
+    });
+  };
+
+  // 선택된 회원권의 이용 개월 수 (이름에서 추출, 없으면 null)
+  const monthsOf = (passId: string): number | null => {
+    const p = membershipPasses.find((x) => x.id === passId);
+    return p ? passDurationMonths(p.name) : null;
+  };
+  // 회원권 선택 — 가격 + 이용 기간 자동 설정
+  // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
+  const onMembershipChange = (id: string) => {
+    setForm((f) => {
+      const base: FormState = { ...f, membership_pass_id: id };
+      base.final_price = String(totalFor(base));
+      const months = monthsOf(id);
+      if (months == null) return base;
+      const start = base.start_date || today;
+      return { ...base, start_date: start, end_date: addMonths(start, months) };
+    });
+  };
+  // 이용 시작일 변경 — 회원권 기간에 맞춰 종료일 재계산
+  const onStartDateChange = (value: string) => {
+    setForm((f) => {
+      const next: FormState = { ...f, start_date: value };
+      const months = monthsOf(f.membership_pass_id);
+      if (months != null && value) next.end_date = addMonths(value, months);
+      return next;
     });
   };
 
@@ -316,7 +368,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
             placeholder="선택해 주세요"
             options={passOpts(membershipPasses)}
             value={form.membership_pass_id}
-            onChange={(e) => setWithPrice({ membership_pass_id: e.target.value })}
+            onChange={(e) => onMembershipChange(e.target.value)}
             error={errors.membership_pass_id}
           />
           <Select
@@ -339,8 +391,9 @@ export function MemberForm({ branchId }: { branchId: string }) {
             required
             type="date"
             value={form.start_date}
-            onChange={(e) => set({ start_date: e.target.value })}
+            onChange={(e) => onStartDateChange(e.target.value)}
             error={errors.start_date}
+            hint="회원권을 선택하면 등록일(오늘)로 채워져요. 바꾸면 종료일이 다시 계산돼요."
           />
           <TextField
             id="end-date"
@@ -351,6 +404,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
             value={form.end_date}
             onChange={(e) => set({ end_date: e.target.value })}
             error={errors.end_date}
+            hint="회원권 기간에 맞춰 자동 계산돼요. 필요하면 직접 수정하세요."
           />
         </Section>
 
