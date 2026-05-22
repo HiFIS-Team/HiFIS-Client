@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { Member, MemberCreate } from "./types";
+import type { Member, MemberCreate, MemberUpdate } from "./types";
 
 // POST /members — 회원가입 신청 (공개)
 export function createMember(payload: MemberCreate): Promise<Member> {
@@ -15,6 +15,18 @@ export function getAdminMembers(): Promise<Member[]> {
 export function deleteMember(id: string): Promise<void> {
   return apiFetch<void>(`/admin/members/${id}`, {
     method: "DELETE",
+    auth: true,
+  });
+}
+
+// PATCH /admin/members/{id} — 회원 정보 수정 (관리자)
+export function updateMember(
+  id: string,
+  payload: MemberUpdate,
+): Promise<Member> {
+  return apiFetch<Member>(`/admin/members/${id}`, {
+    method: "PATCH",
+    body: payload,
     auth: true,
   });
 }

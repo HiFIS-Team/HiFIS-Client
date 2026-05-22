@@ -90,6 +90,24 @@ export interface Member {
   created_at: string;
 }
 
+// PATCH /admin/members/{id} 요청 (수정 — 폼에서 전체 필드 전송)
+export interface MemberUpdate {
+  membership_pass_id: string;
+  name: string;
+  gender: string;
+  birth_date: string;
+  phone: string;
+  address: string;
+  referral: string;
+  payment_method: string;
+  final_price: number;
+  start_date: string;
+  end_date: string;
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
+  motivation: string;
+}
+
 // --- PT 신청 (POST /pt-applications) ---
 export interface PTApplicationCreate {
   branch_id: string;
@@ -124,6 +142,22 @@ export interface PTApplication {
   notes: string | null;
   status: string;
   created_at: string;
+}
+
+// PATCH /admin/pt-applications/{id} 요청 (수정)
+export interface PTApplicationUpdate {
+  pt_pass_id: string;
+  name: string;
+  gender: string;
+  birth_date: string;
+  phone: string;
+  address: string;
+  referral: string;
+  payment_method: string;
+  final_price: number;
+  start_date: string;
+  end_date: string;
+  notes: string | null;
 }
 
 // --- 관리자 (인증) ---

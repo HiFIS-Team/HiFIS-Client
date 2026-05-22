@@ -14,11 +14,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { PTApplication } from "@/lib/api/types";
+import { PtEditDialog } from "./PtEditDialog";
 
 export default function AdminPtApplicationsPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<PTApplication | null>(null);
+  const [editTarget, setEditTarget] = useState<PTApplication | null>(null);
 
   const ptQuery = useQuery({
     queryKey: ["admin", "pt-applications"],
@@ -90,8 +92,15 @@ export default function AdminPtApplicationsPage() {
                     <Td className="text-right">
                       <button
                         type="button"
+                        onClick={() => setEditTarget(a)}
+                        className="font-medium text-primary hover:text-primary-hover"
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setDeleteTarget(a)}
-                        className="font-medium text-red-600 hover:text-red-700"
+                        className="ml-4 font-medium text-red-600 hover:text-red-700"
                       >
                         삭제
                       </button>
@@ -103,6 +112,14 @@ export default function AdminPtApplicationsPage() {
           </div>
         )}
       </div>
+
+      {editTarget && (
+        <PtEditDialog
+          key={editTarget.id}
+          app={editTarget}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteTarget !== null}

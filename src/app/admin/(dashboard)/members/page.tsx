@@ -11,11 +11,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { Member } from "@/lib/api/types";
+import { MemberEditDialog } from "./MemberEditDialog";
 
 export default function AdminMembersPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
+  const [editTarget, setEditTarget] = useState<Member | null>(null);
 
   const membersQuery = useQuery({
     queryKey: ["admin", "members"],
@@ -87,8 +89,15 @@ export default function AdminMembersPage() {
                     <Td className="text-right">
                       <button
                         type="button"
+                        onClick={() => setEditTarget(m)}
+                        className="font-medium text-primary hover:text-primary-hover"
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setDeleteTarget(m)}
-                        className="font-medium text-red-600 hover:text-red-700"
+                        className="ml-4 font-medium text-red-600 hover:text-red-700"
                       >
                         삭제
                       </button>
@@ -100,6 +109,14 @@ export default function AdminMembersPage() {
           </div>
         )}
       </div>
+
+      {editTarget && (
+        <MemberEditDialog
+          key={editTarget.id}
+          member={editTarget}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteTarget !== null}

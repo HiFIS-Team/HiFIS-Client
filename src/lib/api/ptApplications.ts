@@ -1,5 +1,9 @@
 import { apiFetch } from "./client";
-import type { PTApplication, PTApplicationCreate } from "./types";
+import type {
+  PTApplication,
+  PTApplicationCreate,
+  PTApplicationUpdate,
+} from "./types";
 
 // POST /pt-applications — PT 신청 (공개)
 export function createPtApplication(
@@ -20,6 +24,18 @@ export function getAdminPtApplications(): Promise<PTApplication[]> {
 export function deletePtApplication(id: string): Promise<void> {
   return apiFetch<void>(`/admin/pt-applications/${id}`, {
     method: "DELETE",
+    auth: true,
+  });
+}
+
+// PATCH /admin/pt-applications/{id} — PT 신청 정보 수정 (관리자)
+export function updatePtApplication(
+  id: string,
+  payload: PTApplicationUpdate,
+): Promise<PTApplication> {
+  return apiFetch<PTApplication>(`/admin/pt-applications/${id}`, {
+    method: "PATCH",
+    body: payload,
     auth: true,
   });
 }
