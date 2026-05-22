@@ -26,7 +26,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/admin/reservations", label: "예약" },
       { href: "/admin/members", label: "회원" },
-      { href: "/admin/pt-applications", label: "PT 신청" },
+      { href: "/admin/pt-applications", label: "PT" },
     ],
   },
   {

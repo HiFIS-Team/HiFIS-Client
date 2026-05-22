@@ -73,7 +73,7 @@ export default function AdminPtApplicationsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deletePtApplication(id),
     onSuccess: () => {
-      toast.success("PT 신청이 삭제되었습니다.");
+      toast.success("PT가 삭제되었습니다.");
       setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin", "pt-applications"] });
     },
@@ -87,7 +87,7 @@ export default function AdminPtApplicationsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">PT 신청 조회</h1>
+      <h1 className="text-2xl font-bold text-gray-900">PT 조회</h1>
       <p className="mt-1 text-sm text-gray-500">
         키오스크 PT 신청서로 접수된 개인 레슨 신청입니다.
       </p>
@@ -116,7 +116,7 @@ export default function AdminPtApplicationsPage() {
         ) : ptQuery.isError ? (
           <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
         ) : applications.length === 0 ? (
-          <TableMessage>PT 신청이 없습니다.</TableMessage>
+          <TableMessage>등록된 PT가 없습니다.</TableMessage>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full text-left text-sm">
@@ -209,10 +209,10 @@ export default function AdminPtApplicationsPage() {
       <ConfirmDialog
         open={deleteTarget !== null}
         danger
-        title="PT 신청 삭제"
+        title="PT 삭제"
         message={
           deleteTarget
-            ? `${deleteTarget.name}님의 PT 신청을 삭제하시겠습니까?`
+            ? `${deleteTarget.name}님의 PT를 삭제하시겠습니까?`
             : ""
         }
         confirmLabel="삭제"

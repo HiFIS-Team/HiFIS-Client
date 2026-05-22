@@ -58,7 +58,7 @@ export function PtDetailDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
-          PT 신청 상세
+          PT 상세
         </h2>
 
         {isLoading ? (

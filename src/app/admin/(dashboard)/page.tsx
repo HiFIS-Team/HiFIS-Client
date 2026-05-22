@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
         />
         <StatCard label="회원" value={members.length} href="/admin/members" />
         <StatCard
-          label="PT 신청"
+          label="PT"
           value={pts.length}
           href="/admin/pt-applications"
         />

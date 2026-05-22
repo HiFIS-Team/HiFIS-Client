@@ -32,7 +32,7 @@ export const TRIGGER_LABELS: Record<string, string> = {
 // 알림톡 발생 출처(source_type) 한국어 라벨
 export const SOURCE_TYPE_LABELS: Record<string, string> = {
   MEMBER: "회원",
-  PT_APPLICATION: "PT 신청",
+  PT_APPLICATION: "PT",
   RESERVATION: "예약",
   HOLD: "홀딩",
 };

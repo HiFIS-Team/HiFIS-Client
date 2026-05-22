@@ -77,7 +77,7 @@ export function PtEditDialog({
         notes: form.notes.trim() || null,
       }),
     onSuccess: () => {
-      toast.success("PT 신청 정보가 수정되었습니다.");
+      toast.success("PT 정보가 수정되었습니다.");
       queryClient.invalidateQueries({ queryKey: ["admin", "pt-applications"] });
       onClose();
     },
@@ -133,7 +133,7 @@ export function PtEditDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
-          PT 신청 정보 수정
+          PT 정보 수정
         </h2>
 
         {isLoading ? (

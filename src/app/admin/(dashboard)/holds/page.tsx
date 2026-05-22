@@ -15,7 +15,7 @@ import { formatPhone } from "@/lib/format";
 
 const SOURCE_TYPES = [
   { value: "MEMBER", label: "회원" },
-  { value: "PT_APPLICATION", label: "PT 신청" },
+  { value: "PT_APPLICATION", label: "PT" },
 ];
 
 export default function AdminHoldsPage() {
@@ -84,7 +84,7 @@ export default function AdminHoldsPage() {
     <div className="max-w-xl">
       <h1 className="text-2xl font-bold text-gray-900">홀딩</h1>
       <p className="mt-1 text-sm text-gray-500">
-        회원·PT 신청의 이용 기간을 일시 정지(홀딩)합니다.
+        회원·PT의 이용 기간을 일시 정지(홀딩)합니다.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
