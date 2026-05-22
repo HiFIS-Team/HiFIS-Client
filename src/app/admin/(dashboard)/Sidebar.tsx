@@ -9,23 +9,44 @@ import type { Admin } from "@/lib/api/types";
 interface NavItem {
   href: string;
   label: string;
-  // 아직 구현 전이면 false → 사이드바에 흐리게 "준비 중" 표시
-  ready: boolean;
-  // SUPER_ADMIN 전용 메뉴 (FC에게는 숨김)
+  // SUPER_ADMIN 전용 (FC에게는 숨김)
   superOnly?: boolean;
 }
+interface NavGroup {
+  // null이면 그룹 라벨 없이 항목만
+  label: string | null;
+  items: NavItem[];
+}
 
-const NAV: NavItem[] = [
-  { href: "/admin", label: "대시보드", ready: true },
-  { href: "/admin/reservations", label: "예약", ready: true },
-  { href: "/admin/members", label: "회원", ready: true },
-  { href: "/admin/pt-applications", label: "PT 신청", ready: true },
-  { href: "/admin/passes", label: "상품 관리", ready: true },
-  { href: "/admin/stats", label: "통계", ready: true },
-  { href: "/admin/messages", label: "알림톡 이력", ready: true },
-  { href: "/admin/holds", label: "홀딩", ready: true },
-  { href: "/admin/branches", label: "지점 관리", ready: true, superOnly: true },
-  { href: "/admin/admins", label: "관리자 관리", ready: true, superOnly: true },
+const NAV: NavGroup[] = [
+  { label: null, items: [{ href: "/admin", label: "대시보드" }] },
+  {
+    label: "신청 조회",
+    items: [
+      { href: "/admin/reservations", label: "예약" },
+      { href: "/admin/members", label: "회원" },
+      { href: "/admin/pt-applications", label: "PT 신청" },
+    ],
+  },
+  {
+    label: "운영",
+    items: [
+      { href: "/admin/holds", label: "홀딩" },
+      { href: "/admin/passes", label: "상품 관리" },
+      { href: "/admin/branches", label: "지점 관리", superOnly: true },
+    ],
+  },
+  {
+    label: "분석",
+    items: [
+      { href: "/admin/stats", label: "통계" },
+      { href: "/admin/messages", label: "알림톡 이력" },
+    ],
+  },
+  {
+    label: "계정",
+    items: [{ href: "/admin/admins", label: "관리자 관리", superOnly: true }],
+  },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
@@ -37,11 +58,6 @@ export function Sidebar({ admin }: { admin: Admin }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
-
-  // FC는 SUPER_ADMIN 전용 메뉴를 보지 못함
-  const items = NAV.filter(
-    (n) => !n.superOnly || admin.role === "SUPER_ADMIN",
-  );
 
   function isActive(href: string): boolean {
     if (href === "/admin") return pathname === "/admin";
@@ -61,30 +77,38 @@ export function Sidebar({ admin }: { admin: Admin }) {
         <span className="ml-1.5 text-sm text-gray-500">관리자</span>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-        {items.map((item) =>
-          item.ready ? (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive(item.href)
-                  ? "bg-primary text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ) : (
-            <span
-              key={item.href}
-              className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-gray-400"
-            >
-              {item.label}
-              <span className="text-xs">준비 중</span>
-            </span>
-          ),
-        )}
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+        {NAV.map((group, gi) => {
+          // FC는 SUPER_ADMIN 전용 항목 제외 — 그룹이 비면 통째로 숨김
+          const items = group.items.filter(
+            (n) => !n.superOnly || admin.role === "SUPER_ADMIN",
+          );
+          if (items.length === 0) return null;
+          return (
+            <div key={gi}>
+              {group.label && (
+                <p className="px-3 pb-1 text-xs font-semibold text-gray-400">
+                  {group.label}
+                </p>
+              )}
+              <div className="space-y-1">
+                {items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive(item.href)
+                        ? "bg-primary text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </nav>
 
       <div className="border-t border-gray-200 px-5 py-4">
