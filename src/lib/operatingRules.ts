@@ -57,6 +57,6 @@ export const OPERATING_RULES: TermsContent = {
   ],
 };
 
-// 운영회칙 준수 서약 — 회원가입 신청서의 동의 항목으로 표시하고 체크박스로 동의받는다.
-export const OPERATING_RULES_PLEDGE =
+// 회원가입·PT 신청서의 동의 항목으로 본문에 표시하는 준수 서약문 (체크박스로 동의받음).
+export const MEMBERSHIP_PLEDGE =
   "상기 본인은 피트니스 스타 회원으로 가입함에 있어 회칙, 세칙, 규정 등 준수사항을 충분히 숙지하고 이를 성실히 준수할 것을 서약합니다.";

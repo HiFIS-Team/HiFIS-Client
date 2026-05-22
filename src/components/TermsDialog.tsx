@@ -1,8 +1,8 @@
 "use client";
 
-// 약관 한 조항 — 제목 + 본문 문단들 (번호 항목이면 "1. ..." 형태로 그대로 넣는다)
+// 약관 한 묶음 — 제목(선택) + 본문 문단들 (번호·불릿 항목이면 "1. "·"• " 형태로 그대로 넣는다)
 export interface TermsSection {
-  heading: string;
+  heading?: string;
   body: string[];
 }
 
@@ -36,10 +36,14 @@ export function TermsDialog({
         </h2>
 
         <div className="space-y-6 overflow-y-auto px-6 py-6">
-          {content.sections.map((s) => (
-            <section key={s.heading}>
-              <h3 className="text-base font-bold text-gray-900">{s.heading}</h3>
-              <div className="mt-2 space-y-2">
+          {content.sections.map((s, si) => (
+            <section key={si}>
+              {s.heading && (
+                <h3 className="text-base font-bold text-gray-900">
+                  {s.heading}
+                </h3>
+              )}
+              <div className={`space-y-2 ${s.heading ? "mt-2" : ""}`}>
                 {s.body.map((p, i) => (
                   <p key={i} className="text-base/7 text-gray-700">
                     {p}

@@ -16,6 +16,9 @@ import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
+import { TermsDialog } from "@/components/TermsDialog";
+import { PT_NOTICE } from "@/lib/ptNotice";
+import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
@@ -81,6 +84,7 @@ export function PtForm({ branchId }: { branchId: string }) {
     return { ...INITIAL, start_date: t, end_date: addDays(t, PT_DURATION_DAYS) };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [noticeOpen, setNoticeOpen] = useState(false);
   const mutation = useMutation({ mutationFn: createPtApplication });
 
   const set = (patch: Partial<FormState>) =>
@@ -366,13 +370,28 @@ export function PtForm({ branchId }: { branchId: string }) {
         </Section>
 
         <Section title="동의">
-          <Checkbox
-            id="agreed-notice"
-            label="유의사항을 확인하였습니다. (필수)"
-            checked={form.agreed_notice}
-            onChange={(e) => set({ agreed_notice: e.target.checked })}
-            error={errors.agreed_notice}
-          />
+          <div>
+            {/* 준수 서약문 — 동의 대상 */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+              <p className="text-base/7 text-gray-700">{MEMBERSHIP_PLEDGE}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNoticeOpen(true)}
+              className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
+              서명 전 유의사항 보기
+            </button>
+            <div className="mt-4">
+              <Checkbox
+                id="agreed-notice"
+                label="위 내용에 동의합니다. (필수)"
+                checked={form.agreed_notice}
+                onChange={(e) => set({ agreed_notice: e.target.checked })}
+                error={errors.agreed_notice}
+              />
+            </div>
+          </div>
         </Section>
 
         {submitError && (
@@ -398,6 +417,10 @@ export function PtForm({ branchId }: { branchId: string }) {
           </Button>
         </div>
       </form>
+
+      {noticeOpen && (
+        <TermsDialog content={PT_NOTICE} onClose={() => setNoticeOpen(false)} />
+      )}
     </main>
   );
 }
