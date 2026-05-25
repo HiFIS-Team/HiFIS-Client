@@ -193,9 +193,17 @@ export default function AdminPtApplicationsPage() {
         ) : visibleApplications.length === 0 ? (
           <TableMessage>등록된 PT가 없습니다.</TableMessage>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
+          <>
+            <p className="mb-3 text-sm text-gray-500">
+              총{" "}
+              <span className="font-semibold text-gray-700">
+                {visibleApplications.length}
+              </span>
+              건
+            </p>
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
                 <tr>
                   <Th>지점</Th>
                   <Th>이름</Th>
@@ -243,9 +251,10 @@ export default function AdminPtApplicationsPage() {
                     </Td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
