@@ -3,7 +3,14 @@
 import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPinIcon, PhoneIcon } from "@heroicons/react/24/outline";
+import {
+  BoltIcon,
+  BuildingOffice2Icon,
+  CalendarIcon,
+  MapPinIcon,
+  PhoneIcon,
+  UsersIcon,
+} from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import {
   createBranch,
@@ -147,7 +154,35 @@ export default function AdminBranchesPage() {
         피트니스스타 지점을 등록·수정합니다.
       </p>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
+            <BuildingOffice2Icon className="size-3.5 text-primary" />
+            <span className="font-semibold text-gray-900">
+              {branches.length}
+            </span>
+            <span className="text-gray-600">지점</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
+            <UsersIcon className="size-3.5 text-primary" />
+            <span className="font-semibold text-gray-900">
+              {members.length}
+            </span>
+            <span className="text-gray-600">회원</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
+            <BoltIcon className="size-3.5 text-primary" />
+            <span className="font-semibold text-gray-900">{pts.length}</span>
+            <span className="text-gray-600">PT</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
+            <CalendarIcon className="size-3.5 text-primary" />
+            <span className="font-semibold text-gray-900">
+              {reservations.length}
+            </span>
+            <span className="text-gray-600">예약</span>
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => setFormTarget("new")}
