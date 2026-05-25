@@ -136,7 +136,7 @@ export default function AdminMessagesPage() {
                       <MsgStatusBadge status={m.status} />
                     </Td>
                     <Td>
-                      <span className="block max-w-sm truncate text-gray-600">
+                      <span className="block max-w-[12rem] truncate text-gray-600">
                         {m.content}
                       </span>
                     </Td>
