@@ -10,6 +10,7 @@ import {
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import { deleteMember, getAdminMembers } from "@/lib/api/members";
+import { cancelHold } from "@/lib/api/holds";
 import { getMembershipPasses } from "@/lib/api/passes";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
@@ -31,6 +32,7 @@ export default function AdminMembersPage() {
   const [editTarget, setEditTarget] = useState<Member | null>(null);
   const [viewTarget, setViewTarget] = useState<Member | null>(null);
   const [holdTarget, setHoldTarget] = useState<Member | null>(null);
+  const [cancelHoldTarget, setCancelHoldTarget] = useState<Member | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -78,6 +80,30 @@ export default function AdminMembersPage() {
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
+
+  const cancelHoldMutation = useMutation({
+    mutationFn: (id: string) =>
+      cancelHold({ source_type: "MEMBER", source_id: id }),
+    onSuccess: () => {
+      toast.success("홀딩이 취소되었습니다.");
+      setCancelHoldTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "members"] });
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  // 행의 [홀딩] 클릭 — 상태에 따라 분기 (만료: 안내 / 홀딩: 취소 / 유효: 등록)
+  function handleHoldClick(m: Member) {
+    if (m.status === "EXPIRED") {
+      toast.error("만료자입니다.");
+      return;
+    }
+    if (m.status === "HELD") {
+      setCancelHoldTarget(m);
+      return;
+    }
+    setHoldTarget(m);
+  }
 
   const branchName = (id: string) =>
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
@@ -165,7 +191,7 @@ export default function AdminMembersPage() {
                         >
                           보기
                         </RowActionButton>
-                        <RowActionButton onClick={() => setHoldTarget(m)}>
+                        <RowActionButton onClick={() => handleHoldClick(m)}>
                           홀딩
                         </RowActionButton>
                         <RowActionButton onClick={() => setEditTarget(m)}>
@@ -230,6 +256,22 @@ export default function AdminMembersPage() {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
         }}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={cancelHoldTarget !== null}
+        title="홀딩 취소"
+        message={
+          cancelHoldTarget
+            ? `${cancelHoldTarget.name}님의 홀딩을 취소하시겠습니까?`
+            : ""
+        }
+        confirmLabel="홀딩 취소"
+        loading={cancelHoldMutation.isPending}
+        onConfirm={() => {
+          if (cancelHoldTarget) cancelHoldMutation.mutate(cancelHoldTarget.id);
+        }}
+        onCancel={() => setCancelHoldTarget(null)}
       />
     </div>
   );

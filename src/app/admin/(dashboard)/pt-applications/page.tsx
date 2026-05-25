@@ -14,6 +14,7 @@ import {
   getAdminPtApplications,
 } from "@/lib/api/ptApplications";
 import { getPtPasses } from "@/lib/api/passes";
+import { cancelHold } from "@/lib/api/holds";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -34,6 +35,9 @@ export default function AdminPtApplicationsPage() {
   const [editTarget, setEditTarget] = useState<PTApplication | null>(null);
   const [viewTarget, setViewTarget] = useState<PTApplication | null>(null);
   const [holdTarget, setHoldTarget] = useState<PTApplication | null>(null);
+  const [cancelHoldTarget, setCancelHoldTarget] = useState<PTApplication | null>(
+    null,
+  );
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -81,6 +85,30 @@ export default function AdminPtApplicationsPage() {
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
+
+  const cancelHoldMutation = useMutation({
+    mutationFn: (id: string) =>
+      cancelHold({ source_type: "PT_APPLICATION", source_id: id }),
+    onSuccess: () => {
+      toast.success("홀딩이 취소되었습니다.");
+      setCancelHoldTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "pt-applications"] });
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  // 행의 [홀딩] 클릭 — 상태에 따라 분기 (만료: 안내 / 홀딩: 취소 / 유효: 등록)
+  function handleHoldClick(a: PTApplication) {
+    if (a.status === "EXPIRED") {
+      toast.error("만료자입니다.");
+      return;
+    }
+    if (a.status === "HELD") {
+      setCancelHoldTarget(a);
+      return;
+    }
+    setHoldTarget(a);
+  }
 
   const branchName = (id: string) =>
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
@@ -168,7 +196,7 @@ export default function AdminPtApplicationsPage() {
                         >
                           보기
                         </RowActionButton>
-                        <RowActionButton onClick={() => setHoldTarget(a)}>
+                        <RowActionButton onClick={() => handleHoldClick(a)}>
                           홀딩
                         </RowActionButton>
                         <RowActionButton onClick={() => setEditTarget(a)}>
@@ -237,6 +265,22 @@ export default function AdminPtApplicationsPage() {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
         }}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={cancelHoldTarget !== null}
+        title="홀딩 취소"
+        message={
+          cancelHoldTarget
+            ? `${cancelHoldTarget.name}님의 홀딩을 취소하시겠습니까?`
+            : ""
+        }
+        confirmLabel="홀딩 취소"
+        loading={cancelHoldMutation.isPending}
+        onConfirm={() => {
+          if (cancelHoldTarget) cancelHoldMutation.mutate(cancelHoldTarget.id);
+        }}
+        onCancel={() => setCancelHoldTarget(null)}
       />
     </div>
   );
