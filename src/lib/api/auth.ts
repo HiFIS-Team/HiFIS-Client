@@ -56,3 +56,15 @@ export function confirmPasswordReset(
 export function getMe(): Promise<Admin> {
   return apiFetch<Admin>("/admin/me", { auth: true });
 }
+
+// PATCH /admin/me/password — 로그인 상태에서 비밀번호 변경 (현재 비번 확인 필요)
+export function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  return apiFetch<void>("/admin/me/password", {
+    method: "PATCH",
+    body: { current_password: currentPassword, new_password: newPassword },
+    auth: true,
+  });
+}

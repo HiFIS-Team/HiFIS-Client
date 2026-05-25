@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
+import { PasswordChangeDialog } from "./PasswordChangeDialog";
 import { NotificationBell } from "./NotificationBell";
 
 interface NavItem {
@@ -59,6 +61,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   function isActive(href: string): boolean {
     if (href === "/admin") return pathname === "/admin";
@@ -72,6 +75,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
   }
 
   return (
+    <>
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50">
       <div className="flex items-center justify-between px-5 py-5">
         <div>
@@ -128,12 +132,24 @@ export function Sidebar({ admin }: { admin: Admin }) {
         </p>
         <button
           type="button"
-          onClick={logout}
+          onClick={() => setPasswordOpen(true)}
           className="mt-3 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+        >
+          비밀번호 변경
+        </button>
+        <button
+          type="button"
+          onClick={logout}
+          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
         >
           로그아웃
         </button>
       </div>
     </aside>
+
+      {passwordOpen && (
+        <PasswordChangeDialog onClose={() => setPasswordOpen(false)} />
+      )}
+    </>
   );
 }
