@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "./PageTitle";
 import type { ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -485,7 +486,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">대시보드</h1>
+      <PageTitle title="대시보드" />
       <p className="mt-1 text-sm text-gray-500">
         {name ? `${name}님, 환영합니다.` : "환영합니다."}
       </p>

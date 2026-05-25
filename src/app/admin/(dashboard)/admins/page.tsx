@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EnvelopeIcon } from "@heroicons/react/24/outline";
@@ -109,7 +110,7 @@ export default function AdminAdminsPage() {
   if (meQuery.data && !isSuper) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">관리자 관리</h1>
+        <PageTitle title="관리자 관리" />
         <p className="mt-2 text-gray-600">대표 관리자만 접근할 수 있습니다.</p>
       </div>
     );
@@ -126,7 +127,7 @@ export default function AdminAdminsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">관리자 관리</h1>
+      <PageTitle title="관리자 관리" />
       <p className="mt-1 text-sm text-gray-500">
         FC 가입 승인·거부 및 계정 관리.
       </p>

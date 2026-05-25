@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
 import type { Admin } from "@/lib/api/types";
+import { NAV_ICONS } from "./navIcons";
 import { NotificationBell } from "./NotificationBell";
 
 interface NavItem {
@@ -95,19 +96,23 @@ export function Sidebar({ admin }: { admin: Admin }) {
                 </p>
               )}
               <div className="space-y-1">
-                {items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive(item.href)
-                        ? "bg-primary text-white"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {items.map((item) => {
+                  const Icon = NAV_ICONS[item.href];
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive(item.href)
+                          ? "bg-primary text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {Icon && <Icon className="size-4 shrink-0" />}
+                      {item.label}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           );

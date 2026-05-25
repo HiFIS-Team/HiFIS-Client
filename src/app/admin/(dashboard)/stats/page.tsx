@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
@@ -104,7 +105,7 @@ export default function AdminStatsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">통계</h1>
+      <PageTitle title="통계" />
       <p className="mt-1 text-sm text-gray-500">
         이번 달 신청 기준 집계입니다.
       </p>

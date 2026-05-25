@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import {
   useMutation,
@@ -120,7 +121,7 @@ export default function AdminPtApplicationsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">PT 조회</h1>
+      <PageTitle title="PT 조회" />
       <p className="mt-1 text-sm text-gray-500">
         키오스크 PT 신청서로 접수된 개인 레슨 신청입니다.
       </p>

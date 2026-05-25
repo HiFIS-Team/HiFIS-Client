@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import {
   useMutation,
@@ -115,7 +116,7 @@ export default function AdminMembersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">회원 조회</h1>
+      <PageTitle title="회원 조회" />
       <p className="mt-1 text-sm text-gray-500">
         키오스크 회원가입 신청서로 접수된 회원입니다.
       </p>

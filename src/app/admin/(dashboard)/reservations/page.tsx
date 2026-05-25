@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
@@ -56,7 +57,7 @@ export default function AdminReservationsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">예약 신청 조회</h1>
+      <PageTitle title="예약 신청 조회" />
       <p className="mt-1 text-sm text-gray-500">
         네이버 플레이스를 통해 접수된 방문 예약입니다.
       </p>

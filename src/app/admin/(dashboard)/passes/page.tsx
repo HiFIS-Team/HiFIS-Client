@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
@@ -141,7 +142,7 @@ export default function AdminPassesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">상품 관리</h1>
+      <PageTitle title="상품 관리" />
       <p className="mt-1 text-sm text-gray-500">
         지점별 회원권·수강권·락커·운동복 상품을 관리합니다.
       </p>

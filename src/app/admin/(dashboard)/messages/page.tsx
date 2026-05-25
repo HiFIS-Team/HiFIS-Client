@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
@@ -61,7 +62,7 @@ export default function AdminMessagesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">알림톡 이력</h1>
+      <PageTitle title="알림톡 이력" />
       <p className="mt-1 text-sm text-gray-500">
         발송된 알림톡 기록입니다. (최신순)
       </p>

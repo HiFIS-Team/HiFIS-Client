@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PhoneIcon } from "@heroicons/react/24/outline";
@@ -118,7 +119,7 @@ export default function AdminBranchesPage() {
   if (meQuery.data && !isSuper) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">지점 관리</h1>
+        <PageTitle title="지점 관리" />
         <p className="mt-2 text-gray-600">대표 관리자만 접근할 수 있습니다.</p>
       </div>
     );
@@ -141,7 +142,7 @@ export default function AdminBranchesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">지점 관리</h1>
+      <PageTitle title="지점 관리" />
       <p className="mt-1 text-sm text-gray-500">
         피트니스스타 지점을 등록·수정합니다.
       </p>
