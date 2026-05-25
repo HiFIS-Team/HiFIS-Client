@@ -3,6 +3,11 @@
 import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
 import {
+  BuildingOffice2Icon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
+import {
   useMutation,
   useQueries,
   useQuery,
@@ -152,6 +157,7 @@ export default function AdminPtApplicationsPage() {
             <Select
               id="branch-filter"
               label="지점"
+              icon={BuildingOffice2Icon}
               options={[
                 { value: "", label: "전체 지점" },
                 ...(branchesQuery.data ?? []).map((b) => ({
@@ -168,6 +174,7 @@ export default function AdminPtApplicationsPage() {
           <Select
             id="status-filter"
             label="상태"
+            icon={FunnelIcon}
             options={STATUS_FILTERS}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -177,6 +184,7 @@ export default function AdminPtApplicationsPage() {
           <TextField
             id="search"
             label="검색"
+            icon={MagnifyingGlassIcon}
             type="search"
             placeholder="이름 또는 전화번호"
             value={searchInput}

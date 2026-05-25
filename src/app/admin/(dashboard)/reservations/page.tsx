@@ -2,6 +2,7 @@
 
 import { PageTitle } from "../PageTitle";
 import { useState } from "react";
+import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
@@ -67,6 +68,7 @@ export default function AdminReservationsPage() {
           <Select
             id="branch-filter"
             label="지점"
+            icon={BuildingOffice2Icon}
             options={[
               { value: "", label: "전체 지점" },
               ...(branchesQuery.data ?? []).map((b) => ({

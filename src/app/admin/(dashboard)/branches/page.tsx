@@ -3,7 +3,7 @@
 import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PhoneIcon } from "@heroicons/react/24/outline";
+import { MapPinIcon, PhoneIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import {
   createBranch,
@@ -172,7 +172,10 @@ export default function AdminBranchesPage() {
                 className="rounded-xl border border-gray-200 p-5"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-lg font-bold text-gray-900">{b.name}</h2>
+                  <h2 className="flex items-center gap-1.5 text-lg font-bold text-gray-900">
+                    <MapPinIcon className="size-5 text-primary" />
+                    {b.name}
+                  </h2>
                   <RowActionButton onClick={() => setFormTarget(b)}>
                     수정
                   </RowActionButton>

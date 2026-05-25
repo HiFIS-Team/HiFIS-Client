@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import type { ComponentType, InputHTMLAttributes } from "react";
 
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -6,6 +6,8 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   // 보조 설명 — 에러가 없을 때 회색으로 표시
   hint?: string;
+  // 라벨 왼쪽에 표시할 아이콘 (선택)
+  icon?: ComponentType<{ className?: string }>;
 }
 
 // 라벨 + 인풋 한 묶음. Tailwind Plus 폼 스타일을 라이트 테마로 적용.
@@ -13,6 +15,7 @@ export function TextField({
   label,
   error,
   hint,
+  icon: Icon,
   id,
   required,
   className = "",
@@ -20,7 +23,11 @@ export function TextField({
 }: TextFieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm/6 font-medium text-gray-900">
+      <label
+        htmlFor={id}
+        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900"
+      >
+        {Icon && <Icon className="size-4 text-gray-500" />}
         {label}
         {required && <span className="text-red-500"> *</span>}
       </label>

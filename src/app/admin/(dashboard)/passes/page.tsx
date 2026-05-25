@@ -1,7 +1,16 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
+import {
+  BanknotesIcon,
+  BoltIcon,
+  BuildingOffice2Icon,
+  CreditCardIcon,
+  LockClosedIcon,
+  ShoppingBagIcon,
+  TicketIcon,
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
@@ -25,11 +34,15 @@ import { formatWon } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
 import { PassFormDialog } from "./PassFormDialog";
 
-const TABS: { type: PassType; label: string }[] = [
-  { type: "membership", label: "회원권" },
-  { type: "pt", label: "수강권" },
-  { type: "locker", label: "락커" },
-  { type: "clothes", label: "운동복" },
+const TABS: {
+  type: PassType;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}[] = [
+  { type: "membership", label: "회원권", icon: TicketIcon },
+  { type: "pt", label: "수강권", icon: BoltIcon },
+  { type: "locker", label: "락커", icon: LockClosedIcon },
+  { type: "clothes", label: "운동복", icon: ShoppingBagIcon },
 ];
 
 export default function AdminPassesPage() {
@@ -152,6 +165,7 @@ export default function AdminPassesPage() {
           <Select
             id="branch"
             label="지점"
+            icon={BuildingOffice2Icon}
             options={(branchesQuery.data ?? []).map((b) => ({
               value: b.id,
               label: b.name,
@@ -164,20 +178,24 @@ export default function AdminPassesPage() {
 
       <div className="mt-6 flex items-end justify-between border-b border-gray-200">
         <div className="flex gap-1">
-          {TABS.map((t) => (
-            <button
-              key={t.type}
-              type="button"
-              onClick={() => setActiveType(t.type)}
-              className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
-                activeType === t.type
-                  ? "border-primary text-primary"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.type}
+                type="button"
+                onClick={() => setActiveType(t.type)}
+                className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium ${
+                  activeType === t.type
+                    ? "border-primary text-primary"
+                    : "border-transparent text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                <Icon className="size-4" />
+                {t.label}
+              </button>
+            );
+          })}
         </div>
         <button
           type="button"
@@ -221,13 +239,19 @@ export default function AdminPassesPage() {
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 px-3 py-4 text-center">
                   <div>
-                    <p className="text-xs text-gray-500">현금가</p>
+                    <p className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                      <BanknotesIcon className="size-3.5" />
+                      현금가
+                    </p>
                     <p className="mt-1 text-lg font-bold text-gray-900">
                       {formatWon(p.cash_price)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">카드가</p>
+                    <p className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                      <CreditCardIcon className="size-3.5" />
+                      카드가
+                    </p>
                     <p className="mt-1 text-lg font-bold text-gray-900">
                       {formatWon(p.card_price)}
                     </p>

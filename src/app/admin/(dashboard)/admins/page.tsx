@@ -3,7 +3,7 @@
 import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { EnvelopeIcon } from "@heroicons/react/24/outline";
+import { BuildingOffice2Icon, EnvelopeIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
@@ -136,6 +136,7 @@ export default function AdminAdminsPage() {
         <Select
           id="branch-filter"
           label="지점"
+          icon={BuildingOffice2Icon}
           options={[
             { value: "", label: "전체 지점" },
             ...(branchesQuery.data ?? []).map((b) => ({

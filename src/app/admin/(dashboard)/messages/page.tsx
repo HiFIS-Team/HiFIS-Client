@@ -2,6 +2,11 @@
 
 import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
+import {
+  BuildingOffice2Icon,
+  MagnifyingGlassIcon,
+  TagIcon,
+} from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
@@ -81,6 +86,7 @@ export default function AdminMessagesPage() {
             <Select
               id="branch-filter"
               label="지점"
+              icon={BuildingOffice2Icon}
               options={[
                 { value: "", label: "전체 지점" },
                 ...(branchesQuery.data ?? []).map((b) => ({
@@ -97,6 +103,7 @@ export default function AdminMessagesPage() {
           <Select
             id="type-filter"
             label="종류"
+            icon={TagIcon}
             options={[
               { value: "", label: "전체 종류" },
               ...Object.entries(TRIGGER_LABELS).map(([code, label]) => ({
@@ -112,6 +119,7 @@ export default function AdminMessagesPage() {
           <TextField
             id="search"
             label="검색"
+            icon={MagnifyingGlassIcon}
             type="search"
             placeholder="수신자 전화번호"
             value={searchInput}

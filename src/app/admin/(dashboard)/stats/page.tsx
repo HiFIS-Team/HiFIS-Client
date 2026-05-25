@@ -1,7 +1,12 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
+import {
+  BuildingOffice2Icon,
+  FlagIcon,
+  MegaphoneIcon,
+} from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
@@ -15,11 +20,22 @@ import type { EnumOption } from "@/lib/api/types";
 import { Select } from "@/components/Select";
 
 // 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이)
-function StatChart({ title, data }: { title: string; data: StatsResponse }) {
+function StatChart({
+  title,
+  data,
+  icon: Icon,
+}: {
+  title: string;
+  data: StatsResponse;
+  icon?: ComponentType<{ className?: string }>;
+}) {
   return (
     <section className="rounded-xl border border-gray-200 p-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+        <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
+          {Icon && <Icon className="size-4 text-primary" />}
+          {title}
+        </h2>
         <span className="text-sm text-gray-500">총 {data.total}건</span>
       </div>
       {data.items.length === 0 ? (
@@ -115,6 +131,7 @@ export default function AdminStatsPage() {
           <Select
             id="branch"
             label="지점"
+            icon={BuildingOffice2Icon}
             options={[
               { value: "", label: "전체 지점" },
               ...(branchesQuery.data ?? []).map((b) => ({
@@ -137,6 +154,7 @@ export default function AdminStatsPage() {
           <div className="grid gap-5 sm:grid-cols-2">
             <StatChart
               title="유입 경로"
+              icon={MegaphoneIcon}
               data={fillWithEnum(
                 referralQuery.data!,
                 enumsQuery.data!.referral,
@@ -144,6 +162,7 @@ export default function AdminStatsPage() {
             />
             <StatChart
               title="방문 목적"
+              icon={FlagIcon}
               data={fillWithEnum(
                 motivationQuery.data!,
                 enumsQuery.data!.motivation,
