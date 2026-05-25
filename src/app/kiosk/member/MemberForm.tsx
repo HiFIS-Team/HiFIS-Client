@@ -3,7 +3,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import {
@@ -20,6 +19,7 @@ import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { KioskSuccess } from "../KioskSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
@@ -192,24 +192,13 @@ export function MemberForm({ branchId }: { branchId: string }) {
     });
   };
 
-  // 제출 성공 — 완료 화면
+  // 제출 성공 — 완료 화면 (5초 후 키오스크 진입 화면으로 자동 복귀)
   if (mutation.isSuccess) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16 text-center">
-        <CheckCircleIcon className="mx-auto size-16 text-primary" />
-        <h1 className="mt-4 text-2xl font-bold text-gray-900">
-          회원가입 신청이 접수되었습니다
-        </h1>
-        <p className="mt-2 text-base text-gray-600">
-          {mutation.data.name}님, 신청해 주셔서 감사합니다.
-        </p>
-        <Link
-          href="/kiosk"
-          className="mt-8 inline-block rounded-md bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary-hover"
-        >
-          처음으로
-        </Link>
-      </main>
+      <KioskSuccess
+        title="회원가입 신청이 접수되었습니다"
+        name={mutation.data.name}
+      />
     );
   }
 
