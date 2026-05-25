@@ -12,12 +12,14 @@ import {
   type PassInput,
   type PassType,
 } from "@/lib/api/passes";
+import { getAdminMembers } from "@/lib/api/members";
+import { getAdminPtApplications } from "@/lib/api/ptApplications";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
-import { Td, Th, TableMessage } from "@/components/Table";
+import { TableMessage } from "@/components/Table";
 import { formatWon } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
 import { PassFormDialog } from "./PassFormDialog";
@@ -69,6 +71,16 @@ export default function AdminPassesPage() {
     enabled: !!branchId,
   });
 
+  // 카드의 "이용자 N명" 표시용 — 대시보드와 같은 캐시키
+  const membersQuery = useQuery({
+    queryKey: ["admin", "members", "all"],
+    queryFn: () => getAdminMembers(),
+  });
+  const ptApplicationsQuery = useQuery({
+    queryKey: ["admin", "pt-applications", "all"],
+    queryFn: () => getAdminPtApplications(),
+  });
+
   const invalidate = () =>
     queryClient.invalidateQueries({
       queryKey: ["admin", "passes", activeType, branchId],
@@ -108,6 +120,19 @@ export default function AdminPassesPage() {
 
   const passes = passesQuery.data ?? [];
   const editing = formTarget && formTarget !== "new" ? formTarget : null;
+
+  // 현재 활성 탭의 상품을 회원/PT 신청 중 몇 건이 선택했는지
+  function userCountFor(passId: string): number {
+    const allMembers = membersQuery.data ?? [];
+    const allPts = ptApplicationsQuery.data ?? [];
+    if (activeType === "membership")
+      return allMembers.filter((m) => m.membership_pass_id === passId).length;
+    if (activeType === "pt")
+      return allPts.filter((x) => x.pt_pass_id === passId).length;
+    if (activeType === "locker")
+      return allMembers.filter((m) => m.locker_pass_id === passId).length;
+    return allMembers.filter((m) => m.clothes_pass_id === passId).length;
+  }
 
   function submitForm(values: PassInput) {
     if (editing) updateMutation.mutate({ id: editing.id, values });
@@ -173,39 +198,48 @@ export default function AdminPassesPage() {
         ) : passes.length === 0 ? (
           <TableMessage>등록된 {typeLabel}이(가) 없습니다.</TableMessage>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <Th>상품명</Th>
-                  <Th>현금가</Th>
-                  <Th>카드가</Th>
-                  <Th> </Th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {passes.map((p) => (
-                  <tr key={p.id} className="text-gray-800">
-                    <Td className="font-medium">{p.name}</Td>
-                    <Td>{formatWon(p.cash_price)}</Td>
-                    <Td>{formatWon(p.card_price)}</Td>
-                    <Td>
-                      <div className="flex justify-end gap-2">
-                        <RowActionButton onClick={() => setFormTarget(p)}>
-                          수정
-                        </RowActionButton>
-                        <RowActionButton
-                          variant="danger"
-                          onClick={() => setDeleteTarget(p)}
-                        >
-                          삭제
-                        </RowActionButton>
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {passes.map((p) => (
+              <article
+                key={p.id}
+                className="rounded-xl border border-gray-200 p-5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="text-lg font-bold text-gray-900">{p.name}</h2>
+                  <div className="flex shrink-0 gap-2">
+                    <RowActionButton onClick={() => setFormTarget(p)}>
+                      수정
+                    </RowActionButton>
+                    <RowActionButton
+                      variant="danger"
+                      onClick={() => setDeleteTarget(p)}
+                    >
+                      삭제
+                    </RowActionButton>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 px-3 py-4 text-center">
+                  <div>
+                    <p className="text-xs text-gray-500">현금가</p>
+                    <p className="mt-1 text-lg font-bold text-gray-900">
+                      {formatWon(p.cash_price)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">카드가</p>
+                    <p className="mt-1 text-lg font-bold text-gray-900">
+                      {formatWon(p.card_price)}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-gray-500">
+                  이용자{" "}
+                  <span className="font-semibold text-gray-900">
+                    {userCountFor(p.id)}명
+                  </span>
+                </p>
+              </article>
+            ))}
           </div>
         )}
       </div>
