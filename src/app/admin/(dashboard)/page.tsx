@@ -7,6 +7,7 @@ import { getAdmins } from "@/lib/api/admins";
 import { getAdminReservations } from "@/lib/api/reservations";
 import { getAdminMembers } from "@/lib/api/members";
 import { getAdminPtApplications } from "@/lib/api/ptApplications";
+import { getAdminMessages } from "@/lib/api/messages";
 import { formatDate } from "@/lib/format";
 
 // 클릭 가능한 요약 숫자 카드
@@ -51,6 +52,10 @@ export default function AdminDashboardPage() {
     queryKey: ["admin", "pt-applications", "all"],
     queryFn: () => getAdminPtApplications(),
   });
+  const messagesQuery = useQuery({
+    queryKey: ["admin", "messages", "all"],
+    queryFn: () => getAdminMessages(),
+  });
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
     queryFn: getAdmins,
@@ -60,9 +65,7 @@ export default function AdminDashboardPage() {
   const reservations = reservationsQuery.data ?? [];
   const members = membersQuery.data ?? [];
   const pts = ptQuery.data ?? [];
-  const activeMembers = members.filter(
-    (m) => m.status === "REGISTERED",
-  ).length;
+  const messages = messagesQuery.data ?? [];
   const pendingFc = (adminsQuery.data ?? []).filter(
     (a) => a.status === "PENDING_APPROVAL",
   ).length;
@@ -113,9 +116,9 @@ export default function AdminDashboardPage() {
           href="/admin/pt-applications"
         />
         <StatCard
-          label="활성 회원"
-          value={activeMembers}
-          href="/admin/members"
+          label="알림톡 이력"
+          value={messages.length}
+          href="/admin/messages"
         />
       </div>
 
