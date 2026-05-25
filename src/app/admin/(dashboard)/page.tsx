@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
+  CakeIcon,
   CalendarDaysIcon,
   CalendarIcon,
   ChatBubbleLeftRightIcon,
@@ -21,7 +22,8 @@ import { getAdminReservations } from "@/lib/api/reservations";
 import { getAdminMembers } from "@/lib/api/members";
 import { getAdminPtApplications } from "@/lib/api/ptApplications";
 import { getAdminMessages } from "@/lib/api/messages";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatPhone } from "@/lib/format";
+import type { Member } from "@/lib/api/types";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
@@ -203,6 +205,153 @@ function MonthlyTrendChart({
           <span className="inline-block size-2.5 rounded-sm bg-violet-300" />
           PT
         </span>
+      </div>
+    </section>
+  );
+}
+
+// 오늘 생일자 — birth_date 의 MM-DD 가 오늘과 같은 회원
+function BirthdayCard({ members }: { members: Member[] }) {
+  const today = todayStr();
+  const monthDay = today.slice(5);
+  const list = members.filter((m) => m.birth_date?.slice(5) === monthDay);
+
+  return (
+    <section className="rounded-xl border border-gray-200 p-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-gray-900">오늘 생일자</h3>
+        <CakeIcon className="size-5 text-pink-400" />
+      </div>
+      {list.length === 0 ? (
+        <p className="mt-3 text-sm text-gray-400">오늘 생일자가 없습니다.</p>
+      ) : (
+        <>
+          <p className="mt-1 text-2xl font-bold text-gray-900">
+            {list.length}명
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            {list.slice(0, 5).map((m) => (
+              <li key={m.id} className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-gray-900">{m.name}</span>
+                <span className="text-gray-400">{formatPhone(m.phone)}</span>
+              </li>
+            ))}
+            {list.length > 5 && (
+              <li className="text-xs text-gray-400">외 {list.length - 5}명</li>
+            )}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+// 성별 분포 — 수평 스택 바 + 범례
+function GenderCard({ members }: { members: Member[] }) {
+  const male = members.filter((m) => m.gender === "M").length;
+  const female = members.filter((m) => m.gender === "F").length;
+  const total = male + female;
+  const malePct = total > 0 ? Math.round((male / total) * 100) : 0;
+  const femalePct = total > 0 ? 100 - malePct : 0;
+
+  return (
+    <section className="rounded-xl border border-gray-200 p-5">
+      <h3 className="text-base font-semibold text-gray-900">성별 분포</h3>
+      {total === 0 ? (
+        <p className="mt-3 text-sm text-gray-400">데이터가 없습니다.</p>
+      ) : (
+        <>
+          <div className="mt-4 flex justify-center">
+            {/* viewBox 36×36, r=15.915 → 둘레 ≈ 100 (% 대비 stroke-dasharray) */}
+            <svg viewBox="0 0 36 36" className="size-32">
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                strokeWidth="4"
+                className="stroke-violet-300"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                strokeWidth="4"
+                strokeDasharray={`${malePct} ${100 - malePct}`}
+                transform="rotate(-90 18 18)"
+                className="stroke-primary"
+              />
+              <text
+                x="18"
+                y="18"
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-gray-900 text-[7px] font-bold"
+              >
+                {total}명
+              </text>
+            </svg>
+          </div>
+          <div className="mt-3 flex justify-center gap-4 text-sm">
+            <span className="flex items-center gap-1.5 text-gray-700">
+              <span className="inline-block size-2.5 rounded-sm bg-primary" />
+              남 {male} · {malePct}%
+            </span>
+            <span className="flex items-center gap-1.5 text-gray-700">
+              <span className="inline-block size-2.5 rounded-sm bg-violet-300" />
+              여 {female} · {femalePct}%
+            </span>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+// 연령대 분포 — 만 나이 기준 10대~50대+ 버킷별 막대
+function AgeRangeCard({ members }: { members: Member[] }) {
+  const currentYear = Number(todayStr().slice(0, 4));
+  const labels = ["10대", "20대", "30대", "40대", "50대+"] as const;
+  const buckets: Record<string, number> = {
+    "10대": 0,
+    "20대": 0,
+    "30대": 0,
+    "40대": 0,
+    "50대+": 0,
+  };
+  for (const m of members) {
+    if (!m.birth_date) continue;
+    const age = currentYear - Number(m.birth_date.slice(0, 4));
+    if (age < 20) buckets["10대"]++;
+    else if (age < 30) buckets["20대"]++;
+    else if (age < 40) buckets["30대"]++;
+    else if (age < 50) buckets["40대"]++;
+    else buckets["50대+"]++;
+  }
+  const max = Math.max(...Object.values(buckets), 1);
+
+  return (
+    <section className="rounded-xl border border-gray-200 p-5">
+      <h3 className="text-base font-semibold text-gray-900">연령대 분포</h3>
+      <div className="mt-4 space-y-2">
+        {labels.map((label) => {
+          const count = buckets[label];
+          return (
+            <div key={label} className="flex items-center gap-2 text-sm">
+              <span className="w-12 shrink-0 text-gray-500">{label}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                <div
+                  style={{ width: `${(count / max) * 100}%` }}
+                  className="h-full rounded-full bg-primary"
+                />
+              </div>
+              <span className="w-8 shrink-0 text-right text-gray-700">
+                {count}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -405,6 +554,15 @@ export default function AdminDashboardPage() {
           memberDates={members.map((m) => m.created_at)}
           ptDates={pts.map((p) => p.created_at)}
         />
+      </section>
+
+      <section className="mt-6">
+        <h2 className="text-base font-semibold text-gray-900">회원 분석</h2>
+        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+          <BirthdayCard members={members} />
+          <GenderCard members={members} />
+          <AgeRangeCard members={members} />
+        </div>
       </section>
 
       <section className="mt-6">
