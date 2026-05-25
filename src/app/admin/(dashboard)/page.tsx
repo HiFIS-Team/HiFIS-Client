@@ -1,7 +1,6 @@
 "use client";
 
 import type { ComponentType } from "react";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
@@ -23,7 +22,7 @@ import { getAdminMembers } from "@/lib/api/members";
 import { getAdminPtApplications } from "@/lib/api/ptApplications";
 import { getAdminMessages } from "@/lib/api/messages";
 import { formatDate, formatPhone } from "@/lib/format";
-import type { Member } from "@/lib/api/types";
+import type { Member, PTApplication } from "@/lib/api/types";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
@@ -35,57 +34,70 @@ function addDays(dateStr: string, days: number): string {
   return new Date(y, m - 1, d + days).toLocaleDateString("en-CA");
 }
 
-// 클릭 가능한 요약 숫자 카드 — 아이콘 + 라벨 + 큰 숫자 + 부가 정보
+// 사람 단위 통계용 공통 타입 — 회원·PT 신청 양쪽에 공통으로 있는 필드만
+type Person = {
+  id: string;
+  phone: string;
+  name: string;
+  gender: string;
+  birth_date: string;
+};
+
+// 회원 + PT 신청을 전화번호로 합쳐 중복 제거 — 같은 사람이 양쪽에 있으면 1명으로
+function uniquePeople(members: Member[], pts: PTApplication[]): Person[] {
+  const byPhone = new Map<string, Person>();
+  for (const m of members) {
+    if (!byPhone.has(m.phone)) byPhone.set(m.phone, m);
+  }
+  for (const p of pts) {
+    if (!byPhone.has(p.phone)) byPhone.set(p.phone, p);
+  }
+  return Array.from(byPhone.values());
+}
+
+// 요약 숫자 카드 — 아이콘 + 라벨 + 큰 숫자 + 부가 정보 (브랜드 톤 보라 테두리)
 function StatCard({
   label,
   value,
-  href,
   hint,
   icon: Icon,
   iconClassName = "text-gray-400",
 }: {
   label: string;
   value: number;
-  href: string;
   hint?: string;
   icon: ComponentType<{ className?: string }>;
   iconClassName?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className="rounded-xl border border-gray-200 p-4 transition-colors hover:border-primary"
-    >
+    <div className="rounded-xl border border-violet-200 bg-white p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">{label}</p>
         <Icon className={`size-5 ${iconClassName}`} />
       </div>
       <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
-    </Link>
+    </div>
   );
 }
 
-// 처리할 일 카드 — 값 > 0 이면 amber 톤으로 강조, 0 이면 평범하게 (해야 할 일이 없다는 신호)
+// 처리할 일 카드 — 값 > 0 이면 amber 톤으로 강조, 0 이면 보라 테두리 (해야 할 일이 없다는 신호)
 function TodoCard({
   label,
   value,
-  href,
   icon: Icon,
 }: {
   label: string;
   value: number;
-  href: string;
   icon: ComponentType<{ className?: string }>;
 }) {
   const active = value > 0;
   return (
-    <Link
-      href={href}
-      className={`rounded-xl border p-4 transition-colors ${
+    <div
+      className={`rounded-xl border p-4 ${
         active
-          ? "border-amber-200 bg-amber-50 hover:bg-amber-100"
-          : "border-gray-200 hover:border-primary"
+          ? "border-amber-200 bg-amber-50"
+          : "border-violet-200 bg-white"
       }`}
     >
       <div className="flex items-center justify-between">
@@ -107,7 +119,7 @@ function TodoCard({
       >
         {value}
       </p>
-    </Link>
+    </div>
   );
 }
 
@@ -150,7 +162,7 @@ function MonthlyTrendChart({
   const todayLabel = `${monthLabel}/${todayDay}`;
 
   return (
-    <section className="rounded-xl border border-gray-200 p-5">
+    <section className="rounded-xl border border-violet-200 p-5">
       <div className="flex items-baseline justify-between">
         <h2 className="text-base font-semibold text-gray-900">
           이번 달 가입 추이
@@ -210,14 +222,14 @@ function MonthlyTrendChart({
   );
 }
 
-// 오늘 생일자 — birth_date 의 MM-DD 가 오늘과 같은 회원
-function BirthdayCard({ members }: { members: Member[] }) {
+// 오늘 생일자 — birth_date 의 MM-DD 가 오늘과 같은 사람
+function BirthdayCard({ people }: { people: Person[] }) {
   const today = todayStr();
   const monthDay = today.slice(5);
-  const list = members.filter((m) => m.birth_date?.slice(5) === monthDay);
+  const list = people.filter((p) => p.birth_date?.slice(5) === monthDay);
 
   return (
-    <section className="rounded-xl border border-gray-200 p-5">
+    <section className="rounded-xl border border-violet-200 p-5">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-gray-900">오늘 생일자</h3>
         <CakeIcon className="size-5 text-pink-400" />
@@ -230,10 +242,10 @@ function BirthdayCard({ members }: { members: Member[] }) {
             {list.length}명
           </p>
           <ul className="mt-3 space-y-1.5">
-            {list.slice(0, 5).map((m) => (
-              <li key={m.id} className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-gray-900">{m.name}</span>
-                <span className="text-gray-400">{formatPhone(m.phone)}</span>
+            {list.slice(0, 5).map((p) => (
+              <li key={p.id} className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-gray-900">{p.name}</span>
+                <span className="text-gray-400">{formatPhone(p.phone)}</span>
               </li>
             ))}
             {list.length > 5 && (
@@ -247,15 +259,15 @@ function BirthdayCard({ members }: { members: Member[] }) {
 }
 
 // 성별 분포 — 수평 스택 바 + 범례
-function GenderCard({ members }: { members: Member[] }) {
-  const male = members.filter((m) => m.gender === "M").length;
-  const female = members.filter((m) => m.gender === "F").length;
+function GenderCard({ people }: { people: Person[] }) {
+  const male = people.filter((p) => p.gender === "M").length;
+  const female = people.filter((p) => p.gender === "F").length;
   const total = male + female;
   const malePct = total > 0 ? Math.round((male / total) * 100) : 0;
   const femalePct = total > 0 ? 100 - malePct : 0;
 
   return (
-    <section className="rounded-xl border border-gray-200 p-5">
+    <section className="rounded-xl border border-violet-200 p-5">
       <h3 className="text-base font-semibold text-gray-900">성별 분포</h3>
       {total === 0 ? (
         <p className="mt-3 text-sm text-gray-400">데이터가 없습니다.</p>
@@ -310,7 +322,7 @@ function GenderCard({ members }: { members: Member[] }) {
 }
 
 // 연령대 분포 — 만 나이 기준 10대~50대+ 버킷별 막대
-function AgeRangeCard({ members }: { members: Member[] }) {
+function AgeRangeCard({ people }: { people: Person[] }) {
   const currentYear = Number(todayStr().slice(0, 4));
   const labels = ["10대", "20대", "30대", "40대", "50대+"] as const;
   const buckets: Record<string, number> = {
@@ -320,7 +332,7 @@ function AgeRangeCard({ members }: { members: Member[] }) {
     "40대": 0,
     "50대+": 0,
   };
-  for (const m of members) {
+  for (const m of people) {
     if (!m.birth_date) continue;
     const age = currentYear - Number(m.birth_date.slice(0, 4));
     if (age < 20) buckets["10대"]++;
@@ -332,7 +344,7 @@ function AgeRangeCard({ members }: { members: Member[] }) {
   const max = Math.max(...Object.values(buckets), 1);
 
   return (
-    <section className="rounded-xl border border-gray-200 p-5">
+    <section className="rounded-xl border border-violet-200 p-5">
       <h3 className="text-base font-semibold text-gray-900">연령대 분포</h3>
       <div className="mt-4 space-y-2">
         {labels.map((label) => {
@@ -399,12 +411,20 @@ export default function AdminDashboardPage() {
   const today = todayStr();
   const sevenDaysLater = addDays(today, 7);
   const monthPrefix = today.slice(0, 7);
-  const expiringSoonCount = members.filter(
-    (m) =>
-      m.status === "REGISTERED" &&
-      m.end_date >= today &&
-      m.end_date <= sevenDaysLater,
-  ).length;
+  // 만기 임박 — 회원 + PT 합산 (이용 기간 종료가 곧 다가오는 건수)
+  const expiringSoonCount =
+    members.filter(
+      (m) =>
+        m.status === "REGISTERED" &&
+        m.end_date >= today &&
+        m.end_date <= sevenDaysLater,
+    ).length +
+    pts.filter(
+      (p) =>
+        p.status === "REGISTERED" &&
+        p.end_date >= today &&
+        p.end_date <= sevenDaysLater,
+    ).length;
   const todayVisitCount = reservations.filter(
     (r) => r.visit_date === today,
   ).length;
@@ -423,14 +443,19 @@ export default function AdminDashboardPage() {
     m.sent_at.startsWith(today),
   ).length;
 
-  // 회원 상태 분포
-  const activeMembersCount = members.filter(
-    (m) => m.status === "REGISTERED",
-  ).length;
-  const expiredMembersCount = members.filter(
-    (m) => m.status === "EXPIRED",
-  ).length;
-  const heldMembersCount = members.filter((m) => m.status === "HELD").length;
+  // 회원 분석용 — 회원 + PT 합쳐 전화번호로 중복 제거한 사람 목록
+  const people = uniquePeople(members, pts);
+
+  // 이용자 상태 분포 — 회원 + PT 신청 합산
+  const activeCount =
+    members.filter((m) => m.status === "REGISTERED").length +
+    pts.filter((p) => p.status === "REGISTERED").length;
+  const expiredCount =
+    members.filter((m) => m.status === "EXPIRED").length +
+    pts.filter((p) => p.status === "EXPIRED").length;
+  const heldCount =
+    members.filter((m) => m.status === "HELD").length +
+    pts.filter((p) => p.status === "HELD").length;
 
   // 최근 신청 — 예약·회원·PT 를 합쳐 최신순 상위 5건
   const recent = [
@@ -469,28 +494,24 @@ export default function AdminDashboardPage() {
         <StatCard
           label="예약 신청"
           value={reservations.length}
-          href="/admin/reservations"
           icon={CalendarIcon}
           hint={`이번 달 ${newReservationsThisMonth}건`}
         />
         <StatCard
           label="회원"
           value={members.length}
-          href="/admin/members"
           icon={UsersIcon}
           hint={`이번 달 ${newMembersThisMonth}명`}
         />
         <StatCard
           label="PT"
           value={pts.length}
-          href="/admin/pt-applications"
           icon={BoltIcon}
           hint={`이번 달 ${newPtsThisMonth}건`}
         />
         <StatCard
           label="알림톡 이력"
           value={messages.length}
-          href="/admin/messages"
           icon={ChatBubbleLeftRightIcon}
           hint={`오늘 ${todayMessagesCount}건`}
         />
@@ -501,23 +522,20 @@ export default function AdminDashboardPage() {
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <StatCard
             label="활성"
-            value={activeMembersCount}
-            href="/admin/members"
-            icon={CheckCircleIcon}
+            value={activeCount}
+              icon={CheckCircleIcon}
             iconClassName="text-green-500"
           />
           <StatCard
             label="만료"
-            value={expiredMembersCount}
-            href="/admin/members"
-            icon={XCircleIcon}
+            value={expiredCount}
+              icon={XCircleIcon}
             iconClassName="text-gray-400"
           />
           <StatCard
             label="홀딩"
-            value={heldMembersCount}
-            href="/admin/members"
-            icon={PauseCircleIcon}
+            value={heldCount}
+              icon={PauseCircleIcon}
             iconClassName="text-amber-500"
           />
         </div>
@@ -529,21 +547,18 @@ export default function AdminDashboardPage() {
           <TodoCard
             label="만기 임박 (7일 내)"
             value={expiringSoonCount}
-            href="/admin/members"
-            icon={ClockIcon}
+              icon={ClockIcon}
           />
           <TodoCard
             label="오늘 방문 예정"
             value={todayVisitCount}
-            href="/admin/reservations"
-            icon={CalendarDaysIcon}
+              icon={CalendarDaysIcon}
           />
           {isSuper && (
             <TodoCard
               label="FC 가입 승인 대기"
               value={pendingFc}
-              href="/admin/admins"
-              icon={UserPlusIcon}
+                icon={UserPlusIcon}
             />
           )}
         </div>
@@ -559,15 +574,15 @@ export default function AdminDashboardPage() {
       <section className="mt-6">
         <h2 className="text-base font-semibold text-gray-900">회원 분석</h2>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
-          <BirthdayCard members={members} />
-          <GenderCard members={members} />
-          <AgeRangeCard members={members} />
+          <BirthdayCard people={people} />
+          <GenderCard people={people} />
+          <AgeRangeCard people={people} />
         </div>
       </section>
 
       <section className="mt-6">
         <h2 className="text-base font-semibold text-gray-900">최근 신청</h2>
-        <div className="mt-3 rounded-xl border border-gray-200">
+        <div className="mt-3 rounded-xl border border-violet-200">
           {recent.length === 0 ? (
             <p className="px-4 py-10 text-center text-sm text-gray-500">
               최근 신청이 없습니다.
