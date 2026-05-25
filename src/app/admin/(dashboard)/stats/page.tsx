@@ -9,6 +9,8 @@ import {
   getReferralStats,
   type StatsResponse,
 } from "@/lib/api/stats";
+import { getEnums } from "@/lib/api/enums";
+import type { EnumOption } from "@/lib/api/types";
 import { Select } from "@/components/Select";
 
 // 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이)
@@ -51,6 +53,19 @@ function StatChart({ title, data }: { title: string; data: StatsResponse }) {
   );
 }
 
+// 서버 응답에 빠진 enum 옵션을 0건으로 채워 전체 항목을 보여준다.
+// (백엔드가 0건은 응답에서 생략하더라도 차트에 모두 노출되게)
+function fillWithEnum(
+  data: StatsResponse,
+  options: EnumOption[],
+): StatsResponse {
+  const existing = new Set(data.items.map((x) => x.code));
+  const missing = options
+    .filter((o) => !existing.has(o.code))
+    .map((o) => ({ code: o.code, label: o.label, count: 0 }));
+  return { ...data, items: [...data.items, ...missing] };
+}
+
 export default function AdminStatsPage() {
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -69,6 +84,8 @@ export default function AdminStatsPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
 
+  const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
+
   const referralQuery = useQuery({
     queryKey: ["admin", "stats", "referral", branchId ?? "all"],
     queryFn: () => getReferralStats(branchId),
@@ -78,8 +95,12 @@ export default function AdminStatsPage() {
     queryFn: () => getMotivationStats(branchId),
   });
 
-  const isLoading = referralQuery.isLoading || motivationQuery.isLoading;
-  const isError = referralQuery.isError || motivationQuery.isError;
+  const isLoading =
+    enumsQuery.isLoading ||
+    referralQuery.isLoading ||
+    motivationQuery.isLoading;
+  const isError =
+    enumsQuery.isError || referralQuery.isError || motivationQuery.isError;
 
   return (
     <div>
@@ -113,8 +134,20 @@ export default function AdminStatsPage() {
           <p className="text-sm text-gray-500">통계를 불러오지 못했습니다.</p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2">
-            <StatChart title="유입 경로" data={referralQuery.data!} />
-            <StatChart title="방문 목적" data={motivationQuery.data!} />
+            <StatChart
+              title="유입 경로"
+              data={fillWithEnum(
+                referralQuery.data!,
+                enumsQuery.data!.referral,
+              )}
+            />
+            <StatChart
+              title="방문 목적"
+              data={fillWithEnum(
+                motivationQuery.data!,
+                enumsQuery.data!.motivation,
+              )}
+            />
           </div>
         )}
       </div>
