@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useMutation,
   useQueries,
@@ -19,6 +19,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
 import { Select } from "@/components/Select";
+import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { Member } from "@/lib/api/types";
@@ -66,10 +67,28 @@ export default function AdminMembersPage() {
   const branchId = isSuper ? branchFilter || undefined : undefined;
   // 상태 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
   const [statusFilter, setStatusFilter] = useState("");
+  // 검색 — 입력이 숫자(전화번호)면 phone=, 이름이면 name= 으로 백엔드 검색 (디바운스 300ms)
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+  const isPhoneSearch = /^[\d-]+$/.test(debouncedSearch);
+  const searchName =
+    debouncedSearch && !isPhoneSearch ? debouncedSearch : undefined;
+  const searchPhone =
+    debouncedSearch && isPhoneSearch ? debouncedSearch : undefined;
 
   const membersQuery = useQuery({
-    queryKey: ["admin", "members", branchId ?? "all"],
-    queryFn: () => getAdminMembers(branchId),
+    queryKey: [
+      "admin",
+      "members",
+      branchId ?? "all",
+      searchName ?? "",
+      searchPhone ?? "",
+    ],
+    queryFn: () => getAdminMembers(branchId, searchName, searchPhone),
   });
 
   const deleteMutation = useMutation({
@@ -146,6 +165,16 @@ export default function AdminMembersPage() {
             options={STATUS_FILTERS}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+          />
+        </div>
+        <div className="w-64">
+          <TextField
+            id="search"
+            label="검색"
+            type="search"
+            placeholder="이름 또는 전화번호"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
       </div>

@@ -1,13 +1,14 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import { getAdminMessages, TRIGGER_LABELS } from "@/lib/api/messages";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
+import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage } from "@/components/Table";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
@@ -46,10 +47,17 @@ export default function AdminMessagesPage() {
   const branchId = isSuper ? branchFilter || undefined : undefined;
   // 종류(trigger_type) 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
   const [typeFilter, setTypeFilter] = useState("");
+  // 수신자 전화번호 검색 (디바운스 300ms) — 백엔드가 숫자만 추출해 비교
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const messagesQuery = useQuery({
-    queryKey: ["admin", "messages", branchId ?? "all"],
-    queryFn: () => getAdminMessages(branchId),
+    queryKey: ["admin", "messages", branchId ?? "all", debouncedSearch],
+    queryFn: () => getAdminMessages(branchId, debouncedSearch || undefined),
   });
 
   const branchName = (id: string) =>
@@ -98,6 +106,16 @@ export default function AdminMessagesPage() {
             ]}
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
+          />
+        </div>
+        <div className="w-64">
+          <TextField
+            id="search"
+            label="검색"
+            type="search"
+            placeholder="수신자 전화번호"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
       </div>
