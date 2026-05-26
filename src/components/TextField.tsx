@@ -36,7 +36,7 @@ export function TextField({
           id={id}
           required={required}
           aria-invalid={error ? true : undefined}
-          className={`block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 ${
+          className={`block min-h-11 w-full appearance-none rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 [&::-webkit-date-and-time-value]:text-left ${
             error
               ? "outline-red-500 focus:outline-red-500"
               : "outline-gray-300 focus:outline-primary"
