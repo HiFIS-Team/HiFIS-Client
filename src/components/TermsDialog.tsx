@@ -1,5 +1,7 @@
 "use client";
 
+import { useEscapeKey } from "@/lib/useEscapeKey";
+
 // 약관 한 묶음 — 제목(선택) + 본문 문단들 (번호·불릿 항목이면 "1. "·"• " 형태로 그대로 넣는다)
 export interface TermsSection {
   heading?: string;
@@ -22,8 +24,11 @@ export function TermsDialog({
   content: TermsContent;
   onClose: () => void;
 }) {
+  useEscapeKey(onClose);
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >

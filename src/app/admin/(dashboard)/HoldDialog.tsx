@@ -8,6 +8,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
 import { Textarea } from "@/components/Textarea";
 import { formatPhone } from "@/lib/format";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 // 회원·PT 신청의 이용 기간을 일시 정지(홀딩)하는 모달.
 // 목록 행의 [홀딩] 버튼에서 대상이 정해진 채로 열린다 — 대상은 따로 고르지 않는다.
@@ -28,6 +29,7 @@ export function HoldDialog({
   onSuccess?: () => void;
 }) {
   const toast = useToast();
+  useEscapeKey(onClose);
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -66,6 +68,8 @@ export function HoldDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >

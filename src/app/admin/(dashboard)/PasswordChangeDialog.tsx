@@ -6,10 +6,12 @@ import { changePassword } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 // 로그인 상태에서 비밀번호 변경 모달 — 사이드바에서 호출.
 export function PasswordChangeDialog({ onClose }: { onClose: () => void }) {
   const toast = useToast();
+  useEscapeKey(onClose);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -42,6 +44,8 @@ export function PasswordChangeDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >

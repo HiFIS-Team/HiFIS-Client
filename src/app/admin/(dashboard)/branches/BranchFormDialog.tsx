@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/TextField";
 import type { BranchInput } from "@/lib/api/branches";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 interface BranchFormDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export function BranchFormDialog({
   const [kakao, setKakao] = useState(initial?.kakao_url ?? "");
   const [naver, setNaver] = useState(initial?.naver_place_url ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  useEscapeKey(onCancel, open);
 
   if (!open) return null;
 
@@ -48,6 +50,8 @@ export function BranchFormDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onCancel}
     >

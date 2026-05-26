@@ -5,6 +5,7 @@ import {
   ExclamationTriangleIcon,
   QuestionMarkCircleIcon,
 } from "@heroicons/react/24/outline";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -29,12 +30,15 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  useEscapeKey(onCancel, open);
   if (!open) return null;
 
   const Icon = danger ? ExclamationTriangleIcon : QuestionMarkCircleIcon;
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
       onClick={onCancel}
     >

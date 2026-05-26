@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/TextField";
 import type { PassInput } from "@/lib/api/passes";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 interface PassFormDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export function PassFormDialog({
     initial ? String(initial.card_price) : "",
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  useEscapeKey(onCancel, open);
 
   if (!open) return null;
 
@@ -54,6 +56,8 @@ export function PassFormDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onCancel}
     >
