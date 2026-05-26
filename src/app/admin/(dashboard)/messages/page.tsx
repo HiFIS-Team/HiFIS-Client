@@ -138,7 +138,50 @@ export default function AdminMessagesPage() {
               </span>
               건
             </p>
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
+            {/* 모바일: 카드 리스트 */}
+            <ul className="space-y-3 lg:hidden">
+              {filteredMessages.map((m) => (
+                <li
+                  key={m.id}
+                  className="rounded-xl border border-gray-200 p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {TRIGGER_LABELS[m.trigger_type] ?? m.trigger_type}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {formatPhone(m.recipient)}
+                      </p>
+                    </div>
+                    <MsgStatusBadge status={m.status} />
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm text-gray-600">
+                    {m.content}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <p className="text-xs text-gray-400">
+                      {isSuper && (
+                        <>
+                          {branchName(m.branch_id)}
+                          <span className="mx-1.5">·</span>
+                        </>
+                      )}
+                      {formatDateTime(m.sent_at)}
+                    </p>
+                    <RowActionButton
+                      variant="neutral"
+                      onClick={() => setViewTarget(m)}
+                    >
+                      보기
+                    </RowActionButton>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* 데스크탑: 기존 테이블 */}
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
                 <tr>

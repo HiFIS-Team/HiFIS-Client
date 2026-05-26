@@ -203,7 +203,67 @@ export default function AdminPtApplicationsPage() {
               </span>
               건
             </p>
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
+            {/* 모바일: 카드 리스트 */}
+            <ul className="space-y-3 lg:hidden">
+              {visibleApplications.map((a) => (
+                <li
+                  key={a.id}
+                  className="rounded-xl border border-gray-200 p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-gray-900">
+                        {a.name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {formatPhone(a.phone)}
+                      </p>
+                    </div>
+                    <StatusBadge status={a.status} />
+                  </div>
+                  <div className="mt-3 grid gap-1 text-sm">
+                    <p className="text-gray-700">
+                      <span className="text-gray-400">수강권 </span>
+                      {ptPassName(a.pt_pass_id)}
+                      <span className="ml-2 text-gray-400">·</span>
+                      <span className="ml-2">{formatWon(a.final_price)}</span>
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {isSuper && (
+                        <>
+                          {branchName(a.branch_id)}
+                          <span className="mx-1.5">·</span>
+                        </>
+                      )}
+                      신청일 {formatDate(a.created_at)}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <RowActionButton
+                      variant="neutral"
+                      onClick={() => setViewTarget(a)}
+                    >
+                      보기
+                    </RowActionButton>
+                    <RowActionButton onClick={() => handleHoldClick(a)}>
+                      홀딩
+                    </RowActionButton>
+                    <RowActionButton onClick={() => setEditTarget(a)}>
+                      수정
+                    </RowActionButton>
+                    <RowActionButton
+                      variant="danger"
+                      onClick={() => setDeleteTarget(a)}
+                    >
+                      삭제
+                    </RowActionButton>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* 데스크탑: 기존 테이블 */}
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
                 <tr>
