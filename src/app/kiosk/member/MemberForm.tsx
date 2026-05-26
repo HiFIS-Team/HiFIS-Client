@@ -1,9 +1,20 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  useState,
+  type ComponentType,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import {
+  CheckBadgeIcon,
+  ChatBubbleLeftRightIcon,
+  CreditCardIcon,
+  TicketIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import {
@@ -18,10 +29,38 @@ import { TextField } from "@/components/TextField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
+import { TermsDialog } from "@/components/TermsDialog";
+import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { KioskSuccess } from "../KioskSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
+}
+
+// 회원권 이름에서 이용 개월 수 추출 ("3개월권"→3, "1년권"→12). 못 찾으면 null.
+// 백엔드 Pass 에 기간 필드가 없어 이름으로 추정 — 추후 duration 필드가 생기면 그걸 사용할 것.
+function passDurationMonths(name: string): number | null {
+  const year = name.match(/(\d+)\s*년/);
+  if (year) return Number(year[1]) * 12;
+  const month = name.match(/(\d+)\s*개월/);
+  if (month) return Number(month[1]);
+  return null;
+}
+
+// YYYY-MM-DD 에 개월 수를 더한다 (말일 초과 시 해당 월 말일로 보정).
+function addMonths(dateStr: string, months: number): string {
+  const [y, m, day] = dateStr.split("-").map(Number);
+  const target = new Date(y, m - 1 + months, 1);
+  const lastDay = new Date(
+    target.getFullYear(),
+    target.getMonth() + 1,
+    0,
+  ).getDate();
+  target.setDate(Math.min(day, lastDay));
+  const mm = String(target.getMonth() + 1).padStart(2, "0");
+  const dd = String(target.getDate()).padStart(2, "0");
+  return `${target.getFullYear()}-${mm}-${dd}`;
 }
 
 // enum 옵션 → Select 옵션
@@ -79,6 +118,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [termsOpen, setTermsOpen] = useState(false);
   const mutation = useMutation({ mutationFn: createMember });
 
   const set = (patch: Partial<FormState>) =>
@@ -137,24 +177,40 @@ export function MemberForm({ branchId }: { branchId: string }) {
     });
   };
 
-  // 제출 성공 — 완료 화면
+  // 선택된 회원권의 이용 개월 수 (이름에서 추출, 없으면 null)
+  const monthsOf = (passId: string): number | null => {
+    const p = membershipPasses.find((x) => x.id === passId);
+    return p ? passDurationMonths(p.name) : null;
+  };
+  // 회원권 선택 — 가격 + 이용 기간 자동 설정
+  // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
+  const onMembershipChange = (id: string) => {
+    setForm((f) => {
+      const base: FormState = { ...f, membership_pass_id: id };
+      base.final_price = String(totalFor(base));
+      const months = monthsOf(id);
+      if (months == null) return base;
+      const start = base.start_date || today;
+      return { ...base, start_date: start, end_date: addMonths(start, months) };
+    });
+  };
+  // 이용 시작일 변경 — 회원권 기간에 맞춰 종료일 재계산
+  const onStartDateChange = (value: string) => {
+    setForm((f) => {
+      const next: FormState = { ...f, start_date: value };
+      const months = monthsOf(f.membership_pass_id);
+      if (months != null && value) next.end_date = addMonths(value, months);
+      return next;
+    });
+  };
+
+  // 제출 성공 — 완료 화면 (5초 후 키오스크 진입 화면으로 자동 복귀)
   if (mutation.isSuccess) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16 text-center">
-        <CheckCircleIcon className="mx-auto size-16 text-primary" />
-        <h1 className="mt-4 text-2xl font-bold text-gray-900">
-          회원가입 신청이 접수되었습니다
-        </h1>
-        <p className="mt-2 text-base text-gray-600">
-          {mutation.data.name}님, 신청해 주셔서 감사합니다.
-        </p>
-        <Link
-          href="/kiosk"
-          className="mt-8 inline-block rounded-md bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary-hover"
-        >
-          처음으로
-        </Link>
-      </main>
+      <KioskSuccess
+        title="회원가입 신청이 접수되었습니다"
+        name={mutation.data.name}
+      />
     );
   }
 
@@ -254,7 +310,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
       </header>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
-        <Section title="신청자 정보">
+        <Section title="신청자 정보" icon={UserIcon}>
           <TextField
             id="name"
             label="이름"
@@ -308,7 +364,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="회원권 · 이용 기간">
+        <Section title="회원권 · 이용 기간" icon={TicketIcon}>
           <Select
             id="membership-pass"
             label="회원권"
@@ -316,7 +372,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
             placeholder="선택해 주세요"
             options={passOpts(membershipPasses)}
             value={form.membership_pass_id}
-            onChange={(e) => setWithPrice({ membership_pass_id: e.target.value })}
+            onChange={(e) => onMembershipChange(e.target.value)}
             error={errors.membership_pass_id}
           />
           <Select
@@ -339,8 +395,9 @@ export function MemberForm({ branchId }: { branchId: string }) {
             required
             type="date"
             value={form.start_date}
-            onChange={(e) => set({ start_date: e.target.value })}
+            onChange={(e) => onStartDateChange(e.target.value)}
             error={errors.start_date}
+            hint="회원권을 선택하면 등록일(오늘)로 채워져요. 바꾸면 종료일이 다시 계산돼요."
           />
           <TextField
             id="end-date"
@@ -351,10 +408,11 @@ export function MemberForm({ branchId }: { branchId: string }) {
             value={form.end_date}
             onChange={(e) => set({ end_date: e.target.value })}
             error={errors.end_date}
+            hint="회원권 기간에 맞춰 자동 계산돼요. 필요하면 직접 수정하세요."
           />
         </Section>
 
-        <Section title="결제">
+        <Section title="결제" icon={CreditCardIcon}>
           <Select
             id="payment-method"
             label="결제 방법"
@@ -380,7 +438,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="설문">
+        <Section title="설문" icon={ChatBubbleLeftRightIcon}>
           <Select
             id="referral"
             label="유입 경로"
@@ -403,14 +461,31 @@ export function MemberForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="동의">
-          <Checkbox
-            id="agreed-terms"
-            label="운영 회칙에 동의합니다. (필수)"
-            checked={form.agreed_terms}
-            onChange={(e) => set({ agreed_terms: e.target.checked })}
-            error={errors.agreed_terms}
-          />
+        <Section title="동의" icon={CheckBadgeIcon}>
+          <div>
+            {/* 준수 서약문 — 동의 대상 */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+              <p className="text-base/7 text-gray-700">
+                {MEMBERSHIP_PLEDGE}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTermsOpen(true)}
+              className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
+              운영 회칙 전문 보기
+            </button>
+            <div className="mt-4">
+              <Checkbox
+                id="agreed-terms"
+                label="위 내용에 동의합니다. (필수)"
+                checked={form.agreed_terms}
+                onChange={(e) => set({ agreed_terms: e.target.checked })}
+                error={errors.agreed_terms}
+              />
+            </div>
+          </div>
         </Section>
 
         {submitError && (
@@ -436,15 +511,35 @@ export function MemberForm({ branchId }: { branchId: string }) {
           </Button>
         </div>
       </form>
+
+      {termsOpen && (
+        <TermsDialog
+          content={OPERATING_RULES}
+          onClose={() => setTermsOpen(false)}
+        />
+      )}
     </main>
   );
 }
 
-// 폼 섹션 — 제목 + 구분선
-function Section({ title, children }: { title: string; children: ReactNode }) {
+// 폼 섹션 — 아이콘 칩 + 제목 + 구분선
+function Section({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+}) {
   return (
     <section className="border-t border-gray-200 pt-8">
-      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      <div className="flex items-center gap-2.5">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-violet-50 text-primary">
+          <Icon className="size-5" />
+        </div>
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      </div>
       <div className="mt-5 space-y-5">{children}</div>
     </section>
   );

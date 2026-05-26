@@ -6,6 +6,7 @@ import { getBranches } from "@/lib/api/branches";
 import { SOURCE_TYPE_LABELS, TRIGGER_LABELS } from "@/lib/api/messages";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -37,6 +38,7 @@ export function MessageDetailDialog({
   message: Message;
   onClose: () => void;
 }) {
+  useEscapeKey(onClose);
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
@@ -46,6 +48,8 @@ export function MessageDetailDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >

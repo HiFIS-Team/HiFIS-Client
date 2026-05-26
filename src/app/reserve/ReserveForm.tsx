@@ -3,7 +3,12 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import {
+  CalendarDaysIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  MapPinIcon,
+} from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
 import { createReservation } from "@/lib/api/reservations";
 import { ApiError } from "@/lib/api/client";
@@ -40,7 +45,8 @@ export function ReserveForm() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [visitDate, setVisitDate] = useState("");
+  // 기본값 = 오늘 — 사용자가 연·월 픽 안 해도 되게. 다른 날짜면 픽커에서 며칠만 바꾸면 됨.
+  const [visitDate, setVisitDate] = useState(() => todayStr());
   const [errors, setErrors] = useState<FieldErrors>({});
 
   const mutation = useMutation({ mutationFn: createReservation });
@@ -79,15 +85,17 @@ export function ReserveForm() {
     );
   }
 
-  // 제출 성공 — 완료 화면
+  // 제출 성공 — 완료 화면 (키오스크 KioskSuccess 와 동일 톤)
   if (mutation.isSuccess) {
     return (
       <main className="mx-auto max-w-md px-6 py-16 text-center">
-        <CheckCircleIcon className="mx-auto size-16 text-primary" />
-        <h1 className="mt-4 text-xl font-bold text-gray-900">
+        <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-violet-50 text-primary">
+          <CheckCircleIcon className="size-12" />
+        </div>
+        <h1 className="mt-6 text-2xl font-bold text-gray-900">
           예약 신청이 완료되었습니다
         </h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-3 text-base text-gray-600">
           {branch.name} · {formatDate(mutation.data.visit_date)} 방문 예정
         </p>
         <p className="mt-1 text-sm text-gray-500">
@@ -143,9 +151,17 @@ export function ReserveForm() {
 
   return (
     <main className="mx-auto max-w-md px-6 py-10">
-      <header>
-        <p className="text-sm font-semibold text-primary">{branch.name}</p>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">예약 신청</h1>
+      <header className="text-center">
+        <div className="flex justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-sm font-semibold text-primary">
+            <MapPinIcon className="size-3.5" />
+            {branch.name}
+          </span>
+        </div>
+        <div className="mx-auto mt-4 flex size-14 items-center justify-center rounded-2xl bg-violet-50 text-primary">
+          <CalendarDaysIcon className="size-7" />
+        </div>
+        <h1 className="mt-5 text-2xl font-bold text-gray-900">예약 신청</h1>
         <p className="mt-2 text-sm/6 text-gray-500">
           이름·연락처·방문 예정일을 남겨 주시면 확인 후 연락드립니다.
         </p>
@@ -211,7 +227,10 @@ function CenterMessage({ children }: { children: ReactNode }) {
 function ErrorScreen({ title, message }: { title: string; message: string }) {
   return (
     <main className="mx-auto max-w-md px-6 py-16 text-center">
-      <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+      <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-amber-50 text-amber-500">
+        <ExclamationTriangleIcon className="size-9" />
+      </div>
+      <h1 className="mt-5 text-xl font-bold text-gray-900">{title}</h1>
       <p className="mt-2 text-sm/6 text-gray-600">{message}</p>
     </main>
   );

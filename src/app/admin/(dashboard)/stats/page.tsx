@@ -1,6 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { PageTitle } from "../PageTitle";
+import { useState, type ComponentType } from "react";
+import {
+  BuildingOffice2Icon,
+  FlagIcon,
+  MegaphoneIcon,
+} from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
@@ -9,14 +15,27 @@ import {
   getReferralStats,
   type StatsResponse,
 } from "@/lib/api/stats";
+import { getEnums } from "@/lib/api/enums";
+import type { EnumOption } from "@/lib/api/types";
 import { Select } from "@/components/Select";
 
 // 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이)
-function StatChart({ title, data }: { title: string; data: StatsResponse }) {
+function StatChart({
+  title,
+  data,
+  icon: Icon,
+}: {
+  title: string;
+  data: StatsResponse;
+  icon?: ComponentType<{ className?: string }>;
+}) {
   return (
     <section className="rounded-xl border border-gray-200 p-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+        <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
+          {Icon && <Icon className="size-4 text-primary" />}
+          {title}
+        </h2>
         <span className="text-sm text-gray-500">총 {data.total}건</span>
       </div>
       {data.items.length === 0 ? (
@@ -51,6 +70,19 @@ function StatChart({ title, data }: { title: string; data: StatsResponse }) {
   );
 }
 
+// 서버 응답에 빠진 enum 옵션을 0건으로 채워 전체 항목을 보여준다.
+// (백엔드가 0건은 응답에서 생략하더라도 차트에 모두 노출되게)
+function fillWithEnum(
+  data: StatsResponse,
+  options: EnumOption[],
+): StatsResponse {
+  const existing = new Set(data.items.map((x) => x.code));
+  const missing = options
+    .filter((o) => !existing.has(o.code))
+    .map((o) => ({ code: o.code, label: o.label, count: 0 }));
+  return { ...data, items: [...data.items, ...missing] };
+}
+
 export default function AdminStatsPage() {
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -69,6 +101,8 @@ export default function AdminStatsPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
 
+  const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
+
   const referralQuery = useQuery({
     queryKey: ["admin", "stats", "referral", branchId ?? "all"],
     queryFn: () => getReferralStats(branchId),
@@ -78,12 +112,16 @@ export default function AdminStatsPage() {
     queryFn: () => getMotivationStats(branchId),
   });
 
-  const isLoading = referralQuery.isLoading || motivationQuery.isLoading;
-  const isError = referralQuery.isError || motivationQuery.isError;
+  const isLoading =
+    enumsQuery.isLoading ||
+    referralQuery.isLoading ||
+    motivationQuery.isLoading;
+  const isError =
+    enumsQuery.isError || referralQuery.isError || motivationQuery.isError;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">통계</h1>
+      <PageTitle title="통계" />
       <p className="mt-1 text-sm text-gray-500">
         이번 달 신청 기준 집계입니다.
       </p>
@@ -93,6 +131,7 @@ export default function AdminStatsPage() {
           <Select
             id="branch"
             label="지점"
+            icon={BuildingOffice2Icon}
             options={[
               { value: "", label: "전체 지점" },
               ...(branchesQuery.data ?? []).map((b) => ({
@@ -113,8 +152,22 @@ export default function AdminStatsPage() {
           <p className="text-sm text-gray-500">통계를 불러오지 못했습니다.</p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2">
-            <StatChart title="유입 경로" data={referralQuery.data!} />
-            <StatChart title="방문 목적" data={motivationQuery.data!} />
+            <StatChart
+              title="유입 경로"
+              icon={MegaphoneIcon}
+              data={fillWithEnum(
+                referralQuery.data!,
+                enumsQuery.data!.referral,
+              )}
+            />
+            <StatChart
+              title="방문 목적"
+              icon={FlagIcon}
+              data={fillWithEnum(
+                motivationQuery.data!,
+                enumsQuery.data!.motivation,
+              )}
+            />
           </div>
         )}
       </div>

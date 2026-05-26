@@ -12,6 +12,7 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 function enumLabel(arr: EnumOption[] | undefined, code: string): string {
   return arr?.find((o) => o.code === code)?.label ?? code;
@@ -38,6 +39,7 @@ export function MemberDetailDialog({
   member: Member;
   onClose: () => void;
 }) {
+  useEscapeKey(onClose);
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
   const branchesQuery = useQuery({
     queryKey: ["branches"],
@@ -68,6 +70,8 @@ export function MemberDetailDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >

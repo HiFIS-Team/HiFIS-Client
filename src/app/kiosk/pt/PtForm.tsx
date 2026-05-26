@@ -1,24 +1,52 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  useState,
+  type ComponentType,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import {
+  BoltIcon,
+  CheckBadgeIcon,
+  ChatBubbleLeftRightIcon,
+  CreditCardIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import { getPtPasses } from "@/lib/api/passes";
 import { createPtApplication } from "@/lib/api/ptApplications";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
+import { formatDate } from "@/lib/format";
 import { TextField } from "@/components/TextField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
+import { TermsDialog } from "@/components/TermsDialog";
+import { PT_NOTICE } from "@/lib/ptNotice";
+import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { KioskSuccess } from "../KioskSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
+}
+
+// PT 회원에게 제공되는 헬스권 이용 기간 (일) — 고정값
+const PT_DURATION_DAYS = 40;
+
+// YYYY-MM-DD 에 일수를 더한다
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${mm}-${dd}`;
 }
 
 function enumOpts(arr: EnumOption[]): SelectOption[] {
@@ -62,8 +90,13 @@ export function PtForm({ branchId }: { branchId: string }) {
     queryFn: () => getPtPasses(branchId),
   });
 
-  const [form, setForm] = useState<FormState>(INITIAL);
+  // 시작일은 등록일(오늘), 종료일은 +40일로 시작 — PT 헬스권 기간은 40일 고정
+  const [form, setForm] = useState<FormState>(() => {
+    const t = todayStr();
+    return { ...INITIAL, start_date: t, end_date: addDays(t, PT_DURATION_DAYS) };
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [noticeOpen, setNoticeOpen] = useState(false);
   const mutation = useMutation({ mutationFn: createPtApplication });
 
   const set = (patch: Partial<FormState>) =>
@@ -103,23 +136,22 @@ export function PtForm({ branchId }: { branchId: string }) {
     });
   };
 
+  // 이용 시작일 변경 — 종료일은 항상 시작일 + 40일 (PT 헬스권 기간 고정)
+  const onStartDateChange = (value: string) => {
+    setForm((f) => ({
+      ...f,
+      start_date: value,
+      end_date: value ? addDays(value, PT_DURATION_DAYS) : "",
+    }));
+  };
+
+  // 제출 성공 — 완료 화면 (5초 후 키오스크 진입 화면으로 자동 복귀)
   if (mutation.isSuccess) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16 text-center">
-        <CheckCircleIcon className="mx-auto size-16 text-primary" />
-        <h1 className="mt-4 text-2xl font-bold text-gray-900">
-          PT 신청이 접수되었습니다
-        </h1>
-        <p className="mt-2 text-base text-gray-600">
-          {mutation.data.name}님, 신청해 주셔서 감사합니다.
-        </p>
-        <Link
-          href="/kiosk"
-          className="mt-8 inline-block rounded-md bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary-hover"
-        >
-          처음으로
-        </Link>
-      </main>
+      <KioskSuccess
+        title="PT 신청이 접수되었습니다"
+        name={mutation.data.name}
+      />
     );
   }
 
@@ -139,10 +171,8 @@ export function PtForm({ branchId }: { branchId: string }) {
     if (!form.address.trim()) e.address = "주소를 입력해 주세요.";
     if (!form.pt_pass_id) e.pt_pass_id = "수강권을 선택해 주세요.";
 
+    // 종료일은 시작일 + 40일로 자동 계산되므로 시작일만 검증
     if (!form.start_date) e.start_date = "이용 시작일을 선택해 주세요.";
-    if (!form.end_date) e.end_date = "이용 종료일을 선택해 주세요.";
-    else if (form.start_date && form.end_date < form.start_date)
-      e.end_date = "종료일은 시작일보다 빠를 수 없습니다.";
 
     if (!form.payment_method) e.payment_method = "결제 방법을 선택해 주세요.";
     if (form.final_price === "")
@@ -206,7 +236,7 @@ export function PtForm({ branchId }: { branchId: string }) {
       </header>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
-        <Section title="신청자 정보">
+        <Section title="신청자 정보" icon={UserIcon}>
           <TextField
             id="name"
             label="이름"
@@ -260,7 +290,7 @@ export function PtForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="수강권 · 이용 기간">
+        <Section title="수강권 · 이용 기간" icon={BoltIcon}>
           <Select
             id="pt-pass"
             label="수강권"
@@ -277,22 +307,24 @@ export function PtForm({ branchId }: { branchId: string }) {
             required
             type="date"
             value={form.start_date}
-            onChange={(e) => set({ start_date: e.target.value })}
+            onChange={(e) => onStartDateChange(e.target.value)}
             error={errors.start_date}
+            hint="등록일(오늘)로 채워져 있어요. 바꾸면 종료일이 다시 계산돼요."
           />
-          <TextField
-            id="end-date"
-            label="이용 종료일"
-            required
-            type="date"
-            min={form.start_date || undefined}
-            value={form.end_date}
-            onChange={(e) => set({ end_date: e.target.value })}
-            error={errors.end_date}
-          />
+          <div>
+            <p className="block text-sm/6 font-medium text-gray-900">
+              이용 종료일
+            </p>
+            <div className="mt-2 rounded-md bg-gray-100 px-3 py-2.5 text-base text-gray-600">
+              {form.end_date ? formatDate(form.end_date) : "—"}
+            </div>
+            <p className="mt-1.5 text-sm text-gray-500">
+              PT 회원은 헬스권 40일이 제공돼요. 시작일 기준 자동 설정됩니다.
+            </p>
+          </div>
         </Section>
 
-        <Section title="결제">
+        <Section title="결제" icon={CreditCardIcon}>
           <Select
             id="payment-method"
             label="결제 방법"
@@ -318,7 +350,7 @@ export function PtForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="설문 · 추가 정보">
+        <Section title="설문 · 추가 정보" icon={ChatBubbleLeftRightIcon}>
           <Select
             id="referral"
             label="유입 경로"
@@ -339,14 +371,29 @@ export function PtForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="동의">
-          <Checkbox
-            id="agreed-notice"
-            label="유의사항을 확인하였습니다. (필수)"
-            checked={form.agreed_notice}
-            onChange={(e) => set({ agreed_notice: e.target.checked })}
-            error={errors.agreed_notice}
-          />
+        <Section title="동의" icon={CheckBadgeIcon}>
+          <div>
+            {/* 준수 서약문 — 동의 대상 */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+              <p className="text-base/7 text-gray-700">{MEMBERSHIP_PLEDGE}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNoticeOpen(true)}
+              className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+            >
+              서명 전 유의사항 보기
+            </button>
+            <div className="mt-4">
+              <Checkbox
+                id="agreed-notice"
+                label="위 내용에 동의합니다. (필수)"
+                checked={form.agreed_notice}
+                onChange={(e) => set({ agreed_notice: e.target.checked })}
+                error={errors.agreed_notice}
+              />
+            </div>
+          </div>
         </Section>
 
         {submitError && (
@@ -372,14 +419,31 @@ export function PtForm({ branchId }: { branchId: string }) {
           </Button>
         </div>
       </form>
+
+      {noticeOpen && (
+        <TermsDialog content={PT_NOTICE} onClose={() => setNoticeOpen(false)} />
+      )}
     </main>
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+}) {
   return (
     <section className="border-t border-gray-200 pt-8">
-      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      <div className="flex items-center gap-2.5">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-violet-50 text-primary">
+          <Icon className="size-5" />
+        </div>
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      </div>
       <div className="mt-5 space-y-5">{children}</div>
     </section>
   );

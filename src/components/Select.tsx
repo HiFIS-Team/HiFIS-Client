@@ -1,4 +1,4 @@
-import type { SelectHTMLAttributes } from "react";
+import type { ComponentType, SelectHTMLAttributes } from "react";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
 
 export interface SelectOption {
@@ -12,6 +12,8 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   // 선택 전 안내 문구 — 주면 비활성 빈 옵션이 맨 위에 추가됨 (필수 항목용)
   placeholder?: string;
+  // 라벨 왼쪽에 표시할 아이콘 (선택) — 필터 라벨 식별용
+  icon?: ComponentType<{ className?: string }>;
 }
 
 // 라벨 + 드롭다운 한 묶음. Tailwind Plus 폼 스타일을 라이트 테마로 적용.
@@ -20,6 +22,7 @@ export function Select({
   options,
   error,
   placeholder,
+  icon: Icon,
   id,
   required,
   value,
@@ -29,7 +32,11 @@ export function Select({
   const empty = value === "" || value === undefined;
   return (
     <div>
-      <label htmlFor={id} className="block text-sm/6 font-medium text-gray-900">
+      <label
+        htmlFor={id}
+        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900"
+      >
+        {Icon && <Icon className="size-4 text-gray-500" />}
         {label}
         {required && <span className="text-red-500"> *</span>}
       </label>

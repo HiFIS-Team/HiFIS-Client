@@ -27,3 +27,16 @@ export function createHold(payload: HoldCreate): Promise<Hold> {
     auth: true,
   });
 }
+
+// POST /admin/holds/cancel — 활성 홀딩 취소 (백엔드 구현 예정)
+// source_type/source_id 로 대상의 활성 홀딩을 끝내고 상태를 REGISTERED 로 되돌린다.
+export function cancelHold(payload: {
+  source_type: string;
+  source_id: string;
+}): Promise<void> {
+  return apiFetch<void>("/admin/holds/cancel", {
+    method: "POST",
+    body: payload,
+    auth: true,
+  });
+}

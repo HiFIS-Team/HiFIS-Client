@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import {
+  BoltIcon,
+  ChevronRightIcon,
+  MapPinIcon,
+  UserPlusIcon,
+} from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
 import {
   clearKioskBranchId,
@@ -78,30 +84,39 @@ function BranchSetup({
   onPick: (id: string) => void;
 }) {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <header className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">
-          지점을 선택해 주세요
-        </h1>
-        <p className="mt-2 text-base text-gray-500">
-          이 태블릿이 설치된 지점을 한 번만 선택하면 됩니다.
-        </p>
-      </header>
-      <div className="mt-10 grid gap-3">
-        {branches.length === 0 ? (
-          <p className="text-center text-gray-500">등록된 지점이 없습니다.</p>
-        ) : (
-          branches.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => onPick(b.id)}
-              className="rounded-xl border-2 border-gray-200 px-6 py-5 text-xl font-semibold text-gray-900 transition-colors hover:border-primary hover:bg-violet-50"
-            >
-              {b.name}
-            </button>
-          ))
-        )}
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-10">
+      <div className="flex flex-1 flex-col justify-center">
+        <header className="text-center">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-violet-50 text-primary">
+            <MapPinIcon className="size-7" />
+          </div>
+          <h1 className="mt-5 text-3xl font-bold text-gray-900">
+            지점을 선택해 주세요
+          </h1>
+          <p className="mt-3 text-base text-gray-500">
+            이 태블릿이 설치된 지점을 한 번만 선택하면 됩니다.
+          </p>
+        </header>
+        <div className="mt-10 grid gap-3">
+          {branches.length === 0 ? (
+            <p className="text-center text-gray-500">등록된 지점이 없습니다.</p>
+          ) : (
+            branches.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => onPick(b.id)}
+                className="group flex items-center justify-between gap-2 rounded-xl border-2 border-gray-200 px-6 py-5 text-xl font-semibold text-gray-900 transition-colors hover:border-primary hover:bg-violet-50"
+              >
+                <span className="flex items-center gap-3">
+                  <MapPinIcon className="size-5 text-gray-400 transition-colors group-hover:text-primary" />
+                  {b.name}
+                </span>
+                <ChevronRightIcon className="size-5 text-gray-400 transition-colors group-hover:text-primary" />
+              </button>
+            ))
+          )}
+        </div>
       </div>
     </main>
   );
@@ -116,33 +131,41 @@ function KioskHome({
   onChangeBranch: () => void;
 }) {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <header className="text-center">
-        <span className="inline-block rounded-full bg-violet-50 px-4 py-1 text-base font-semibold text-primary">
-          {branch.name}
-        </span>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
-          신청서를 선택해 주세요
-        </h1>
-        <p className="mt-2 text-base text-gray-500">
-          작성하실 신청서를 눌러 주세요.
-        </p>
-      </header>
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-10">
+      <div className="flex flex-1 flex-col justify-center">
+        <div className="flex justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-4 py-1.5 text-base font-semibold text-primary">
+            <MapPinIcon className="size-4" />
+            {branch.name}
+          </span>
+        </div>
 
-      <div className="mt-10 grid gap-4">
-        <KioskChoice
-          href="/kiosk/member"
-          title="회원가입 신청서"
-          desc="헬스장 회원권 등록"
-        />
-        <KioskChoice
-          href="/kiosk/pt"
-          title="PT 신청서"
-          desc="개인 레슨(PT) 등록"
-        />
+        <header className="mt-8 text-center">
+          <h1 className="text-3xl font-bold text-gray-900">
+            어떤 신청서를 작성하시겠어요?
+          </h1>
+          <p className="mt-3 text-base text-gray-500">
+            아래 신청서 중 하나를 눌러 주세요.
+          </p>
+        </header>
+
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <KioskChoice
+            href="/kiosk/member"
+            icon={UserPlusIcon}
+            title="회원가입 신청서"
+            desc="헬스장 회원권 등록"
+          />
+          <KioskChoice
+            href="/kiosk/pt"
+            icon={BoltIcon}
+            title="PT 신청서"
+            desc="개인 레슨(PT) 등록"
+          />
+        </div>
       </div>
 
-      <div className="mt-8 text-center">
+      <div className="mt-6 text-center">
         <button
           type="button"
           onClick={onChangeBranch}
@@ -157,20 +180,25 @@ function KioskHome({
 
 function KioskChoice({
   href,
+  icon: Icon,
   title,
   desc,
 }: {
   href: string;
+  icon: ComponentType<{ className?: string }>;
   title: string;
   desc: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col rounded-2xl border-2 border-gray-200 px-6 py-8 transition-colors hover:border-primary hover:bg-violet-50"
+      className="group flex flex-col items-center rounded-2xl border-2 border-gray-200 bg-white px-6 py-10 text-center transition-all hover:-translate-y-0.5 hover:border-primary hover:bg-violet-50"
     >
-      <span className="text-2xl font-bold text-gray-900">{title}</span>
-      <span className="mt-1 text-base text-gray-500">{desc}</span>
+      <div className="flex size-20 items-center justify-center rounded-2xl bg-violet-50 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+        <Icon className="size-10" />
+      </div>
+      <span className="mt-5 text-2xl font-bold text-gray-900">{title}</span>
+      <span className="mt-2 text-base text-gray-500">{desc}</span>
     </Link>
   );
 }

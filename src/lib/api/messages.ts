@@ -2,8 +2,19 @@ import { apiFetch } from "./client";
 import type { Message } from "./types";
 
 // GET /admin/messages — 알림톡 발송 이력 (관리자, FC는 자기 지점만, 최신순)
-export function getAdminMessages(): Promise<Message[]> {
-  return apiFetch<Message[]>("/admin/messages", { auth: true });
+// branchId 전달 시 해당 지점만 (SUPER_ADMIN 지점 필터용).
+// phone 은 수신자 전화번호 부분일치 검색 (백엔드가 숫자만 추출해 비교).
+export function getAdminMessages(
+  branchId?: string,
+  phone?: string,
+): Promise<Message[]> {
+  const params = new URLSearchParams();
+  if (branchId) params.set("branch_id", branchId);
+  if (phone) params.set("phone", phone);
+  const qs = params.toString();
+  return apiFetch<Message[]>(`/admin/messages${qs ? `?${qs}` : ""}`, {
+    auth: true,
+  });
 }
 
 // 발송 종류(trigger_type) 한국어 라벨.
@@ -28,7 +39,7 @@ export const TRIGGER_LABELS: Record<string, string> = {
 // 알림톡 발생 출처(source_type) 한국어 라벨
 export const SOURCE_TYPE_LABELS: Record<string, string> = {
   MEMBER: "회원",
-  PT_APPLICATION: "PT 신청",
+  PT_APPLICATION: "PT",
   RESERVATION: "예약",
   HOLD: "홀딩",
 };

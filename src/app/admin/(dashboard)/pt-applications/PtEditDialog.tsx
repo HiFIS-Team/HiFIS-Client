@@ -11,6 +11,7 @@ import { TextField } from "@/components/TextField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
@@ -35,6 +36,7 @@ export function PtEditDialog({
 }) {
   const toast = useToast();
   const queryClient = useQueryClient();
+  useEscapeKey(onClose);
 
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
   const ptPassQuery = useQuery({
@@ -77,7 +79,7 @@ export function PtEditDialog({
         notes: form.notes.trim() || null,
       }),
     onSuccess: () => {
-      toast.success("PT 신청 정보가 수정되었습니다.");
+      toast.success("PT 정보가 수정되었습니다.");
       queryClient.invalidateQueries({ queryKey: ["admin", "pt-applications"] });
       onClose();
     },
@@ -125,6 +127,8 @@ export function PtEditDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >
@@ -133,7 +137,7 @@ export function PtEditDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
-          PT 신청 정보 수정
+          PT 정보 수정
         </h2>
 
         {isLoading ? (

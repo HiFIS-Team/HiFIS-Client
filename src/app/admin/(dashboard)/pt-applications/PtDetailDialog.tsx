@@ -8,6 +8,7 @@ import { getPtPasses } from "@/lib/api/passes";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 function enumLabel(arr: EnumOption[] | undefined, code: string): string {
   return arr?.find((o) => o.code === code)?.label ?? code;
@@ -33,6 +34,7 @@ export function PtDetailDialog({
   app: PTApplication;
   onClose: () => void;
 }) {
+  useEscapeKey(onClose);
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
   const branchesQuery = useQuery({
     queryKey: ["branches"],
@@ -50,6 +52,8 @@ export function PtDetailDialog({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >
@@ -58,7 +62,7 @@ export function PtDetailDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
-          PT 신청 상세
+          PT 상세
         </h2>
 
         {isLoading ? (

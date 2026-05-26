@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/TextField";
 import type { BranchInput } from "@/lib/api/branches";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 interface BranchFormDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export function BranchFormDialog({
   const [kakao, setKakao] = useState(initial?.kakao_url ?? "");
   const [naver, setNaver] = useState(initial?.naver_place_url ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  useEscapeKey(onCancel, open);
 
   if (!open) return null;
 
@@ -48,52 +50,62 @@ export function BranchFormDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+        className="flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
-          <TextField
-            id="branch-name"
-            label="지점명"
-            required
-            maxLength={50}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            error={errors.name}
-          />
-          <TextField
-            id="branch-phone"
-            label="전화번호"
-            required
-            type="tel"
-            maxLength={20}
-            placeholder="02-1234-5678"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            error={errors.phone}
-          />
-          <TextField
-            id="branch-kakao"
-            label="카카오 URL (선택)"
-            maxLength={255}
-            placeholder="https://"
-            value={kakao}
-            onChange={(e) => setKakao(e.target.value)}
-          />
-          <TextField
-            id="branch-naver"
-            label="네이버 플레이스 URL (선택)"
-            maxLength={255}
-            placeholder="https://"
-            value={naver}
-            onChange={(e) => setNaver(e.target.value)}
-          />
-          <div className="flex justify-end gap-2 pt-2">
+        <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
+          {title}
+        </h2>
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-col"
+          noValidate
+        >
+          <div className="space-y-4 overflow-y-auto px-6 py-5">
+            <TextField
+              id="branch-name"
+              label="지점명"
+              required
+              maxLength={50}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              error={errors.name}
+            />
+            <TextField
+              id="branch-phone"
+              label="전화번호"
+              required
+              type="tel"
+              maxLength={20}
+              placeholder="02-1234-5678"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              error={errors.phone}
+            />
+            <TextField
+              id="branch-kakao"
+              label="카카오 URL (선택)"
+              maxLength={255}
+              placeholder="https://"
+              value={kakao}
+              onChange={(e) => setKakao(e.target.value)}
+            />
+            <TextField
+              id="branch-naver"
+              label="네이버 플레이스 URL (선택)"
+              maxLength={255}
+              placeholder="https://"
+              value={naver}
+              onChange={(e) => setNaver(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
             <button
               type="button"
               onClick={onCancel}

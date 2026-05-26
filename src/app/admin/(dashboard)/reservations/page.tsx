@@ -1,6 +1,8 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
+import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
@@ -10,7 +12,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
-import { Td, Th, TableMessage } from "@/components/Table";
+import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { formatDate, formatPhone } from "@/lib/format";
 import type { Reservation } from "@/lib/api/types";
 
@@ -56,7 +58,7 @@ export default function AdminReservationsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">예약 신청 조회</h1>
+      <PageTitle title="예약 신청 조회" />
       <p className="mt-1 text-sm text-gray-500">
         네이버 플레이스를 통해 접수된 방문 예약입니다.
       </p>
@@ -66,6 +68,7 @@ export default function AdminReservationsPage() {
           <Select
             id="branch-filter"
             label="지점"
+            icon={BuildingOffice2Icon}
             options={[
               { value: "", label: "전체 지점" },
               ...(branchesQuery.data ?? []).map((b) => ({
@@ -81,15 +84,23 @@ export default function AdminReservationsPage() {
 
       <div className="mt-6">
         {reservationsQuery.isLoading ? (
-          <TableMessage>불러오는 중…</TableMessage>
+          <TableSkeleton />
         ) : reservationsQuery.isError ? (
-          <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
+          <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : reservations.length === 0 ? (
           <TableMessage>예약 신청이 없습니다.</TableMessage>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
+          <>
+            <p className="mb-3 text-sm text-gray-500">
+              총{" "}
+              <span className="font-semibold text-gray-700">
+                {reservations.length}
+              </span>
+              건
+            </p>
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
                 <tr>
                   <Th>지점</Th>
                   <Th>이름</Th>
@@ -119,9 +130,10 @@ export default function AdminReservationsPage() {
                     </Td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

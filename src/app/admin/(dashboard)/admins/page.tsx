@@ -1,7 +1,9 @@
 "use client";
 
+import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BuildingOffice2Icon, EnvelopeIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
@@ -14,7 +16,9 @@ import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
-import { Td, Th, TableMessage } from "@/components/Table";
+import { Select } from "@/components/Select";
+import { TableMessage, TableSkeleton } from "@/components/Table";
+import { formatDate } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -52,6 +56,8 @@ export default function AdminAdminsPage() {
     retry: false,
   });
   const isSuper = meQuery.data?.role === "SUPER_ADMIN";
+  // 지점 필터 ("" = 전체)
+  const [branchFilter, setBranchFilter] = useState("");
 
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
@@ -104,7 +110,7 @@ export default function AdminAdminsPage() {
   if (meQuery.data && !isSuper) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">관리자 관리</h1>
+        <PageTitle title="관리자 관리" />
         <p className="mt-2 text-gray-600">대표 관리자만 접근할 수 있습니다.</p>
       </div>
     );
@@ -113,80 +119,102 @@ export default function AdminAdminsPage() {
   const branchName = (id: string | null) =>
     id ? (branchesQuery.data?.find((b) => b.id === id)?.name ?? "-") : "-";
   const admins = adminsQuery.data ?? [];
+  // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
+  const visibleAdmins = admins.filter(
+    (a) =>
+      !branchFilter || a.role === "SUPER_ADMIN" || a.branch_id === branchFilter,
+  );
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">관리자 관리</h1>
+      <PageTitle title="관리자 관리" />
       <p className="mt-1 text-sm text-gray-500">
         FC 가입 승인·거부 및 계정 관리.
       </p>
 
+      <div className="mt-5 max-w-xs">
+        <Select
+          id="branch-filter"
+          label="지점"
+          icon={BuildingOffice2Icon}
+          options={[
+            { value: "", label: "전체 지점" },
+            ...(branchesQuery.data ?? []).map((b) => ({
+              value: b.id,
+              label: b.name,
+            })),
+          ]}
+          value={branchFilter}
+          onChange={(e) => setBranchFilter(e.target.value)}
+        />
+      </div>
+
       <div className="mt-6">
         {adminsQuery.isLoading ? (
-          <TableMessage>불러오는 중…</TableMessage>
+          <TableSkeleton />
         ) : adminsQuery.isError ? (
-          <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
-        ) : admins.length === 0 ? (
+          <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
+        ) : visibleAdmins.length === 0 ? (
           <TableMessage>관리자가 없습니다.</TableMessage>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <Th>이름</Th>
-                  <Th>이메일</Th>
-                  <Th>역할</Th>
-                  <Th>지점</Th>
-                  <Th>상태</Th>
-                  <Th> </Th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {admins.map((a) => (
-                  <tr key={a.id} className="text-gray-800">
-                    <Td className="font-medium">{a.name}</Td>
-                    <Td>{a.email}</Td>
-                    <Td>{ROLE_LABEL[a.role] ?? a.role}</Td>
-                    <Td>{branchName(a.branch_id)}</Td>
-                    <Td>
-                      <AdminStatusBadge status={a.status} />
-                    </Td>
-                    <Td>
-                      <div className="flex justify-end gap-2">
-                        {a.status === "PENDING_APPROVAL" ? (
-                          <>
-                            <RowActionButton
-                              onClick={() => approveMutation.mutate(a.id)}
-                            >
-                              승인
-                            </RowActionButton>
-                            <RowActionButton
-                              variant="danger"
-                              onClick={() =>
-                                setConfirmTarget({ action: "reject", admin: a })
-                              }
-                            >
-                              거부
-                            </RowActionButton>
-                          </>
-                        ) : a.role === "FC" && a.status === "ACTIVE" ? (
-                          <RowActionButton
-                            variant="danger"
-                            onClick={() =>
-                              setConfirmTarget({ action: "delete", admin: a })
-                            }
-                          >
-                            삭제
-                          </RowActionButton>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleAdmins.map((a) => (
+              <article
+                key={a.id}
+                className="rounded-xl border border-gray-200 p-5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-lg font-bold text-gray-900">
+                      {a.name}
+                    </h2>
+                    <p className="mt-0.5 text-sm text-gray-500">
+                      {ROLE_LABEL[a.role] ?? a.role}
+                      {a.branch_id ? ` · ${branchName(a.branch_id)}` : ""}
+                    </p>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600">
+                      <EnvelopeIcon className="size-4 shrink-0" />
+                      <span className="truncate">{a.email}</span>
+                    </p>
+                  </div>
+                  <AdminStatusBadge status={a.status} />
+                </div>
+
+                <div className="mt-6 flex min-h-[2rem] items-center justify-between gap-2">
+                  <p className="text-xs text-gray-400">
+                    가입일 {formatDate(a.created_at)}
+                  </p>
+                  <div className="flex gap-2">
+                    {a.status === "PENDING_APPROVAL" ? (
+                      <>
+                        <RowActionButton
+                          onClick={() => approveMutation.mutate(a.id)}
+                        >
+                          승인
+                        </RowActionButton>
+                        <RowActionButton
+                          variant="danger"
+                          onClick={() =>
+                            setConfirmTarget({ action: "reject", admin: a })
+                          }
+                        >
+                          거부
+                        </RowActionButton>
+                      </>
+                    ) : a.role === "FC" && a.status === "ACTIVE" ? (
+                      <RowActionButton
+                        variant="danger"
+                        onClick={() =>
+                          setConfirmTarget({ action: "delete", admin: a })
+                        }
+                      >
+                        삭제
+                      </RowActionButton>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </div>

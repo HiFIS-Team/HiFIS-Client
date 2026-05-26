@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
+import { LockClosedIcon } from "@heroicons/react/24/outline";
 import { login } from "@/lib/api/auth";
 import { setTokens } from "@/lib/api/tokenStore";
 import { getErrorMessage } from "@/lib/api/client";
@@ -42,7 +43,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <AuthLayout title="관리자 로그인">
+    <AuthLayout title="관리자 로그인" icon={LockClosedIcon}>
       <form
         onSubmit={handleSubmit}
         className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"

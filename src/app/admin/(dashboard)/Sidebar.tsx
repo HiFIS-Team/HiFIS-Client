@@ -1,16 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
 import type { Admin } from "@/lib/api/types";
+import { NAV_ICONS } from "./navIcons";
+import { PasswordChangeDialog } from "./PasswordChangeDialog";
+import { NotificationBell } from "./NotificationBell";
 
 interface NavItem {
   href: string;
   label: string;
   // SUPER_ADMIN 전용 (FC에게는 숨김)
   superOnly?: boolean;
+  // 준비중 — 클릭 비활성 + 배지 표시
+  comingSoon?: boolean;
 }
 interface NavGroup {
   // null이면 그룹 라벨 없이 항목만
@@ -25,13 +31,12 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/admin/reservations", label: "예약" },
       { href: "/admin/members", label: "회원" },
-      { href: "/admin/pt-applications", label: "PT 신청" },
+      { href: "/admin/pt-applications", label: "PT" },
     ],
   },
   {
     label: "운영",
     items: [
-      { href: "/admin/holds", label: "홀딩" },
       { href: "/admin/passes", label: "상품 관리" },
       { href: "/admin/branches", label: "지점 관리", superOnly: true },
     ],
@@ -41,6 +46,32 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/admin/stats", label: "통계" },
       { href: "/admin/messages", label: "알림톡 이력" },
+    ],
+  },
+  {
+    label: "직원 관리",
+    items: [
+      {
+        href: "/admin/staff/facility-care",
+        label: "환경정비",
+        comingSoon: true,
+      },
+      {
+        href: "/admin/staff/peer-review",
+        label: "동료평가",
+        comingSoon: true,
+      },
+      {
+        href: "/admin/staff/kindness",
+        label: "회원 친절도",
+        comingSoon: true,
+      },
+      { href: "/admin/staff/classes", label: "수업 개수", comingSoon: true },
+      {
+        href: "/admin/staff/contribution",
+        label: "센터 기여도",
+        comingSoon: true,
+      },
     ],
   },
   {
@@ -58,6 +89,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   function isActive(href: string): boolean {
     if (href === "/admin") return pathname === "/admin";
@@ -71,10 +103,14 @@ export function Sidebar({ admin }: { admin: Admin }) {
   }
 
   return (
+    <>
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50">
-      <div className="px-5 py-5">
-        <span className="text-lg font-bold text-gray-900">HiFIS</span>
-        <span className="ml-1.5 text-sm text-gray-500">관리자</span>
+      <div className="flex items-center justify-between px-5 py-5">
+        <div>
+          <span className="text-lg font-bold text-gray-900">HiFIS</span>
+          <span className="ml-1.5 text-sm text-gray-500">관리자</span>
+        </div>
+        <NotificationBell />
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
@@ -92,19 +128,39 @@ export function Sidebar({ admin }: { admin: Admin }) {
                 </p>
               )}
               <div className="space-y-1">
-                {items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive(item.href)
-                        ? "bg-primary text-white"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {items.map((item) => {
+                  const Icon = NAV_ICONS[item.href];
+                  if (item.comingSoon) {
+                    return (
+                      <div
+                        key={item.href}
+                        className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-400"
+                        aria-disabled="true"
+                        title="준비중"
+                      >
+                        {Icon && <Icon className="size-4 shrink-0" />}
+                        <span className="flex-1 truncate">{item.label}</span>
+                        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                          준비중
+                        </span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive(item.href)
+                          ? "bg-primary text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {Icon && <Icon className="size-4 shrink-0" />}
+                      {item.label}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           );
@@ -120,12 +176,24 @@ export function Sidebar({ admin }: { admin: Admin }) {
         </p>
         <button
           type="button"
-          onClick={logout}
+          onClick={() => setPasswordOpen(true)}
           className="mt-3 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+        >
+          비밀번호 변경
+        </button>
+        <button
+          type="button"
+          onClick={logout}
+          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
         >
           로그아웃
         </button>
       </div>
     </aside>
+
+      {passwordOpen && (
+        <PasswordChangeDialog onClose={() => setPasswordOpen(false)} />
+      )}
+    </>
   );
 }
