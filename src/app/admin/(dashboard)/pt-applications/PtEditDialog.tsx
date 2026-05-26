@@ -3,7 +3,11 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getEnums } from "@/lib/api/enums";
-import { getPtPasses } from "@/lib/api/passes";
+import {
+  getClothesPasses,
+  getLockerPasses,
+  getPtPasses,
+} from "@/lib/api/passes";
 import { updatePtApplication } from "@/lib/api/ptApplications";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
@@ -43,15 +47,26 @@ export function PtEditDialog({
     queryKey: ["pt-passes", app.branch_id],
     queryFn: () => getPtPasses(app.branch_id),
   });
+  const lockerPassQuery = useQuery({
+    queryKey: ["locker-passes", app.branch_id],
+    queryFn: () => getLockerPasses(app.branch_id),
+  });
+  const clothesPassQuery = useQuery({
+    queryKey: ["clothes-passes", app.branch_id],
+    queryFn: () => getClothesPasses(app.branch_id),
+  });
 
   const [form, setForm] = useState({
     pt_pass_id: app.pt_pass_id,
+    locker_pass_id: app.locker_pass_id,
+    clothes_pass_id: app.clothes_pass_id,
     name: app.name,
     gender: app.gender,
     birth_date: app.birth_date,
     phone: app.phone,
     address: app.address,
     referral: app.referral,
+    motivation: app.motivation,
     payment_method: app.payment_method,
     final_price: String(app.final_price),
     start_date: app.start_date,
@@ -66,12 +81,15 @@ export function PtEditDialog({
     mutationFn: () =>
       updatePtApplication(app.id, {
         pt_pass_id: form.pt_pass_id,
+        locker_pass_id: form.locker_pass_id,
+        clothes_pass_id: form.clothes_pass_id,
         name: form.name.trim(),
         gender: form.gender,
         birth_date: form.birth_date,
         phone: form.phone.trim(),
         address: form.address.trim(),
         referral: form.referral,
+        motivation: form.motivation,
         payment_method: form.payment_method,
         final_price: Number(form.final_price),
         start_date: form.start_date,
@@ -86,8 +104,23 @@ export function PtEditDialog({
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
-  const isLoading = enumsQuery.isLoading || ptPassQuery.isLoading;
-  const isError = enumsQuery.isError || ptPassQuery.isError;
+  const isLoading =
+    enumsQuery.isLoading ||
+    ptPassQuery.isLoading ||
+    lockerPassQuery.isLoading ||
+    clothesPassQuery.isLoading;
+  const isError =
+    enumsQuery.isError ||
+    ptPassQuery.isError ||
+    lockerPassQuery.isError ||
+    clothesPassQuery.isError;
+  // PT는 락커·운동복 무료 — 0원 상품만 노출
+  const lockerPasses = (lockerPassQuery.data ?? []).filter(
+    (p) => p.cash_price === 0,
+  );
+  const clothesPasses = (clothesPassQuery.data ?? []).filter(
+    (p) => p.cash_price === 0,
+  );
   const today = todayStr();
 
   function validate(): boolean {
@@ -115,6 +148,7 @@ export function PtEditDialog({
     )
       e.final_price = "결제 금액을 정확히 입력해 주세요.";
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
+    if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -209,6 +243,30 @@ export function PtEditDialog({
                 onChange={(e) => set({ pt_pass_id: e.target.value })}
                 error={errors.pt_pass_id}
               />
+              <Select
+                id="pe-locker-pass"
+                label="락커 (무료 제공, 선택)"
+                options={[
+                  { value: "", label: "선택 안 함" },
+                  ...lockerPasses.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+                value={form.locker_pass_id ?? ""}
+                onChange={(e) =>
+                  set({ locker_pass_id: e.target.value || null })
+                }
+              />
+              <Select
+                id="pe-clothes-pass"
+                label="운동복 (무료 제공, 선택)"
+                options={[
+                  { value: "", label: "선택 안 함" },
+                  ...clothesPasses.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+                value={form.clothes_pass_id ?? ""}
+                onChange={(e) =>
+                  set({ clothes_pass_id: e.target.value || null })
+                }
+              />
               <TextField
                 id="pe-start"
                 label="이용 시작일"
@@ -258,6 +316,16 @@ export function PtEditDialog({
                 value={form.referral}
                 onChange={(e) => set({ referral: e.target.value })}
                 error={errors.referral}
+              />
+              <Select
+                id="pe-motivation"
+                label="방문 목적"
+                required
+                placeholder="선택"
+                options={enumOpts(enumsQuery.data!.motivation)}
+                value={form.motivation}
+                onChange={(e) => set({ motivation: e.target.value })}
+                error={errors.motivation}
               />
               <Textarea
                 id="pe-notes"

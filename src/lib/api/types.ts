@@ -22,6 +22,9 @@ export interface Enums {
   referral: EnumOption[];
   payment_method: EnumOption[];
   motivation: EnumOption[];
+  // 알림톡 발송 종류·출처 — 알림톡 이력 화면에서 사용
+  trigger_type: EnumOption[];
+  source_type: EnumOption[];
 }
 
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---
@@ -112,12 +115,16 @@ export interface MemberUpdate {
 export interface PTApplicationCreate {
   branch_id: string;
   pt_pass_id: string;
+  // PT 무료 제공 락커/운동복 — 0원 상품으로 admin이 등록하면 회원이 선택. null = 사용 안 함
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
   name: string;
   gender: string;
   birth_date: string;
   phone: string;
   address: string;
   referral: string;
+  motivation: string;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -129,12 +136,15 @@ export interface PTApplication {
   id: string;
   branch_id: string;
   pt_pass_id: string;
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
   name: string;
   gender: string;
   birth_date: string;
   phone: string;
   address: string;
   referral: string;
+  motivation: string;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -147,12 +157,15 @@ export interface PTApplication {
 // PATCH /admin/pt-applications/{id} 요청 (수정)
 export interface PTApplicationUpdate {
   pt_pass_id: string;
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
   name: string;
   gender: string;
   birth_date: string;
   phone: string;
   address: string;
   referral: string;
+  motivation: string;
   payment_method: string;
   final_price: number;
   start_date: string;

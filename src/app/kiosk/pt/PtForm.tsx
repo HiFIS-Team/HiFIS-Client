@@ -17,7 +17,11 @@ import {
 } from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
-import { getPtPasses } from "@/lib/api/passes";
+import {
+  getClothesPasses,
+  getLockerPasses,
+  getPtPasses,
+} from "@/lib/api/passes";
 import { createPtApplication } from "@/lib/api/ptApplications";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
@@ -68,11 +72,15 @@ const INITIAL = {
   phone: "",
   address: "",
   pt_pass_id: "",
+  // PT 회원에게 무료 제공되는 락커·운동복 — admin이 0원 상품으로 등록한 것만 선택
+  locker_pass_id: "",
+  clothes_pass_id: "",
   start_date: "",
   end_date: "",
   payment_method: "",
   final_price: "",
   referral: "",
+  motivation: "",
   notes: "",
   agreed_notice: false,
 };
@@ -89,6 +97,14 @@ export function PtForm({ branchId }: { branchId: string }) {
     queryKey: ["pt-passes", branchId],
     queryFn: () => getPtPasses(branchId),
   });
+  const lockerPassQuery = useQuery({
+    queryKey: ["locker-passes", branchId],
+    queryFn: () => getLockerPasses(branchId),
+  });
+  const clothesPassQuery = useQuery({
+    queryKey: ["clothes-passes", branchId],
+    queryFn: () => getClothesPasses(branchId),
+  });
 
   // 시작일은 등록일(오늘), 종료일은 +40일로 시작 — PT 헬스권 기간은 40일 고정
   const [form, setForm] = useState<FormState>(() => {
@@ -104,8 +120,16 @@ export function PtForm({ branchId }: { branchId: string }) {
 
   const today = todayStr();
 
-  const isLoading = enumsQuery.isLoading || ptPassQuery.isLoading;
-  const isError = enumsQuery.isError || ptPassQuery.isError;
+  const isLoading =
+    enumsQuery.isLoading ||
+    ptPassQuery.isLoading ||
+    lockerPassQuery.isLoading ||
+    clothesPassQuery.isLoading;
+  const isError =
+    enumsQuery.isError ||
+    ptPassQuery.isError ||
+    lockerPassQuery.isError ||
+    clothesPassQuery.isError;
 
   if (isLoading) {
     return <Center>불러오는 중…</Center>;
@@ -120,8 +144,17 @@ export function PtForm({ branchId }: { branchId: string }) {
 
   const enums = enumsQuery.data!;
   const ptPasses = ptPassQuery.data ?? [];
+  // PT는 락커·운동복 무료 제공 — 0원 상품만 노출
+  const lockerPasses = (lockerPassQuery.data ?? []).filter(
+    (p) => p.cash_price === 0,
+  );
+  const clothesPasses = (clothesPassQuery.data ?? []).filter(
+    (p) => p.cash_price === 0,
+  );
   const branchName =
     branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
+
+  // 락커·운동복은 무료라 결제 금액에 영향 없음 — totalFor 는 수강권만 반영
 
   // 수강권·결제수단 변경 시 최종 금액을 자동 재계산
   function totalFor(next: FormState): number {
@@ -184,6 +217,7 @@ export function PtForm({ branchId }: { branchId: string }) {
       e.final_price = "결제 금액을 정확히 입력해 주세요.";
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
+    if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
     if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
 
     setErrors(e);
@@ -196,12 +230,15 @@ export function PtForm({ branchId }: { branchId: string }) {
     mutation.mutate({
       branch_id: branchId,
       pt_pass_id: form.pt_pass_id,
+      locker_pass_id: form.locker_pass_id || null,
+      clothes_pass_id: form.clothes_pass_id || null,
       name: form.name.trim(),
       gender: form.gender,
       birth_date: form.birth_date,
       phone: form.phone.trim(),
       address: form.address.trim(),
       referral: form.referral,
+      motivation: form.motivation,
       payment_method: form.payment_method,
       final_price: Number(form.final_price),
       start_date: form.start_date,
@@ -301,6 +338,26 @@ export function PtForm({ branchId }: { branchId: string }) {
             onChange={(e) => setWithPrice({ pt_pass_id: e.target.value })}
             error={errors.pt_pass_id}
           />
+          <Select
+            id="locker-pass"
+            label="락커 (무료 제공, 선택)"
+            options={[
+              { value: "", label: "선택 안 함" },
+              ...lockerPasses.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+            value={form.locker_pass_id}
+            onChange={(e) => set({ locker_pass_id: e.target.value })}
+          />
+          <Select
+            id="clothes-pass"
+            label="운동복 (무료 제공, 선택)"
+            options={[
+              { value: "", label: "선택 안 함" },
+              ...clothesPasses.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+            value={form.clothes_pass_id}
+            onChange={(e) => set({ clothes_pass_id: e.target.value })}
+          />
           <TextField
             id="start-date"
             label="이용 시작일"
@@ -360,6 +417,16 @@ export function PtForm({ branchId }: { branchId: string }) {
             value={form.referral}
             onChange={(e) => set({ referral: e.target.value })}
             error={errors.referral}
+          />
+          <Select
+            id="motivation"
+            label="방문 목적"
+            required
+            placeholder="선택해 주세요"
+            options={enumOpts(enums.motivation)}
+            value={form.motivation}
+            onChange={(e) => set({ motivation: e.target.value })}
+            error={errors.motivation}
           />
           <Textarea
             id="notes"
