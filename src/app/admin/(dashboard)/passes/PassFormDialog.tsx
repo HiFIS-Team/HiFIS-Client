@@ -54,47 +54,55 @@ export function PassFormDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+        className="flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
-          <TextField
-            id="pass-name"
-            label="상품명"
-            required
-            maxLength={50}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            error={errors.name}
-          />
-          <TextField
-            id="pass-cash"
-            label="현금가 (원)"
-            required
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={cash}
-            onChange={(e) => setCash(e.target.value)}
-            error={errors.cash}
-          />
-          <TextField
-            id="pass-card"
-            label="카드가 (원)"
-            required
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={card}
-            onChange={(e) => setCard(e.target.value)}
-            error={errors.card}
-          />
-          <div className="flex justify-end gap-2 pt-2">
+        <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
+          {title}
+        </h2>
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-col"
+          noValidate
+        >
+          <div className="space-y-4 overflow-y-auto px-6 py-5">
+            <TextField
+              id="pass-name"
+              label="상품명"
+              required
+              maxLength={50}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              error={errors.name}
+            />
+            <TextField
+              id="pass-cash"
+              label="현금가 (원)"
+              required
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={cash}
+              onChange={(e) => setCash(e.target.value)}
+              error={errors.cash}
+            />
+            <TextField
+              id="pass-card"
+              label="카드가 (원)"
+              required
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={card}
+              onChange={(e) => setCard(e.target.value)}
+              error={errors.card}
+            />
+          </div>
+          <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
             <button
               type="button"
               onClick={onCancel}

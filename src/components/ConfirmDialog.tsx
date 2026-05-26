@@ -1,13 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
+import {
+  ExclamationTriangleIcon,
+  QuestionMarkCircleIcon,
+} from "@heroicons/react/24/outline";
 
 interface ConfirmDialogProps {
   open: boolean;
   title?: string;
   message: ReactNode;
   confirmLabel?: string;
-  // true면 확인 버튼이 빨강 (삭제 등 파괴적 작업)
+  // true면 확인 버튼이 빨강 + 상단 경고 아이콘 (삭제 등 파괴적 작업)
   danger?: boolean;
   loading?: boolean;
   onConfirm: () => void;
@@ -27,6 +31,8 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   if (!open) return null;
 
+  const Icon = danger ? ExclamationTriangleIcon : QuestionMarkCircleIcon;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
@@ -36,8 +42,21 @@ export function ConfirmDialog({
         className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {title && <h2 className="text-lg font-bold text-gray-900">{title}</h2>}
-        <div className="mt-2 text-sm/6 text-gray-600">{message}</div>
+        <div
+          className={`mx-auto flex size-12 items-center justify-center rounded-full ${
+            danger ? "bg-red-50 text-red-500" : "bg-violet-50 text-primary"
+          }`}
+        >
+          <Icon className="size-6" />
+        </div>
+        {title && (
+          <h2 className="mt-4 text-center text-lg font-bold text-gray-900">
+            {title}
+          </h2>
+        )}
+        <div className="mt-2 text-center text-sm/6 text-gray-600">
+          {message}
+        </div>
         <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
