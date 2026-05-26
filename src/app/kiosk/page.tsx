@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
+  ChevronRightIcon,
   MapPinIcon,
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
@@ -74,18 +75,6 @@ export default function KioskPage() {
   );
 }
 
-// 키오스크 상단 브랜드 마크 — 진입 화면 공통
-function BrandMark() {
-  return (
-    <div className="text-center">
-      <div className="text-5xl font-bold tracking-tight text-gray-900">
-        <span className="text-primary">Hi</span>FIS
-      </div>
-      <p className="mt-1 text-base text-gray-500">피트니스스타</p>
-    </div>
-  );
-}
-
 // 지점 최초 설정 — 태블릿이 설치된 지점을 한 번만 선택
 function BranchSetup({
   branches,
@@ -97,9 +86,11 @@ function BranchSetup({
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 py-10">
       <div className="flex flex-1 flex-col justify-center">
-        <BrandMark />
-        <header className="mt-10 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
+        <header className="text-center">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-violet-50 text-primary">
+            <MapPinIcon className="size-7" />
+          </div>
+          <h1 className="mt-5 text-3xl font-bold text-gray-900">
             지점을 선택해 주세요
           </h1>
           <p className="mt-3 text-base text-gray-500">
@@ -115,10 +106,13 @@ function BranchSetup({
                 key={b.id}
                 type="button"
                 onClick={() => onPick(b.id)}
-                className="flex items-center justify-center gap-2 rounded-xl border-2 border-gray-200 px-6 py-5 text-xl font-semibold text-gray-900 transition-colors hover:border-primary hover:bg-violet-50"
+                className="group flex items-center justify-between gap-2 rounded-xl border-2 border-gray-200 px-6 py-5 text-xl font-semibold text-gray-900 transition-colors hover:border-primary hover:bg-violet-50"
               >
-                <MapPinIcon className="size-5 text-gray-400" />
-                {b.name}
+                <span className="flex items-center gap-3">
+                  <MapPinIcon className="size-5 text-gray-400 transition-colors group-hover:text-primary" />
+                  {b.name}
+                </span>
+                <ChevronRightIcon className="size-5 text-gray-400 transition-colors group-hover:text-primary" />
               </button>
             ))
           )}
@@ -139,9 +133,7 @@ function KioskHome({
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-10">
       <div className="flex flex-1 flex-col justify-center">
-        <BrandMark />
-
-        <div className="mt-6 flex justify-center">
+        <div className="flex justify-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-4 py-1.5 text-base font-semibold text-primary">
             <MapPinIcon className="size-4" />
             {branch.name}
