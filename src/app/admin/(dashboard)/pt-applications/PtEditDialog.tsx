@@ -3,7 +3,11 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getEnums } from "@/lib/api/enums";
-import { getPtPasses } from "@/lib/api/passes";
+import {
+  getClothesPasses,
+  getLockerPasses,
+  getPtPasses,
+} from "@/lib/api/passes";
 import { updatePtApplication } from "@/lib/api/ptApplications";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
@@ -42,6 +46,14 @@ export function PtEditDialog({
   const ptPassQuery = useQuery({
     queryKey: ["pt-passes", app.branch_id],
     queryFn: () => getPtPasses(app.branch_id),
+  });
+  const lockerPassQuery = useQuery({
+    queryKey: ["locker-passes", app.branch_id],
+    queryFn: () => getLockerPasses(app.branch_id),
+  });
+  const clothesPassQuery = useQuery({
+    queryKey: ["clothes-passes", app.branch_id],
+    queryFn: () => getClothesPasses(app.branch_id),
   });
 
   const [form, setForm] = useState({
@@ -92,8 +104,23 @@ export function PtEditDialog({
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
-  const isLoading = enumsQuery.isLoading || ptPassQuery.isLoading;
-  const isError = enumsQuery.isError || ptPassQuery.isError;
+  const isLoading =
+    enumsQuery.isLoading ||
+    ptPassQuery.isLoading ||
+    lockerPassQuery.isLoading ||
+    clothesPassQuery.isLoading;
+  const isError =
+    enumsQuery.isError ||
+    ptPassQuery.isError ||
+    lockerPassQuery.isError ||
+    clothesPassQuery.isError;
+  // PT는 락커·운동복 무료 — 0원 상품만 노출
+  const lockerPasses = (lockerPassQuery.data ?? []).filter(
+    (p) => p.cash_price === 0,
+  );
+  const clothesPasses = (clothesPassQuery.data ?? []).filter(
+    (p) => p.cash_price === 0,
+  );
   const today = todayStr();
 
   function validate(): boolean {
@@ -215,6 +242,30 @@ export function PtEditDialog({
                 value={form.pt_pass_id}
                 onChange={(e) => set({ pt_pass_id: e.target.value })}
                 error={errors.pt_pass_id}
+              />
+              <Select
+                id="pe-locker-pass"
+                label="락커 (무료 제공, 선택)"
+                options={[
+                  { value: "", label: "선택 안 함" },
+                  ...lockerPasses.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+                value={form.locker_pass_id ?? ""}
+                onChange={(e) =>
+                  set({ locker_pass_id: e.target.value || null })
+                }
+              />
+              <Select
+                id="pe-clothes-pass"
+                label="운동복 (무료 제공, 선택)"
+                options={[
+                  { value: "", label: "선택 안 함" },
+                  ...clothesPasses.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+                value={form.clothes_pass_id ?? ""}
+                onChange={(e) =>
+                  set({ clothes_pass_id: e.target.value || null })
+                }
               />
               <TextField
                 id="pe-start"

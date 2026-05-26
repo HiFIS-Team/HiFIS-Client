@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getEnums } from "@/lib/api/enums";
 import { getBranches } from "@/lib/api/branches";
-import { getPtPasses } from "@/lib/api/passes";
+import {
+  getClothesPasses,
+  getLockerPasses,
+  getPtPasses,
+} from "@/lib/api/passes";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
@@ -13,7 +17,8 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 function enumLabel(arr: EnumOption[] | undefined, code: string): string {
   return arr?.find((o) => o.code === code)?.label ?? code;
 }
-function passName(arr: Pass[] | undefined, id: string): string {
+function passName(arr: Pass[] | undefined, id: string | null): string {
+  if (!id) return "선택 안 함";
   return arr?.find((p) => p.id === id)?.name ?? "-";
 }
 
@@ -44,8 +49,20 @@ export function PtDetailDialog({
     queryKey: ["pt-passes", app.branch_id],
     queryFn: () => getPtPasses(app.branch_id),
   });
+  const lockerPassQuery = useQuery({
+    queryKey: ["locker-passes", app.branch_id],
+    queryFn: () => getLockerPasses(app.branch_id),
+  });
+  const clothesPassQuery = useQuery({
+    queryKey: ["clothes-passes", app.branch_id],
+    queryFn: () => getClothesPasses(app.branch_id),
+  });
 
-  const isLoading = enumsQuery.isLoading || ptPassQuery.isLoading;
+  const isLoading =
+    enumsQuery.isLoading ||
+    ptPassQuery.isLoading ||
+    lockerPassQuery.isLoading ||
+    clothesPassQuery.isLoading;
   const enums = enumsQuery.data;
   const branchName =
     branchesQuery.data?.find((b) => b.id === app.branch_id)?.name ?? "-";
@@ -79,6 +96,12 @@ export function PtDetailDialog({
             <Row label="주소">{app.address}</Row>
             <Row label="수강권">
               {passName(ptPassQuery.data, app.pt_pass_id)}
+            </Row>
+            <Row label="락커">
+              {passName(lockerPassQuery.data, app.locker_pass_id)}
+            </Row>
+            <Row label="운동복">
+              {passName(clothesPassQuery.data, app.clothes_pass_id)}
             </Row>
             <Row label="이용 기간">
               {formatDate(app.start_date)} ~ {formatDate(app.end_date)}
