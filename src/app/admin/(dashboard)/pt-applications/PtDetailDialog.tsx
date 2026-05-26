@@ -90,6 +90,9 @@ export function PtDetailDialog({
             <Row label="유입 경로">
               {enumLabel(enums?.referral, app.referral)}
             </Row>
+            <Row label="방문 목적">
+              {enumLabel(enums?.motivation, app.motivation)}
+            </Row>
             <Row label="비고">{app.notes || "-"}</Row>
             <Row label="상태">
               <StatusBadge status={app.status} />

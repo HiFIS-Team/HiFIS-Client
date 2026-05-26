@@ -46,12 +46,15 @@ export function PtEditDialog({
 
   const [form, setForm] = useState({
     pt_pass_id: app.pt_pass_id,
+    locker_pass_id: app.locker_pass_id,
+    clothes_pass_id: app.clothes_pass_id,
     name: app.name,
     gender: app.gender,
     birth_date: app.birth_date,
     phone: app.phone,
     address: app.address,
     referral: app.referral,
+    motivation: app.motivation,
     payment_method: app.payment_method,
     final_price: String(app.final_price),
     start_date: app.start_date,
@@ -66,12 +69,15 @@ export function PtEditDialog({
     mutationFn: () =>
       updatePtApplication(app.id, {
         pt_pass_id: form.pt_pass_id,
+        locker_pass_id: form.locker_pass_id,
+        clothes_pass_id: form.clothes_pass_id,
         name: form.name.trim(),
         gender: form.gender,
         birth_date: form.birth_date,
         phone: form.phone.trim(),
         address: form.address.trim(),
         referral: form.referral,
+        motivation: form.motivation,
         payment_method: form.payment_method,
         final_price: Number(form.final_price),
         start_date: form.start_date,
@@ -115,6 +121,7 @@ export function PtEditDialog({
     )
       e.final_price = "결제 금액을 정확히 입력해 주세요.";
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
+    if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -258,6 +265,16 @@ export function PtEditDialog({
                 value={form.referral}
                 onChange={(e) => set({ referral: e.target.value })}
                 error={errors.referral}
+              />
+              <Select
+                id="pe-motivation"
+                label="방문 목적"
+                required
+                placeholder="선택"
+                options={enumOpts(enumsQuery.data!.motivation)}
+                value={form.motivation}
+                onChange={(e) => set({ motivation: e.target.value })}
+                error={errors.motivation}
               />
               <Textarea
                 id="pe-notes"

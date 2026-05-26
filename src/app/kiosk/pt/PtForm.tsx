@@ -73,6 +73,7 @@ const INITIAL = {
   payment_method: "",
   final_price: "",
   referral: "",
+  motivation: "",
   notes: "",
   agreed_notice: false,
 };
@@ -184,6 +185,7 @@ export function PtForm({ branchId }: { branchId: string }) {
       e.final_price = "결제 금액을 정확히 입력해 주세요.";
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
+    if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
     if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
 
     setErrors(e);
@@ -196,12 +198,16 @@ export function PtForm({ branchId }: { branchId: string }) {
     mutation.mutate({
       branch_id: branchId,
       pt_pass_id: form.pt_pass_id,
+      // 락커·운동복은 다음 단계(#3)에서 폼에 추가 — 우선 null 로 보냄
+      locker_pass_id: null,
+      clothes_pass_id: null,
       name: form.name.trim(),
       gender: form.gender,
       birth_date: form.birth_date,
       phone: form.phone.trim(),
       address: form.address.trim(),
       referral: form.referral,
+      motivation: form.motivation,
       payment_method: form.payment_method,
       final_price: Number(form.final_price),
       start_date: form.start_date,
@@ -360,6 +366,16 @@ export function PtForm({ branchId }: { branchId: string }) {
             value={form.referral}
             onChange={(e) => set({ referral: e.target.value })}
             error={errors.referral}
+          />
+          <Select
+            id="motivation"
+            label="방문 목적"
+            required
+            placeholder="선택해 주세요"
+            options={enumOpts(enums.motivation)}
+            value={form.motivation}
+            onChange={(e) => set({ motivation: e.target.value })}
+            error={errors.motivation}
           />
           <Textarea
             id="notes"
