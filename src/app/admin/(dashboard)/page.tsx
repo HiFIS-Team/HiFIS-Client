@@ -22,31 +22,14 @@ import {
 } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getAdmins } from "@/lib/api/admins";
-import { getAdminReservations } from "@/lib/api/reservations";
-import { getAdminMembers } from "@/lib/api/members";
-import { getAdminPtApplications } from "@/lib/api/ptApplications";
-import { getAdminMessages } from "@/lib/api/messages";
+import { getDashboardSummary } from "@/lib/api/dashboard";
 import { formatDate, formatPhone } from "@/lib/format";
-import type { Member, PTApplication } from "@/lib/api/types";
+import type { DayCount } from "@/lib/api/types";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
-// YYYY-MM-DD 에 일수 더하기
-function addDays(dateStr: string, days: number): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d + days).toLocaleDateString("en-CA");
-}
-
-// 사람 단위 통계용 공통 타입 — 회원·PT 신청 양쪽에 공통으로 있는 필드만
-type Person = {
-  id: string;
-  phone: string;
-  name: string;
-  gender: string;
-  birth_date: string;
-};
 
 // 최근 신청 리스트 — 타입별 아이콘 + chip 색상 메타. 한 톤이지만 색으로 구분 가능.
 const RECENT_TYPE_META: Record<
@@ -57,18 +40,6 @@ const RECENT_TYPE_META: Record<
   회원: { icon: UsersIcon, chipClass: "bg-green-50 text-green-600" },
   PT: { icon: BoltIcon, chipClass: "bg-violet-50 text-primary" },
 };
-
-// 회원 + PT 신청을 전화번호로 합쳐 중복 제거 — 같은 사람이 양쪽에 있으면 1명으로
-function uniquePeople(members: Member[], pts: PTApplication[]): Person[] {
-  const byPhone = new Map<string, Person>();
-  for (const m of members) {
-    if (!byPhone.has(m.phone)) byPhone.set(m.phone, m);
-  }
-  for (const p of pts) {
-    if (!byPhone.has(p.phone)) byPhone.set(p.phone, p);
-  }
-  return Array.from(byPhone.values());
-}
 
 // 요약 숫자 카드 — 아이콘 + 라벨 + 큰 숫자 + 부가 정보 (브랜드 톤 보라 테두리)
 function StatCard({
@@ -139,12 +110,13 @@ function TodoCard({
 }
 
 // 이번 달 가입 추이 — 일별 막대 (회원·PT 색깔 분할 스택)
+// summary 응답의 this_month_by_day(0건 날은 생략) 을 받아 오늘까지 일자 모두 채워서 렌더.
 function MonthlyTrendChart({
-  memberDates,
-  ptDates,
+  memberByDay,
+  ptByDay,
 }: {
-  memberDates: string[];
-  ptDates: string[];
+  memberByDay: DayCount[];
+  ptByDay: DayCount[];
 }) {
   const today = todayStr();
   const monthPrefix = today.slice(0, 7);
@@ -152,16 +124,8 @@ function MonthlyTrendChart({
 
   const memberByDate: Record<string, number> = {};
   const ptByDate: Record<string, number> = {};
-  for (const iso of memberDates) {
-    const day = iso.slice(0, 10);
-    if (day.startsWith(monthPrefix))
-      memberByDate[day] = (memberByDate[day] ?? 0) + 1;
-  }
-  for (const iso of ptDates) {
-    const day = iso.slice(0, 10);
-    if (day.startsWith(monthPrefix))
-      ptByDate[day] = (ptByDate[day] ?? 0) + 1;
-  }
+  for (const d of memberByDay) memberByDate[d.date] = d.count;
+  for (const d of ptByDay) ptByDate[d.date] = d.count;
 
   const days = Array.from(
     { length: todayDay },
@@ -237,12 +201,12 @@ function MonthlyTrendChart({
   );
 }
 
-// 오늘 생일자 — birth_date 의 MM-DD 가 오늘과 같은 사람
-function BirthdayCard({ people }: { people: Person[] }) {
-  const today = todayStr();
-  const monthDay = today.slice(5);
-  const list = people.filter((p) => p.birth_date?.slice(5) === monthDay);
-
+// 오늘 생일자 — summary 응답의 birthday_today 그대로 렌더
+function BirthdayCard({
+  list,
+}: {
+  list: { id: string; name: string; phone: string }[];
+}) {
   return (
     <section className="rounded-xl border border-violet-200 p-5">
       <div className="flex items-center justify-between">
@@ -273,10 +237,10 @@ function BirthdayCard({ people }: { people: Person[] }) {
   );
 }
 
-// 성별 분포 — 수평 스택 바 + 범례
-function GenderCard({ people }: { people: Person[] }) {
-  const male = people.filter((p) => p.gender === "M").length;
-  const female = people.filter((p) => p.gender === "F").length;
+// 성별 분포 — summary 의 by_gender 그대로
+function GenderCard({ byGender }: { byGender: Record<string, number> }) {
+  const male = byGender.M ?? 0;
+  const female = byGender.F ?? 0;
   const total = male + female;
   const malePct = total > 0 ? Math.round((male / total) * 100) : 0;
   const femalePct = total > 0 ? 100 - malePct : 0;
@@ -336,37 +300,32 @@ function GenderCard({ people }: { people: Person[] }) {
   );
 }
 
-// 연령대 분포 — 만 나이 기준 10대~50대+ 버킷별 막대
-function AgeRangeCard({ people }: { people: Person[] }) {
-  const currentYear = Number(todayStr().slice(0, 4));
-  const labels = ["10대", "20대", "30대", "40대", "50대+"] as const;
-  const buckets: Record<string, number> = {
-    "10대": 0,
-    "20대": 0,
-    "30대": 0,
-    "40대": 0,
-    "50대+": 0,
-  };
-  for (const m of people) {
-    if (!m.birth_date) continue;
-    const age = currentYear - Number(m.birth_date.slice(0, 4));
-    if (age < 20) buckets["10대"]++;
-    else if (age < 30) buckets["20대"]++;
-    else if (age < 40) buckets["30대"]++;
-    else if (age < 50) buckets["40대"]++;
-    else buckets["50대+"]++;
-  }
-  const max = Math.max(...Object.values(buckets), 1);
+// 연령대 분포 — summary 의 by_age_range 그대로
+function AgeRangeCard({
+  byAgeRange,
+}: {
+  byAgeRange: Record<string, number>;
+}) {
+  // 백엔드 키와 표시 라벨 매핑
+  const buckets: { key: string; label: string }[] = [
+    { key: "10s", label: "10대" },
+    { key: "20s", label: "20대" },
+    { key: "30s", label: "30대" },
+    { key: "40s", label: "40대" },
+    { key: "50s_plus", label: "50대+" },
+  ];
+  const counts = buckets.map((b) => byAgeRange[b.key] ?? 0);
+  const max = Math.max(...counts, 1);
 
   return (
     <section className="rounded-xl border border-violet-200 p-5">
       <h3 className="text-base font-semibold text-gray-900">연령대 분포</h3>
       <div className="mt-4 space-y-2">
-        {labels.map((label) => {
-          const count = buckets[label];
+        {buckets.map((b, i) => {
+          const count = counts[i];
           return (
-            <div key={label} className="flex items-center gap-2 text-sm">
-              <span className="w-12 shrink-0 text-gray-500">{label}</span>
+            <div key={b.key} className="flex items-center gap-2 text-sm">
+              <span className="w-12 shrink-0 text-gray-500">{b.label}</span>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
                 <div
                   style={{ width: `${(count / max) * 100}%` }}
@@ -427,21 +386,10 @@ export default function AdminDashboardPage() {
   });
   const isSuper = meQuery.data?.role === "SUPER_ADMIN";
 
-  const reservationsQuery = useQuery({
-    queryKey: ["admin", "reservations", "all"],
-    queryFn: () => getAdminReservations(),
-  });
-  const membersQuery = useQuery({
-    queryKey: ["admin", "members", "all"],
-    queryFn: () => getAdminMembers(),
-  });
-  const ptQuery = useQuery({
-    queryKey: ["admin", "pt-applications", "all"],
-    queryFn: () => getAdminPtApplications(),
-  });
-  const messagesQuery = useQuery({
-    queryKey: ["admin", "messages", "all"],
-    queryFn: () => getAdminMessages(),
+  // 모든 집계 데이터를 한 번에 — 회원 1000건+ 운영 환경에서도 정확한 카운트.
+  const summaryQuery = useQuery({
+    queryKey: ["admin", "dashboard-summary", "all"],
+    queryFn: () => getDashboardSummary(),
   });
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
@@ -449,87 +397,58 @@ export default function AdminDashboardPage() {
     enabled: isSuper,
   });
 
-  const reservations = reservationsQuery.data ?? [];
-  const members = membersQuery.data ?? [];
-  const pts = ptQuery.data ?? [];
-  const messages = messagesQuery.data ?? [];
+  const summary = summaryQuery.data;
+  const m = summary?.members;
+  const pt = summary?.pt_applications;
+  const r = summary?.reservations;
+  const msg = summary?.messages;
+
   const pendingFc = (adminsQuery.data ?? []).filter(
     (a) => a.status === "PENDING_APPROVAL",
   ).length;
 
-  // 처리할 일 — 만기 임박(7일내) · 오늘 방문 · 승인 대기
-  const today = todayStr();
-  const sevenDaysLater = addDays(today, 7);
-  const monthPrefix = today.slice(0, 7);
-  // 만기 임박 — 회원 + PT 합산 (이용 기간 종료가 곧 다가오는 건수)
+  // 만기 임박 — 회원 + PT 합산
   const expiringSoonCount =
-    members.filter(
-      (m) =>
-        m.status === "REGISTERED" &&
-        m.end_date >= today &&
-        m.end_date <= sevenDaysLater,
-    ).length +
-    pts.filter(
-      (p) =>
-        p.status === "REGISTERED" &&
-        p.end_date >= today &&
-        p.end_date <= sevenDaysLater,
-    ).length;
-  const todayVisitCount = reservations.filter(
-    (r) => r.visit_date === today,
-  ).length;
+    (m?.expiring_soon_count ?? 0) + (pt?.expiring_soon_count ?? 0);
 
-  // StatCard 부가 정보 — 이번 달 신규 / 오늘 발송
-  const newReservationsThisMonth = reservations.filter((r) =>
-    r.created_at.startsWith(monthPrefix),
-  ).length;
-  const newMembersThisMonth = members.filter((m) =>
-    m.created_at.startsWith(monthPrefix),
-  ).length;
-  const newPtsThisMonth = pts.filter((p) =>
-    p.created_at.startsWith(monthPrefix),
-  ).length;
-  const todayMessagesCount = messages.filter((m) =>
-    m.sent_at.startsWith(today),
-  ).length;
+  // 회원 상태 — 회원 + PT 합산
+  const statusCount = (key: string) =>
+    (m?.by_status?.[key] ?? 0) + (pt?.by_status?.[key] ?? 0);
+  const activeCount = statusCount("REGISTERED");
+  const expiredCount = statusCount("EXPIRED");
+  const heldCount = statusCount("HELD");
 
-  // 회원 분석용 — 회원 + PT 합쳐 전화번호로 중복 제거한 사람 목록
-  const people = uniquePeople(members, pts);
-
-  // 이용자 상태 분포 — 회원 + PT 신청 합산
-  const activeCount =
-    members.filter((m) => m.status === "REGISTERED").length +
-    pts.filter((p) => p.status === "REGISTERED").length;
-  const expiredCount =
-    members.filter((m) => m.status === "EXPIRED").length +
-    pts.filter((p) => p.status === "EXPIRED").length;
-  const heldCount =
-    members.filter((m) => m.status === "HELD").length +
-    pts.filter((p) => p.status === "HELD").length;
-
-  // 최근 신청 — 예약·회원·PT 를 합쳐 최신순 상위 5건
-  const recent = [
-    ...reservations.map((r) => ({
-      key: `r-${r.id}`,
-      name: r.name,
-      type: "예약",
-      created_at: r.created_at,
-    })),
-    ...members.map((m) => ({
-      key: `m-${m.id}`,
-      name: m.name,
-      type: "회원",
-      created_at: m.created_at,
-    })),
-    ...pts.map((p) => ({
-      key: `p-${p.id}`,
-      name: p.name,
-      type: "PT",
-      created_at: p.created_at,
-    })),
-  ]
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-    .slice(0, 5);
+  // 최근 신청 — 예약·회원·PT 각각 5건씩 받아서 합쳐 최신순 상위 5건
+  type RecentRow = {
+    key: string;
+    name: string;
+    type: string;
+    created_at: string;
+  };
+  const recent: RecentRow[] = summary
+    ? [
+        ...summary.reservations.recent.map((x) => ({
+          key: `r-${x.id}`,
+          name: x.name,
+          type: "예약",
+          created_at: x.created_at,
+        })),
+        ...summary.members.recent.map((x) => ({
+          key: `m-${x.id}`,
+          name: x.name,
+          type: "회원",
+          created_at: x.created_at,
+        })),
+        ...summary.pt_applications.recent.map((x) => ({
+          key: `p-${x.id}`,
+          name: x.name,
+          type: "PT",
+          created_at: x.created_at,
+        })),
+      ]
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+        .slice(0, 5)
+    : [];
 
   const name = meQuery.data?.name ?? "";
 
@@ -543,27 +462,27 @@ export default function AdminDashboardPage() {
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
           label="예약 신청"
-          value={reservations.length}
+          value={r?.total ?? 0}
           icon={CalendarIcon}
-          hint={`이번 달 ${newReservationsThisMonth}건`}
+          hint={`이번 달 ${r?.this_month ?? 0}건`}
         />
         <StatCard
           label="회원"
-          value={members.length}
+          value={m?.total ?? 0}
           icon={UsersIcon}
-          hint={`이번 달 ${newMembersThisMonth}명`}
+          hint={`이번 달 ${m?.this_month_signups ?? 0}명`}
         />
         <StatCard
           label="PT"
-          value={pts.length}
+          value={pt?.total ?? 0}
           icon={BoltIcon}
-          hint={`이번 달 ${newPtsThisMonth}건`}
+          hint={`이번 달 ${pt?.this_month_signups ?? 0}건`}
         />
         <StatCard
           label="알림톡 이력"
-          value={messages.length}
+          value={msg?.total ?? 0}
           icon={ChatBubbleLeftRightIcon}
-          hint={`오늘 ${todayMessagesCount}건`}
+          hint={`오늘 ${msg?.today ?? 0}건`}
         />
       </div>
 
@@ -573,19 +492,19 @@ export default function AdminDashboardPage() {
           <StatCard
             label="활성"
             value={activeCount}
-              icon={CheckCircleIcon}
+            icon={CheckCircleIcon}
             iconClassName="text-green-500"
           />
           <StatCard
             label="만료"
             value={expiredCount}
-              icon={XCircleIcon}
+            icon={XCircleIcon}
             iconClassName="text-gray-400"
           />
           <StatCard
             label="홀딩"
             value={heldCount}
-              icon={PauseCircleIcon}
+            icon={PauseCircleIcon}
             iconClassName="text-amber-500"
           />
         </div>
@@ -597,18 +516,18 @@ export default function AdminDashboardPage() {
           <TodoCard
             label="만기 임박 (7일 내)"
             value={expiringSoonCount}
-              icon={ClockIcon}
+            icon={ClockIcon}
           />
           <TodoCard
             label="오늘 방문 예정"
-            value={todayVisitCount}
-              icon={CalendarDaysIcon}
+            value={r?.today_visit ?? 0}
+            icon={CalendarDaysIcon}
           />
           {isSuper && (
             <TodoCard
               label="FC 가입 승인 대기"
               value={pendingFc}
-                icon={UserPlusIcon}
+              icon={UserPlusIcon}
             />
           )}
         </div>
@@ -616,17 +535,17 @@ export default function AdminDashboardPage() {
 
       <section className="mt-6">
         <MonthlyTrendChart
-          memberDates={members.map((m) => m.created_at)}
-          ptDates={pts.map((p) => p.created_at)}
+          memberByDay={m?.this_month_by_day ?? []}
+          ptByDay={pt?.this_month_by_day ?? []}
         />
       </section>
 
       <section className="mt-6">
         <h2 className="text-base font-semibold text-gray-900">회원 분석</h2>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
-          <BirthdayCard people={people} />
-          <GenderCard people={people} />
-          <AgeRangeCard people={people} />
+          <BirthdayCard list={m?.birthday_today ?? []} />
+          <GenderCard byGender={m?.by_gender ?? {}} />
+          <AgeRangeCard byAgeRange={m?.by_age_range ?? {}} />
         </div>
       </section>
 

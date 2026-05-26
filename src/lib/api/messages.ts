@@ -1,18 +1,22 @@
 import { apiFetch } from "./client";
-import type { EnumOption, Message } from "./types";
+import type { EnumOption, Message, Page } from "./types";
 
-// GET /admin/messages — 알림톡 발송 이력 (관리자, FC는 자기 지점만, 최신순)
-// branchId 전달 시 해당 지점만 (SUPER_ADMIN 지점 필터용).
+// GET /admin/messages — 알림톡 발송 이력 (관리자, 페이지네이션, 최신순)
+// 응답은 Page<Message> envelope. 카운트는 /admin/dashboard/summary 사용.
 // phone 은 수신자 전화번호 부분일치 검색 (백엔드가 숫자만 추출해 비교).
-export function getAdminMessages(
-  branchId?: string,
-  phone?: string,
-): Promise<Message[]> {
+export function getAdminMessages(opts: {
+  branchId?: string;
+  phone?: string;
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<Page<Message>> {
   const params = new URLSearchParams();
-  if (branchId) params.set("branch_id", branchId);
-  if (phone) params.set("phone", phone);
+  if (opts.branchId) params.set("branch_id", opts.branchId);
+  if (opts.phone) params.set("phone", opts.phone);
+  if (opts.page) params.set("page", String(opts.page));
+  if (opts.pageSize) params.set("page_size", String(opts.pageSize));
   const qs = params.toString();
-  return apiFetch<Message[]>(`/admin/messages${qs ? `?${qs}` : ""}`, {
+  return apiFetch<Page<Message>>(`/admin/messages${qs ? `?${qs}` : ""}`, {
     auth: true,
   });
 }

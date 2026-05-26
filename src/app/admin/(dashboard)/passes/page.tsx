@@ -22,8 +22,7 @@ import {
   type PassInput,
   type PassType,
 } from "@/lib/api/passes";
-import { getAdminMembers } from "@/lib/api/members";
-import { getAdminPtApplications } from "@/lib/api/ptApplications";
+import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -85,14 +84,12 @@ export default function AdminPassesPage() {
     enabled: !!branchId,
   });
 
-  // 카드의 "이용자 N명" 표시용 — 대시보드와 같은 캐시키
-  const membersQuery = useQuery({
-    queryKey: ["admin", "members", "all"],
-    queryFn: () => getAdminMembers(),
-  });
-  const ptApplicationsQuery = useQuery({
-    queryKey: ["admin", "pt-applications", "all"],
-    queryFn: () => getAdminPtApplications(),
+  // 카드의 "이용자 N명" 표시용 — 대시보드 summary 의 by_membership_pass / by_pt_pass 사용
+  // SUPER_ADMIN: 선택한 지점, FC: 토큰 기준 자동 분기 (branchId 가 빈 문자열이면 전체)
+  const summaryQuery = useQuery({
+    queryKey: ["admin", "dashboard-summary", branchId || "all"],
+    queryFn: () => getDashboardSummary(branchId || undefined),
+    enabled: !!branchId || !isSuper,
   });
 
   const invalidate = () =>
@@ -135,17 +132,16 @@ export default function AdminPassesPage() {
   const passes = passesQuery.data ?? [];
   const editing = formTarget && formTarget !== "new" ? formTarget : null;
 
-  // 현재 활성 탭의 상품을 회원/PT 신청 중 몇 건이 선택했는지
+  // 현재 활성 탭의 상품을 회원/PT 신청 중 몇 건이 선택했는지 — summary 에서 직접 조회
   function userCountFor(passId: string): number {
-    const allMembers = membersQuery.data ?? [];
-    const allPts = ptApplicationsQuery.data ?? [];
+    const summary = summaryQuery.data;
+    if (!summary) return 0;
     if (activeType === "membership")
-      return allMembers.filter((m) => m.membership_pass_id === passId).length;
+      return summary.members.by_membership_pass[passId] ?? 0;
     if (activeType === "pt")
-      return allPts.filter((x) => x.pt_pass_id === passId).length;
-    if (activeType === "locker")
-      return allMembers.filter((m) => m.locker_pass_id === passId).length;
-    return allMembers.filter((m) => m.clothes_pass_id === passId).length;
+      return summary.pt_applications.by_pt_pass[passId] ?? 0;
+    // 락커·운동복은 summary 에 별도 카운트가 없음 — 우선 0 노출 (필요 시 백엔드 확장)
+    return 0;
   }
 
   function submitForm(values: PassInput) {
