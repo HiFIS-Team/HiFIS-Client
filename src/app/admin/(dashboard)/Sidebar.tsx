@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
 import type { Admin } from "@/lib/api/types";
@@ -85,7 +86,16 @@ const ROLE_LABEL: Record<string, string> = {
   FC: "FC",
 };
 
-export function Sidebar({ admin }: { admin: Admin }) {
+// 모바일: 드로어 (open/onClose 제어). 데스크탑(lg+): 항상 sticky 표시.
+export function Sidebar({
+  admin,
+  open,
+  onClose,
+}: {
+  admin: Admin;
+  open: boolean;
+  onClose: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
@@ -104,13 +114,37 @@ export function Sidebar({ admin }: { admin: Admin }) {
 
   return (
     <>
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50">
+      {/* 모바일 드로어 백드롭 — open 시에만, 데스크탑에선 숨김 */}
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={onClose}
+          aria-hidden
+        />
+      )}
+      <aside
+        className={`fixed top-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:sticky lg:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
       <div className="flex items-center justify-between px-5 py-5">
         <div>
           <span className="text-lg font-bold text-gray-900">HiFIS</span>
           <span className="ml-1.5 text-sm text-gray-500">관리자</span>
         </div>
-        <NotificationBell />
+        {/* 데스크탑에선 사이드바에, 모바일에선 상단 바에 위치 — 중복 방지 */}
+        <div className="hidden lg:block">
+          <NotificationBell />
+        </div>
+        {/* 모바일 드로어 닫기 */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="메뉴 닫기"
+          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+        >
+          <XMarkIcon className="size-5" />
+        </button>
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
@@ -150,6 +184,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onClose}
                       className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                         isActive(item.href)
                           ? "bg-primary text-white"
