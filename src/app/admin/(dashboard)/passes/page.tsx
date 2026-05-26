@@ -11,7 +11,12 @@ import {
   ShoppingBagIcon,
   TicketIcon,
 } from "@heroicons/react/24/outline";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
@@ -82,6 +87,8 @@ export default function AdminPassesPage() {
     queryKey: ["admin", "passes", activeType, branchId],
     queryFn: () => getAdminPasses(activeType, branchId),
     enabled: !!branchId,
+    // 탭(회원권/수강권/락커/운동복) 전환 시 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
 
   // 카드의 "이용자 N명" 표시용 — 대시보드 summary 의 by_membership_pass / by_pt_pass 사용

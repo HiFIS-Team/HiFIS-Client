@@ -7,7 +7,7 @@ import {
   FlagIcon,
   MegaphoneIcon,
 } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
@@ -106,10 +106,13 @@ export default function AdminStatsPage() {
   const referralQuery = useQuery({
     queryKey: ["admin", "stats", "referral", branchId ?? "all"],
     queryFn: () => getReferralStats(branchId),
+    // 지점 변경 시 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
   const motivationQuery = useQuery({
     queryKey: ["admin", "stats", "motivation", branchId ?? "all"],
     queryFn: () => getMotivationStats(branchId),
+    placeholderData: keepPreviousData,
   });
 
   const isLoading =

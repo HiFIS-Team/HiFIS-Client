@@ -3,7 +3,12 @@
 import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
 import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import { deleteReservation, getAdminReservations } from "@/lib/api/reservations";
@@ -49,6 +54,8 @@ export default function AdminReservationsPage() {
     queryKey: ["admin", "reservations", branchId ?? "all", page],
     queryFn: () =>
       getAdminReservations({ branchId, page, pageSize: PAGE_SIZE }),
+    // 필터·페이지 변경 시 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
 
   const deleteMutation = useMutation({
