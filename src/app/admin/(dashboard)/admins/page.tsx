@@ -17,7 +17,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
-import { TableMessage } from "@/components/Table";
+import { TableMessage, TableSkeleton } from "@/components/Table";
 import { formatDate } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
 
@@ -151,7 +151,7 @@ export default function AdminAdminsPage() {
 
       <div className="mt-6">
         {adminsQuery.isLoading ? (
-          <TableMessage variant="loading">불러오는 중…</TableMessage>
+          <TableSkeleton />
         ) : adminsQuery.isError ? (
           <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : visibleAdmins.length === 0 ? (

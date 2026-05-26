@@ -71,3 +71,21 @@ export function TableMessage({
     </div>
   );
 }
+
+// 표 로딩 자리에 빈 펄스 바 — 데이터 모양만 미리 보여주는 placeholder.
+// rows 만큼 가로 막대를 쌓는다 (열 구분 없이 가벼운 형태).
+export function TableSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200">
+      <ul className="divide-y divide-gray-100">
+        {Array.from({ length: rows }).map((_, i) => (
+          <li key={i} className="flex items-center gap-4 px-4 py-4">
+            <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
+            <div className="h-3 w-32 animate-pulse rounded bg-gray-200" />
+            <div className="ml-auto h-3 w-16 animate-pulse rounded bg-gray-200" />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

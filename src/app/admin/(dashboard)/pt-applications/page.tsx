@@ -28,7 +28,7 @@ import { RowActionButton } from "@/components/RowActionButton";
 import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
-import { Td, Th, TableMessage } from "@/components/Table";
+import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { PTApplication } from "@/lib/api/types";
 import { HoldDialog } from "../HoldDialog";
@@ -195,7 +195,7 @@ export default function AdminPtApplicationsPage() {
 
       <div className="mt-6">
         {ptQuery.isLoading ? (
-          <TableMessage variant="loading">불러오는 중…</TableMessage>
+          <TableSkeleton />
         ) : ptQuery.isError ? (
           <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : visibleApplications.length === 0 ? (

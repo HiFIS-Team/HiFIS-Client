@@ -14,7 +14,7 @@ import { getAdminMessages, TRIGGER_LABELS } from "@/lib/api/messages";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
-import { Td, Th, TableMessage } from "@/components/Table";
+import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
 import { MessageDetailDialog } from "./MessageDetailDialog";
@@ -130,7 +130,7 @@ export default function AdminMessagesPage() {
 
       <div className="mt-6">
         {messagesQuery.isLoading ? (
-          <TableMessage variant="loading">불러오는 중…</TableMessage>
+          <TableSkeleton />
         ) : messagesQuery.isError ? (
           <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : filteredMessages.length === 0 ? (

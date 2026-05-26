@@ -12,7 +12,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
-import { Td, Th, TableMessage } from "@/components/Table";
+import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { formatDate, formatPhone } from "@/lib/format";
 import type { Reservation } from "@/lib/api/types";
 
@@ -84,7 +84,7 @@ export default function AdminReservationsPage() {
 
       <div className="mt-6">
         {reservationsQuery.isLoading ? (
-          <TableMessage variant="loading">불러오는 중…</TableMessage>
+          <TableSkeleton />
         ) : reservationsQuery.isError ? (
           <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : reservations.length === 0 ? (

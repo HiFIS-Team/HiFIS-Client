@@ -29,7 +29,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
-import { TableMessage } from "@/components/Table";
+import { TableMessage, TableSkeleton } from "@/components/Table";
 import { formatWon } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
 import { PassFormDialog } from "./PassFormDialog";
@@ -211,7 +211,7 @@ export default function AdminPassesPage() {
         {!branchId ? (
           <TableMessage>지점을 선택해 주세요.</TableMessage>
         ) : passesQuery.isLoading ? (
-          <TableMessage variant="loading">불러오는 중…</TableMessage>
+          <TableSkeleton />
         ) : passesQuery.isError ? (
           <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : passes.length === 0 ? (
