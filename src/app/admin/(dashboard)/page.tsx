@@ -11,7 +11,10 @@ import {
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
   ClockIcon,
+  HandThumbUpIcon,
+  HeartIcon,
   PauseCircleIcon,
+  TrophyIcon,
   UserPlusIcon,
   UsersIcon,
   XCircleIcon,
@@ -370,6 +373,41 @@ function AgeRangeCard({ people }: { people: Person[] }) {
   );
 }
 
+// 이달의 FC — 피드백왕/친절왕/종합왕. 점수 데이터가 아직 없어 준비중 표시.
+function FcKingCard({
+  label,
+  description,
+  icon: Icon,
+  iconBgClass,
+  iconTextClass,
+}: {
+  label: string;
+  description: string;
+  icon: ComponentType<{ className?: string }>;
+  iconBgClass: string;
+  iconTextClass: string;
+}) {
+  return (
+    <section className="rounded-xl border border-violet-200 p-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            className={`flex size-8 items-center justify-center rounded-lg ${iconBgClass}`}
+          >
+            <Icon className={`size-5 ${iconTextClass}`} />
+          </span>
+          <h3 className="text-base font-semibold text-gray-900">{label}</h3>
+        </div>
+        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+          준비중
+        </span>
+      </div>
+      <p className="mt-4 text-2xl font-bold text-gray-400">—</p>
+      <p className="mt-1 text-xs text-gray-500">{description}</p>
+    </section>
+  );
+}
+
 export default function AdminDashboardPage() {
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -578,6 +616,33 @@ export default function AdminDashboardPage() {
           <BirthdayCard people={people} />
           <GenderCard people={people} />
           <AgeRangeCard people={people} />
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="text-base font-semibold text-gray-900">이달의 FC</h2>
+        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+          <FcKingCard
+            label="피드백왕"
+            description="회원 피드백 점수가 가장 높은 FC"
+            icon={HandThumbUpIcon}
+            iconBgClass="bg-amber-50"
+            iconTextClass="text-amber-500"
+          />
+          <FcKingCard
+            label="친절왕"
+            description="회원 친절도 점수가 가장 높은 FC"
+            icon={HeartIcon}
+            iconBgClass="bg-rose-50"
+            iconTextClass="text-rose-500"
+          />
+          <FcKingCard
+            label="종합왕"
+            description="모든 지표 합산 1위 FC"
+            icon={TrophyIcon}
+            iconBgClass="bg-violet-50"
+            iconTextClass="text-primary"
+          />
         </div>
       </section>
 

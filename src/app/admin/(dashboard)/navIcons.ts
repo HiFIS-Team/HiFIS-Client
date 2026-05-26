@@ -1,12 +1,17 @@
 import type { ComponentType } from "react";
 import {
+  AcademicCapIcon,
   BoltIcon,
   BuildingOffice2Icon,
   CalendarIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
   CubeIcon,
+  HeartIcon,
+  ScaleIcon,
+  SparklesIcon,
   Squares2X2Icon,
+  TrophyIcon,
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
@@ -25,4 +30,10 @@ export const NAV_ICONS: Record<
   "/admin/stats": ChartBarIcon,
   "/admin/messages": ChatBubbleLeftRightIcon,
   "/admin/admins": UserGroupIcon,
+  // 직원 관리 — 준비중 메뉴들. 실제 페이지는 아직 없음.
+  "/admin/staff/facility-care": SparklesIcon,
+  "/admin/staff/peer-review": ScaleIcon,
+  "/admin/staff/kindness": HeartIcon,
+  "/admin/staff/classes": AcademicCapIcon,
+  "/admin/staff/contribution": TrophyIcon,
 };

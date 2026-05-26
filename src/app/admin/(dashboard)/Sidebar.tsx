@@ -15,6 +15,8 @@ interface NavItem {
   label: string;
   // SUPER_ADMIN 전용 (FC에게는 숨김)
   superOnly?: boolean;
+  // 준비중 — 클릭 비활성 + 배지 표시
+  comingSoon?: boolean;
 }
 interface NavGroup {
   // null이면 그룹 라벨 없이 항목만
@@ -44,6 +46,32 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/admin/stats", label: "통계" },
       { href: "/admin/messages", label: "알림톡 이력" },
+    ],
+  },
+  {
+    label: "직원 관리",
+    items: [
+      {
+        href: "/admin/staff/facility-care",
+        label: "환경정비",
+        comingSoon: true,
+      },
+      {
+        href: "/admin/staff/peer-review",
+        label: "동료평가",
+        comingSoon: true,
+      },
+      {
+        href: "/admin/staff/kindness",
+        label: "회원 친절도",
+        comingSoon: true,
+      },
+      { href: "/admin/staff/classes", label: "수업 개수", comingSoon: true },
+      {
+        href: "/admin/staff/contribution",
+        label: "센터 기여도",
+        comingSoon: true,
+      },
     ],
   },
   {
@@ -102,6 +130,22 @@ export function Sidebar({ admin }: { admin: Admin }) {
               <div className="space-y-1">
                 {items.map((item) => {
                   const Icon = NAV_ICONS[item.href];
+                  if (item.comingSoon) {
+                    return (
+                      <div
+                        key={item.href}
+                        className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-400"
+                        aria-disabled="true"
+                        title="준비중"
+                      >
+                        {Icon && <Icon className="size-4 shrink-0" />}
+                        <span className="flex-1 truncate">{item.label}</span>
+                        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                          준비중
+                        </span>
+                      </div>
+                    );
+                  }
                   return (
                     <Link
                       key={item.href}
