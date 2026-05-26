@@ -13,6 +13,7 @@ import {
   ClockIcon,
   HandThumbUpIcon,
   HeartIcon,
+  InboxIcon,
   PauseCircleIcon,
   TrophyIcon,
   UserPlusIcon,
@@ -45,6 +46,16 @@ type Person = {
   name: string;
   gender: string;
   birth_date: string;
+};
+
+// 최근 신청 리스트 — 타입별 아이콘 + chip 색상 메타. 한 톤이지만 색으로 구분 가능.
+const RECENT_TYPE_META: Record<
+  string,
+  { icon: ComponentType<{ className?: string }>; chipClass: string }
+> = {
+  예약: { icon: CalendarIcon, chipClass: "bg-blue-50 text-blue-600" },
+  회원: { icon: UsersIcon, chipClass: "bg-green-50 text-green-600" },
+  PT: { icon: BoltIcon, chipClass: "bg-violet-50 text-primary" },
 };
 
 // 회원 + PT 신청을 전화번호로 합쳐 중복 제거 — 같은 사람이 양쪽에 있으면 1명으로
@@ -650,27 +661,37 @@ export default function AdminDashboardPage() {
         <h2 className="text-base font-semibold text-gray-900">최근 신청</h2>
         <div className="mt-3 rounded-xl border border-violet-200">
           {recent.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-gray-500">
-              최근 신청이 없습니다.
-            </p>
+            <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+              <div className="flex size-10 items-center justify-center rounded-full bg-gray-100">
+                <InboxIcon className="size-5 text-gray-400" />
+              </div>
+              <p className="text-sm text-gray-500">최근 신청이 없습니다.</p>
+            </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {recent.map((item) => (
-                <li
-                  key={item.key}
-                  className="flex items-center gap-3 px-4 py-3 text-sm"
-                >
-                  <span className="inline-block rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-primary">
-                    {item.type}
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {item.name}
-                  </span>
-                  <span className="ml-auto text-gray-500">
-                    {formatDate(item.created_at)}
-                  </span>
-                </li>
-              ))}
+              {recent.map((item) => {
+                const meta = RECENT_TYPE_META[item.type];
+                const Icon = meta.icon;
+                return (
+                  <li
+                    key={item.key}
+                    className="flex items-center gap-3 px-4 py-3 text-sm"
+                  >
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${meta.chipClass}`}
+                    >
+                      <Icon className="size-3" />
+                      {item.type}
+                    </span>
+                    <span className="font-medium text-gray-900">
+                      {item.name}
+                    </span>
+                    <span className="ml-auto text-gray-500">
+                      {formatDate(item.created_at)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
