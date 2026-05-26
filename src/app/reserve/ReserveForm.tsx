@@ -58,7 +58,7 @@ export function ReserveForm() {
     return (
       <ErrorScreen
         title="지점 정보가 없습니다"
-        message="예약 링크가 올바르지 않습니다. 지점의 네이버 플레이스에서 다시 접속해 주세요."
+        message={"예약 링크가 올바르지 않습니다.\n지점의 네이버 플레이스에서 다시 접속해 주세요."}
       />
     );
   }
@@ -80,7 +80,7 @@ export function ReserveForm() {
     return (
       <ErrorScreen
         title="지점을 찾을 수 없습니다"
-        message="예약 링크의 지점 정보가 올바르지 않습니다. 지점의 네이버 플레이스에서 다시 접속해 주세요."
+        message={"예약 링크의 지점 정보가 올바르지 않습니다.\n지점의 네이버 플레이스에서 다시 접속해 주세요."}
       />
     );
   }
@@ -231,7 +231,7 @@ function ErrorScreen({ title, message }: { title: string; message: string }) {
         <ExclamationTriangleIcon className="size-9" />
       </div>
       <h1 className="mt-5 text-xl font-bold text-gray-900">{title}</h1>
-      <p className="mt-2 text-sm/6 text-gray-600">{message}</p>
+      <p className="mt-2 text-sm/6 whitespace-pre-line text-gray-600">{message}</p>
     </main>
   );
 }
