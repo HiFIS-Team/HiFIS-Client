@@ -1,8 +1,20 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  useState,
+  type ComponentType,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  BoltIcon,
+  CheckBadgeIcon,
+  ChatBubbleLeftRightIcon,
+  CreditCardIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import { getPtPasses } from "@/lib/api/passes";
@@ -224,7 +236,7 @@ export function PtForm({ branchId }: { branchId: string }) {
       </header>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
-        <Section title="신청자 정보">
+        <Section title="신청자 정보" icon={UserIcon}>
           <TextField
             id="name"
             label="이름"
@@ -278,7 +290,7 @@ export function PtForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="수강권 · 이용 기간">
+        <Section title="수강권 · 이용 기간" icon={BoltIcon}>
           <Select
             id="pt-pass"
             label="수강권"
@@ -312,7 +324,7 @@ export function PtForm({ branchId }: { branchId: string }) {
           </div>
         </Section>
 
-        <Section title="결제">
+        <Section title="결제" icon={CreditCardIcon}>
           <Select
             id="payment-method"
             label="결제 방법"
@@ -338,7 +350,7 @@ export function PtForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="설문 · 추가 정보">
+        <Section title="설문 · 추가 정보" icon={ChatBubbleLeftRightIcon}>
           <Select
             id="referral"
             label="유입 경로"
@@ -359,7 +371,7 @@ export function PtForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="동의">
+        <Section title="동의" icon={CheckBadgeIcon}>
           <div>
             {/* 준수 서약문 — 동의 대상 */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
@@ -415,10 +427,23 @@ export function PtForm({ branchId }: { branchId: string }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+}) {
   return (
     <section className="border-t border-gray-200 pt-8">
-      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      <div className="flex items-center gap-2.5">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-violet-50 text-primary">
+          <Icon className="size-5" />
+        </div>
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      </div>
       <div className="mt-5 space-y-5">{children}</div>
     </section>
   );
