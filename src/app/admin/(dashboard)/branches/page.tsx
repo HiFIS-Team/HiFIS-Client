@@ -2,7 +2,12 @@
 
 import { PageTitle } from "../PageTitle";
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   BoltIcon,
   BuildingOffice2Icon,
@@ -18,9 +23,7 @@ import {
   updateBranch,
   type BranchInput,
 } from "@/lib/api/branches";
-import { getAdminReservations } from "@/lib/api/reservations";
-import { getAdminMembers } from "@/lib/api/members";
-import { getAdminPtApplications } from "@/lib/api/ptApplications";
+import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { RowActionButton } from "@/components/RowActionButton";
@@ -79,21 +82,20 @@ export default function AdminBranchesPage() {
     enabled: isSuper,
   });
 
-  // 지점별 요약 — 대시보드와 같은 캐시키를 써서 캐시 공유
-  const reservationsQuery = useQuery({
-    queryKey: ["admin", "reservations", "all"],
-    queryFn: () => getAdminReservations(),
+  // 전체 요약 (상단 배지용) + 지점별 요약 (카드용) — 모두 /admin/dashboard/summary 사용
+  const overallSummaryQuery = useQuery({
+    queryKey: ["admin", "dashboard-summary", "all"],
+    queryFn: () => getDashboardSummary(),
     enabled: isSuper,
   });
-  const membersQuery = useQuery({
-    queryKey: ["admin", "members", "all"],
-    queryFn: () => getAdminMembers(),
-    enabled: isSuper,
-  });
-  const ptQuery = useQuery({
-    queryKey: ["admin", "pt-applications", "all"],
-    queryFn: () => getAdminPtApplications(),
-    enabled: isSuper,
+  const branches = branchesQuery.data ?? [];
+  // 지점별 summary — useQueries 로 병렬 호출
+  const branchSummaries = useQueries({
+    queries: branches.map((b) => ({
+      queryKey: ["admin", "dashboard-summary", b.id],
+      queryFn: () => getDashboardSummary(b.id),
+      enabled: isSuper,
+    })),
   });
 
   // 지점 목록은 공개 ["branches"] 캐시도 함께 갱신
@@ -132,15 +134,27 @@ export default function AdminBranchesPage() {
     );
   }
 
-  const branches = branchesQuery.data ?? [];
-  const reservations = reservationsQuery.data ?? [];
-  const members = membersQuery.data ?? [];
-  const pts = ptQuery.data ?? [];
   const editing = formTarget && formTarget !== "new" ? formTarget : null;
 
-  // 지점별 카운트
-  const countBy = <T extends { branch_id: string }>(arr: T[], id: string) =>
-    arr.filter((x) => x.branch_id === id).length;
+  // 전체 합계 (상단 배지) — 1번 summary 호출 결과에서 추출
+  const overall = overallSummaryQuery.data;
+  const totalMembers = overall?.members.total ?? 0;
+  const totalPts = overall?.pt_applications.total ?? 0;
+  const totalReservations = overall?.reservations.total ?? 0;
+
+  // 지점별 카운트 — branches.map index 와 같은 순서로 들어옴
+  function countsFor(idx: number): {
+    members: number;
+    pts: number;
+    reservations: number;
+  } {
+    const s = branchSummaries[idx]?.data;
+    return {
+      members: s?.members.total ?? 0,
+      pts: s?.pt_applications.total ?? 0,
+      reservations: s?.reservations.total ?? 0,
+    };
+  }
 
   function submitForm(values: BranchInput) {
     if (editing) updateMutation.mutate({ id: editing.id, values });
@@ -165,20 +179,18 @@ export default function AdminBranchesPage() {
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
             <UsersIcon className="size-3.5 text-primary" />
-            <span className="font-semibold text-gray-900">
-              {members.length}
-            </span>
+            <span className="font-semibold text-gray-900">{totalMembers}</span>
             <span className="text-gray-600">회원</span>
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
             <BoltIcon className="size-3.5 text-primary" />
-            <span className="font-semibold text-gray-900">{pts.length}</span>
+            <span className="font-semibold text-gray-900">{totalPts}</span>
             <span className="text-gray-600">PT</span>
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
             <CalendarIcon className="size-3.5 text-primary" />
             <span className="font-semibold text-gray-900">
-              {reservations.length}
+              {totalReservations}
             </span>
             <span className="text-gray-600">예약</span>
           </span>
@@ -201,7 +213,9 @@ export default function AdminBranchesPage() {
           <TableMessage>등록된 지점이 없습니다.</TableMessage>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {branches.map((b) => (
+            {branches.map((b, idx) => {
+              const c = countsFor(idx);
+              return (
               <article
                 key={b.id}
                 className="rounded-xl border border-gray-200 p-5"
@@ -221,9 +235,9 @@ export default function AdminBranchesPage() {
                 </p>
 
                 <div className="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-gray-50 px-2 py-2.5 text-center">
-                  <StatCell label="회원" value={countBy(members, b.id)} />
-                  <StatCell label="PT" value={countBy(pts, b.id)} />
-                  <StatCell label="예약" value={countBy(reservations, b.id)} />
+                  <StatCell label="회원" value={c.members} />
+                  <StatCell label="PT" value={c.pts} />
+                  <StatCell label="예약" value={c.reservations} />
                 </div>
 
                 <div className="mt-4 space-y-1.5 text-sm">
@@ -231,7 +245,8 @@ export default function AdminBranchesPage() {
                   <LinkRow label="네이버 플레이스" url={b.naver_place_url} />
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

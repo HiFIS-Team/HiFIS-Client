@@ -16,6 +16,9 @@ import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
+import { Pagination } from "@/components/Pagination";
+
+const PAGE_SIZE = 20;
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
 import { MessageDetailDialog } from "./MessageDetailDialog";
@@ -63,15 +66,35 @@ export default function AdminMessagesPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // 페이지 — 필터/검색 변경 시 자동 1페이지로
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [branchId, debouncedSearch]);
+
   const messagesQuery = useQuery({
-    queryKey: ["admin", "messages", branchId ?? "all", debouncedSearch],
-    queryFn: () => getAdminMessages(branchId, debouncedSearch || undefined),
+    queryKey: [
+      "admin",
+      "messages",
+      branchId ?? "all",
+      debouncedSearch,
+      page,
+    ],
+    queryFn: () =>
+      getAdminMessages({
+        branchId,
+        phone: debouncedSearch || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
   });
 
   const branchName = (id: string) =>
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
 
-  const messages = messagesQuery.data ?? [];
+  const messagesPage = messagesQuery.data;
+  const messages = messagesPage?.items ?? [];
+  // 종류 필터는 현재 페이지 안에서만 적용 (간단·MVP)
   const filteredMessages = typeFilter
     ? messages.filter((m) => m.trigger_type === typeFilter)
     : messages;
@@ -134,13 +157,6 @@ export default function AdminMessagesPage() {
           <TableMessage>발송된 알림톡이 없습니다.</TableMessage>
         ) : (
           <>
-            <p className="mb-3 text-sm text-gray-500">
-              총{" "}
-              <span className="font-semibold text-gray-700">
-                {filteredMessages.length}
-              </span>
-              건
-            </p>
             {/* 모바일: 카드 리스트 */}
             <ul className="space-y-3 lg:hidden">
               {filteredMessages.map((m) => (
@@ -229,6 +245,14 @@ export default function AdminMessagesPage() {
                 </tbody>
               </table>
             </div>
+            {messagesPage && (
+              <Pagination
+                page={messagesPage.page}
+                pageSize={messagesPage.page_size}
+                total={messagesPage.total}
+                onPageChange={setPage}
+              />
+            )}
           </>
         )}
       </div>

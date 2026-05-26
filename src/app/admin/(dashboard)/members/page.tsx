@@ -26,8 +26,11 @@ import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
+import { Pagination } from "@/components/Pagination";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { Member } from "@/lib/api/types";
+
+const PAGE_SIZE = 20;
 import { HoldDialog } from "../HoldDialog";
 import { MemberDetailDialog } from "./MemberDetailDialog";
 import { MemberEditDialog } from "./MemberEditDialog";
@@ -70,7 +73,8 @@ export default function AdminMembersPage() {
   // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
-  // 상태 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
+  // 상태 필터 ("" = 전체) — 현재 페이지 내에서만 client-side로 거름 (간단·MVP).
+  // 정확한 상태별 카운트는 대시보드 summary 참조.
   const [statusFilter, setStatusFilter] = useState("");
   // 검색 — 입력이 숫자(전화번호)면 phone=, 이름이면 name= 으로 백엔드 검색 (디바운스 300ms)
   const [searchInput, setSearchInput] = useState("");
@@ -85,6 +89,12 @@ export default function AdminMembersPage() {
   const searchPhone =
     debouncedSearch && isPhoneSearch ? debouncedSearch : undefined;
 
+  // 페이지 — 필터/검색 변경 시 자동 1페이지로
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [branchId, searchName, searchPhone]);
+
   const membersQuery = useQuery({
     queryKey: [
       "admin",
@@ -92,8 +102,16 @@ export default function AdminMembersPage() {
       branchId ?? "all",
       searchName ?? "",
       searchPhone ?? "",
+      page,
     ],
-    queryFn: () => getAdminMembers(branchId, searchName, searchPhone),
+    queryFn: () =>
+      getAdminMembers({
+        branchId,
+        name: searchName,
+        phone: searchPhone,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
   });
 
   const deleteMutation = useMutation({
@@ -133,7 +151,9 @@ export default function AdminMembersPage() {
   const branchName = (id: string) =>
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
 
-  const members = membersQuery.data ?? [];
+  const membersPage = membersQuery.data;
+  const members = membersPage?.items ?? [];
+  // 상태 필터는 현재 페이지 안에서만 적용 (페이지네이션 + 상태 분류 동시 적용은 백엔드 필터 필요 — 우선 client-side)
   const visibleMembers = statusFilter
     ? members.filter((m) => m.status === statusFilter)
     : members;
@@ -190,13 +210,6 @@ export default function AdminMembersPage() {
           <TableMessage>등록된 회원이 없습니다.</TableMessage>
         ) : (
           <>
-            <p className="mb-3 text-sm text-gray-500">
-              총{" "}
-              <span className="font-semibold text-gray-700">
-                {visibleMembers.length}
-              </span>
-              건
-            </p>
             {/* 모바일: 카드 리스트 */}
             <ul className="space-y-3 lg:hidden">
               {visibleMembers.map((m) => (
@@ -310,6 +323,14 @@ export default function AdminMembersPage() {
                 </tbody>
               </table>
             </div>
+            {membersPage && (
+              <Pagination
+                page={membersPage.page}
+                pageSize={membersPage.page_size}
+                total={membersPage.total}
+                onPageChange={setPage}
+              />
+            )}
           </>
         )}
       </div>

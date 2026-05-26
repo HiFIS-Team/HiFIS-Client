@@ -29,6 +29,9 @@ import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
+import { Pagination } from "@/components/Pagination";
+
+const PAGE_SIZE = 20;
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { PTApplication } from "@/lib/api/types";
 import { HoldDialog } from "../HoldDialog";
@@ -90,6 +93,12 @@ export default function AdminPtApplicationsPage() {
   const searchPhone =
     debouncedSearch && isPhoneSearch ? debouncedSearch : undefined;
 
+  // 페이지 — 필터/검색 변경 시 자동 1페이지로
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [branchId, searchName, searchPhone]);
+
   const ptQuery = useQuery({
     queryKey: [
       "admin",
@@ -97,9 +106,16 @@ export default function AdminPtApplicationsPage() {
       branchId ?? "all",
       searchName ?? "",
       searchPhone ?? "",
+      page,
     ],
     queryFn: () =>
-      getAdminPtApplications(branchId, searchName, searchPhone),
+      getAdminPtApplications({
+        branchId,
+        name: searchName,
+        phone: searchPhone,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
   });
 
   const deleteMutation = useMutation({
@@ -139,7 +155,8 @@ export default function AdminPtApplicationsPage() {
   const branchName = (id: string) =>
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
 
-  const applications = ptQuery.data ?? [];
+  const ptPage = ptQuery.data;
+  const applications = ptPage?.items ?? [];
   const visibleApplications = statusFilter
     ? applications.filter((a) => a.status === statusFilter)
     : applications;
@@ -196,13 +213,6 @@ export default function AdminPtApplicationsPage() {
           <TableMessage>등록된 PT가 없습니다.</TableMessage>
         ) : (
           <>
-            <p className="mb-3 text-sm text-gray-500">
-              총{" "}
-              <span className="font-semibold text-gray-700">
-                {visibleApplications.length}
-              </span>
-              건
-            </p>
             {/* 모바일: 카드 리스트 */}
             <ul className="space-y-3 lg:hidden">
               {visibleApplications.map((a) => (
@@ -316,6 +326,14 @@ export default function AdminPtApplicationsPage() {
                 </tbody>
               </table>
             </div>
+            {ptPage && (
+              <Pagination
+                page={ptPage.page}
+                pageSize={ptPage.page_size}
+                total={ptPage.total}
+                onPageChange={setPage}
+              />
+            )}
           </>
         )}
       </div>

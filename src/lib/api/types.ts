@@ -1,6 +1,15 @@
 // 백엔드(HiFIS-Server) 스키마에 대응하는 타입.
 // 정식 출처는 백엔드 app/schemas/ — 변경 시 함께 맞출 것.
 
+// --- 페이지네이션 envelope (고볼륨 list 응답) ---
+// 회원/PT/예약/알림톡 4개 list 엔드포인트가 사용. 카운트·차트 등 집계는 /admin/dashboard/summary 로.
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 // --- 지점 ---
 export interface Branch {
   id: string;
@@ -214,4 +223,60 @@ export interface Message {
   content: string;
   status: string; // SUCCESS | FAIL
   sent_at: string;
+}
+
+// --- 대시보드 집계 (GET /admin/dashboard/summary) ---
+// 4개 list 엔드포인트를 일일이 호출하지 않고 한 번에 집계 데이터를 받는다.
+// 회원·PT 1000건 이상 누적된 운영 환경에서도 대시보드가 정확하게 동작하도록 백엔드가 직접 계산.
+export interface DayCount {
+  date: string; // YYYY-MM-DD
+  count: number;
+}
+export interface BirthdayItem {
+  id: string;
+  name: string;
+  phone: string;
+}
+export interface RecentItem {
+  id: string;
+  name: string;
+  branch_id: string;
+  created_at: string;
+}
+export interface MemberSummary {
+  total: number;
+  by_status: Record<string, number>; // REGISTERED / HELD / EXPIRED
+  this_month_signups: number;
+  this_month_by_day: DayCount[]; // 0건인 날은 생략 — 프론트가 채움
+  birthday_today: BirthdayItem[];
+  by_gender: Record<string, number>; // M / F
+  by_age_range: Record<string, number>; // 10s / 20s / 30s / 40s / 50s_plus
+  expiring_soon_count: number;
+  recent: RecentItem[];
+  by_membership_pass: Record<string, number>; // 활성(REGISTERED+HELD) 이용자, pass_id → count
+}
+export interface PTApplicationSummary {
+  total: number;
+  by_status: Record<string, number>;
+  this_month_signups: number;
+  this_month_by_day: DayCount[];
+  recent: RecentItem[];
+  expiring_soon_count: number;
+  by_pt_pass: Record<string, number>;
+}
+export interface ReservationSummary {
+  total: number;
+  this_month: number;
+  today_visit: number;
+  recent: RecentItem[];
+}
+export interface MessageSummary {
+  total: number;
+  today: number;
+}
+export interface DashboardSummary {
+  members: MemberSummary;
+  pt_applications: PTApplicationSummary;
+  reservations: ReservationSummary;
+  messages: MessageSummary;
 }

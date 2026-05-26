@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  Page,
   PTApplication,
   PTApplicationCreate,
   PTApplicationUpdate,
@@ -15,20 +16,23 @@ export function createPtApplication(
   });
 }
 
-// GET /admin/pt-applications — PT 신청 목록 (관리자)
-// branchId 지정 시 해당 지점만 (SUPER_ADMIN 필터용). FC는 토큰 기준 자동 분기.
-// name·phone 은 백엔드의 부분일치(ilike/like) 검색에 사용 — 둘 다 주면 AND.
-export function getAdminPtApplications(
-  branchId?: string,
-  name?: string,
-  phone?: string,
-): Promise<PTApplication[]> {
+// GET /admin/pt-applications — PT 신청 목록 (관리자, 페이지네이션)
+// 응답은 Page<PTApplication> envelope. 카운트·차트 등 집계는 /admin/dashboard/summary 사용.
+export function getAdminPtApplications(opts: {
+  branchId?: string;
+  name?: string;
+  phone?: string;
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<Page<PTApplication>> {
   const params = new URLSearchParams();
-  if (branchId) params.set("branch_id", branchId);
-  if (name) params.set("name", name);
-  if (phone) params.set("phone", phone);
+  if (opts.branchId) params.set("branch_id", opts.branchId);
+  if (opts.name) params.set("name", opts.name);
+  if (opts.phone) params.set("phone", opts.phone);
+  if (opts.page) params.set("page", String(opts.page));
+  if (opts.pageSize) params.set("page_size", String(opts.pageSize));
   const qs = params.toString();
-  return apiFetch<PTApplication[]>(
+  return apiFetch<Page<PTApplication>>(
     `/admin/pt-applications${qs ? `?${qs}` : ""}`,
     { auth: true },
   );

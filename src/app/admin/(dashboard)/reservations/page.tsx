@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
@@ -13,6 +13,9 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
+import { Pagination } from "@/components/Pagination";
+
+const PAGE_SIZE = 20;
 import { formatDate, formatPhone } from "@/lib/format";
 import type { Reservation } from "@/lib/api/types";
 
@@ -36,9 +39,16 @@ export default function AdminReservationsPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
 
+  // 페이지 — 필터 변경 시 자동 1페이지로
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [branchId]);
+
   const reservationsQuery = useQuery({
-    queryKey: ["admin", "reservations", branchId ?? "all"],
-    queryFn: () => getAdminReservations(branchId),
+    queryKey: ["admin", "reservations", branchId ?? "all", page],
+    queryFn: () =>
+      getAdminReservations({ branchId, page, pageSize: PAGE_SIZE }),
   });
 
   const deleteMutation = useMutation({
@@ -54,7 +64,8 @@ export default function AdminReservationsPage() {
   const branchName = (id: string) =>
     branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
 
-  const reservations = reservationsQuery.data ?? [];
+  const reservationsPage = reservationsQuery.data;
+  const reservations = reservationsPage?.items ?? [];
 
   return (
     <div>
@@ -91,13 +102,6 @@ export default function AdminReservationsPage() {
           <TableMessage>예약 신청이 없습니다.</TableMessage>
         ) : (
           <>
-            <p className="mb-3 text-sm text-gray-500">
-              총{" "}
-              <span className="font-semibold text-gray-700">
-                {reservations.length}
-              </span>
-              건
-            </p>
             {/* 모바일: 카드 리스트 */}
             <ul className="space-y-3 lg:hidden">
               {reservations.map((r) => (
@@ -176,6 +180,14 @@ export default function AdminReservationsPage() {
                 </tbody>
               </table>
             </div>
+            {reservationsPage && (
+              <Pagination
+                page={reservationsPage.page}
+                pageSize={reservationsPage.page_size}
+                total={reservationsPage.total}
+                onPageChange={setPage}
+              />
+            )}
           </>
         )}
       </div>
