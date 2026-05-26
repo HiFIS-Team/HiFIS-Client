@@ -22,6 +22,9 @@ export interface Enums {
   referral: EnumOption[];
   payment_method: EnumOption[];
   motivation: EnumOption[];
+  // 알림톡 발송 종류·출처 — 알림톡 이력 화면에서 사용
+  trigger_type: EnumOption[];
+  source_type: EnumOption[];
 }
 
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---

@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBranches } from "@/lib/api/branches";
-import { SOURCE_TYPE_LABELS, TRIGGER_LABELS } from "@/lib/api/messages";
+import { getEnums } from "@/lib/api/enums";
+import { enumLabel } from "@/lib/api/messages";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -43,6 +44,7 @@ export function MessageDetailDialog({
     queryKey: ["branches"],
     queryFn: getBranches,
   });
+  const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
   const branchName =
     branchesQuery.data?.find((b) => b.id === message.branch_id)?.name ?? "-";
 
@@ -66,10 +68,10 @@ export function MessageDetailDialog({
           <Row label="지점">{branchName}</Row>
           <Row label="수신자">{formatPhone(message.recipient)}</Row>
           <Row label="종류">
-            {TRIGGER_LABELS[message.trigger_type] ?? message.trigger_type}
+            {enumLabel(enumsQuery.data?.trigger_type, message.trigger_type)}
           </Row>
           <Row label="발생 출처">
-            {SOURCE_TYPE_LABELS[message.source_type] ?? message.source_type}
+            {enumLabel(enumsQuery.data?.source_type, message.source_type)}
           </Row>
           <Row label="상태">
             <MsgStatusBadge status={message.status} />

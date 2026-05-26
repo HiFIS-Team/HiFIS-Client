@@ -10,7 +10,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
-import { getAdminMessages, TRIGGER_LABELS } from "@/lib/api/messages";
+import { getEnums } from "@/lib/api/enums";
+import { enumLabel, getAdminMessages } from "@/lib/api/messages";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
@@ -46,6 +47,8 @@ export default function AdminMessagesPage() {
     queryKey: ["branches"],
     queryFn: getBranches,
   });
+  const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
+  const triggerTypes = enumsQuery.data?.trigger_type;
 
   // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
   const [branchFilter, setBranchFilter] = useState("");
@@ -103,9 +106,9 @@ export default function AdminMessagesPage() {
           icon={TagIcon}
           options={[
             { value: "", label: "전체 종류" },
-            ...Object.entries(TRIGGER_LABELS).map(([code, label]) => ({
-              value: code,
-              label,
+            ...(triggerTypes ?? []).map((o) => ({
+              value: o.code,
+              label: o.label,
             })),
           ]}
           value={typeFilter}
@@ -148,7 +151,7 @@ export default function AdminMessagesPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900">
-                        {TRIGGER_LABELS[m.trigger_type] ?? m.trigger_type}
+                        {enumLabel(triggerTypes, m.trigger_type)}
                       </p>
                       <p className="text-sm text-gray-500">
                         {formatPhone(m.recipient)}
@@ -202,7 +205,7 @@ export default function AdminMessagesPage() {
                     </Td>
                     <Td>{branchName(m.branch_id)}</Td>
                     <Td>{formatPhone(m.recipient)}</Td>
-                    <Td>{TRIGGER_LABELS[m.trigger_type] ?? m.trigger_type}</Td>
+                    <Td>{enumLabel(triggerTypes, m.trigger_type)}</Td>
                     <Td>
                       <MsgStatusBadge status={m.status} />
                     </Td>
