@@ -1,5 +1,5 @@
 // 회원·PT 상태 배지 — REGISTERED(유효) / EXPIRED(만료) / HELD(홀딩)
-// HELD 는 백엔드에 홀딩 상태가 추가될 예정 — 코드명이 확정되면 맞출 것.
+// 백엔드 hold 생성/취소 시 status 자동 전환됨 (Phase A 통합 완료).
 export const STATUS_META: Record<string, { label: string; cls: string }> = {
   REGISTERED: { label: "유효", cls: "bg-green-100 text-green-700" },
   EXPIRED: { label: "만료", cls: "bg-gray-100 text-gray-600" },
