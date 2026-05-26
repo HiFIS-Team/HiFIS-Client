@@ -80,52 +80,46 @@ export default function AdminMessagesPage() {
         발송된 알림톡 기록입니다. (최신순)
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
         {isSuper && (
-          <div className="w-48">
-            <Select
-              id="branch-filter"
-              label="지점"
-              icon={BuildingOffice2Icon}
-              options={[
-                { value: "", label: "전체 지점" },
-                ...(branchesQuery.data ?? []).map((b) => ({
-                  value: b.id,
-                  label: b.name,
-                })),
-              ]}
-              value={branchFilter}
-              onChange={(e) => setBranchFilter(e.target.value)}
-            />
-          </div>
-        )}
-        <div className="w-48">
           <Select
-            id="type-filter"
-            label="종류"
-            icon={TagIcon}
+            id="branch-filter"
+            label="지점"
+            icon={BuildingOffice2Icon}
             options={[
-              { value: "", label: "전체 종류" },
-              ...Object.entries(TRIGGER_LABELS).map(([code, label]) => ({
-                value: code,
-                label,
+              { value: "", label: "전체 지점" },
+              ...(branchesQuery.data ?? []).map((b) => ({
+                value: b.id,
+                label: b.name,
               })),
             ]}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
           />
-        </div>
-        <div className="w-64">
-          <TextField
-            id="search"
-            label="검색"
-            icon={MagnifyingGlassIcon}
-            type="search"
-            placeholder="수신자 전화번호"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
+        )}
+        <Select
+          id="type-filter"
+          label="종류"
+          icon={TagIcon}
+          options={[
+            { value: "", label: "전체 종류" },
+            ...Object.entries(TRIGGER_LABELS).map(([code, label]) => ({
+              value: code,
+              label,
+            })),
+          ]}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+        />
+        <TextField
+          id="search"
+          label="검색"
+          icon={MagnifyingGlassIcon}
+          type="search"
+          placeholder="수신자 전화번호"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
       </div>
 
       <div className="mt-6">

@@ -151,46 +151,40 @@ export default function AdminPtApplicationsPage() {
         키오스크 PT 신청서로 접수된 개인 레슨 신청입니다.
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
         {isSuper && (
-          <div className="w-48">
-            <Select
-              id="branch-filter"
-              label="지점"
-              icon={BuildingOffice2Icon}
-              options={[
-                { value: "", label: "전체 지점" },
-                ...(branchesQuery.data ?? []).map((b) => ({
-                  value: b.id,
-                  label: b.name,
-                })),
-              ]}
-              value={branchFilter}
-              onChange={(e) => setBranchFilter(e.target.value)}
-            />
-          </div>
-        )}
-        <div className="w-48">
           <Select
-            id="status-filter"
-            label="상태"
-            icon={FunnelIcon}
-            options={STATUS_FILTERS}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            id="branch-filter"
+            label="지점"
+            icon={BuildingOffice2Icon}
+            options={[
+              { value: "", label: "전체 지점" },
+              ...(branchesQuery.data ?? []).map((b) => ({
+                value: b.id,
+                label: b.name,
+              })),
+            ]}
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
           />
-        </div>
-        <div className="w-64">
-          <TextField
-            id="search"
-            label="검색"
-            icon={MagnifyingGlassIcon}
-            type="search"
-            placeholder="이름 또는 전화번호"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
+        )}
+        <Select
+          id="status-filter"
+          label="상태"
+          icon={FunnelIcon}
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        />
+        <TextField
+          id="search"
+          label="검색"
+          icon={MagnifyingGlassIcon}
+          type="search"
+          placeholder="이름 또는 전화번호"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
       </div>
 
       <div className="mt-6">

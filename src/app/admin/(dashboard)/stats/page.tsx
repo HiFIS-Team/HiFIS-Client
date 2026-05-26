@@ -127,7 +127,7 @@ export default function AdminStatsPage() {
       </p>
 
       {isSuper && (
-        <div className="mt-5 max-w-xs">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
           <Select
             id="branch"
             label="지점"
