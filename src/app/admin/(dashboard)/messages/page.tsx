@@ -130,9 +130,9 @@ export default function AdminMessagesPage() {
 
       <div className="mt-6">
         {messagesQuery.isLoading ? (
-          <TableMessage>불러오는 중…</TableMessage>
+          <TableMessage variant="loading">불러오는 중…</TableMessage>
         ) : messagesQuery.isError ? (
-          <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
+          <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : filteredMessages.length === 0 ? (
           <TableMessage>발송된 알림톡이 없습니다.</TableMessage>
         ) : (

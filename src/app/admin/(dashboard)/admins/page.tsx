@@ -151,9 +151,9 @@ export default function AdminAdminsPage() {
 
       <div className="mt-6">
         {adminsQuery.isLoading ? (
-          <TableMessage>불러오는 중…</TableMessage>
+          <TableMessage variant="loading">불러오는 중…</TableMessage>
         ) : adminsQuery.isError ? (
-          <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
+          <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : visibleAdmins.length === 0 ? (
           <TableMessage>관리자가 없습니다.</TableMessage>
         ) : (

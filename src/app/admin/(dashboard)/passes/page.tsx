@@ -211,9 +211,9 @@ export default function AdminPassesPage() {
         {!branchId ? (
           <TableMessage>지점을 선택해 주세요.</TableMessage>
         ) : passesQuery.isLoading ? (
-          <TableMessage>불러오는 중…</TableMessage>
+          <TableMessage variant="loading">불러오는 중…</TableMessage>
         ) : passesQuery.isError ? (
-          <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
+          <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : passes.length === 0 ? (
           <TableMessage>등록된 {typeLabel}이(가) 없습니다.</TableMessage>
         ) : (

@@ -195,9 +195,9 @@ export default function AdminPtApplicationsPage() {
 
       <div className="mt-6">
         {ptQuery.isLoading ? (
-          <TableMessage>불러오는 중…</TableMessage>
+          <TableMessage variant="loading">불러오는 중…</TableMessage>
         ) : ptQuery.isError ? (
-          <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
+          <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : visibleApplications.length === 0 ? (
           <TableMessage>등록된 PT가 없습니다.</TableMessage>
         ) : (

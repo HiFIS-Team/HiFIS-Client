@@ -84,9 +84,9 @@ export default function AdminReservationsPage() {
 
       <div className="mt-6">
         {reservationsQuery.isLoading ? (
-          <TableMessage>불러오는 중…</TableMessage>
+          <TableMessage variant="loading">불러오는 중…</TableMessage>
         ) : reservationsQuery.isError ? (
-          <TableMessage>목록을 불러오지 못했습니다.</TableMessage>
+          <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : reservations.length === 0 ? (
           <TableMessage>예약 신청이 없습니다.</TableMessage>
         ) : (

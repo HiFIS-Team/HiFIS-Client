@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getAccessToken } from "@/lib/api/tokenStore";
 import { Sidebar } from "./Sidebar";
@@ -34,7 +35,8 @@ export default function DashboardLayout({
 
   if (meQuery.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-gray-500">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-sm text-gray-500">
+        <ArrowPathIcon className="size-6 animate-spin text-gray-400" />
         불러오는 중…
       </div>
     );

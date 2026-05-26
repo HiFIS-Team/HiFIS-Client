@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { BellIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon,
+  BellIcon,
+  ExclamationTriangleIcon,
+  InboxIcon,
+} from "@heroicons/react/24/outline";
 import {
   getNotifications,
   type AdminNotification,
@@ -65,17 +70,29 @@ export function NotificationBell() {
             </div>
             <div className="max-h-96 overflow-y-auto">
               {isLoading ? (
-                <p className="px-4 py-10 text-center text-sm text-gray-400">
+                <NotificationMessage
+                  icon={ArrowPathIcon}
+                  iconBgClass="bg-gray-100"
+                  iconClass="text-gray-400 animate-spin"
+                >
                   불러오는 중…
-                </p>
+                </NotificationMessage>
               ) : isError ? (
-                <p className="px-4 py-10 text-center text-sm text-gray-400">
+                <NotificationMessage
+                  icon={ExclamationTriangleIcon}
+                  iconBgClass="bg-amber-50"
+                  iconClass="text-amber-500"
+                >
                   알림을 불러오지 못했습니다.
-                </p>
+                </NotificationMessage>
               ) : notifications.length === 0 ? (
-                <p className="px-4 py-10 text-center text-sm text-gray-400">
+                <NotificationMessage
+                  icon={InboxIcon}
+                  iconBgClass="bg-gray-100"
+                  iconClass="text-gray-400"
+                >
                   새 알림이 없습니다.
-                </p>
+                </NotificationMessage>
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {notifications.map((n) => {
@@ -115,6 +132,30 @@ export function NotificationBell() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// 알림 패널의 로딩/에러/빈 상태 — 작은 칩 + 메시지 (TableMessage 와 동일 톤, 좁은 패널용 축소)
+function NotificationMessage({
+  icon: Icon,
+  iconBgClass,
+  iconClass,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  iconBgClass: string;
+  iconClass: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-gray-500">
+      <div
+        className={`flex size-9 items-center justify-center rounded-full ${iconBgClass}`}
+      >
+        <Icon className={`size-5 ${iconClass}`} />
+      </div>
+      <p>{children}</p>
     </div>
   );
 }
