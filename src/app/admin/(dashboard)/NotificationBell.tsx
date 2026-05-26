@@ -6,14 +6,61 @@ import { useRouter } from "next/navigation";
 import {
   ArrowPathIcon,
   BellIcon,
+  BoltIcon,
+  CalendarIcon,
+  ClockIcon,
   ExclamationTriangleIcon,
   InboxIcon,
+  UserPlusIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import {
   getNotifications,
   type AdminNotification,
 } from "@/lib/api/notifications";
 import { timeAgo } from "@/lib/format";
+
+// 알림 타입별 아이콘 + 색상 — 한눈에 종류 구분.
+// 미지정 타입은 기본 (BellIcon, gray)으로 폴백.
+const NOTIFICATION_META: Record<
+  string,
+  {
+    icon: ComponentType<{ className?: string }>;
+    bgClass: string;
+    iconClass: string;
+  }
+> = {
+  RESERVATION: {
+    icon: CalendarIcon,
+    bgClass: "bg-blue-50",
+    iconClass: "text-blue-500",
+  },
+  MEMBER: {
+    icon: UsersIcon,
+    bgClass: "bg-green-50",
+    iconClass: "text-green-500",
+  },
+  PT_APPLICATION: {
+    icon: BoltIcon,
+    bgClass: "bg-violet-50",
+    iconClass: "text-primary",
+  },
+  FC_SIGNUP: {
+    icon: UserPlusIcon,
+    bgClass: "bg-amber-50",
+    iconClass: "text-amber-500",
+  },
+  EXPIRY: {
+    icon: ClockIcon,
+    bgClass: "bg-rose-50",
+    iconClass: "text-rose-500",
+  },
+};
+const FALLBACK_META = {
+  icon: BellIcon,
+  bgClass: "bg-gray-100",
+  iconClass: "text-gray-500",
+};
 
 // 사이드바 헤더의 알림 벨 — 클릭하면 알림 목록 패널이 열린다.
 // 실제 푸시 발송(웹푸시·폰)은 백엔드 알림 시스템으로 추후 구현.
@@ -64,7 +111,8 @@ export function NotificationBell() {
         <>
           {/* 바깥 클릭 시 닫기 */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          {/* 모바일(상단바 우측): 우측 정렬·화면 안에 가두기. 데스크탑(사이드바 좌측): 좌측 정렬. */}
+          <div className="absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:right-auto lg:left-0">
             <div className="border-b border-gray-200 px-4 py-3">
               <p className="text-sm font-bold text-gray-900">알림</p>
             </div>
@@ -97,23 +145,34 @@ export function NotificationBell() {
                 <ul className="divide-y divide-gray-100">
                   {notifications.map((n) => {
                     const read = isRead(n);
+                    const meta = NOTIFICATION_META[n.type] ?? FALLBACK_META;
+                    const Icon = meta.icon;
                     return (
                       <li key={n.id}>
                         <button
                           type="button"
                           onClick={() => handleItemClick(n)}
-                          className={`flex w-full gap-2.5 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
+                          className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
                             read ? "" : "bg-violet-50/60"
                           }`}
                         >
+                          {/* 타입별 아이콘 칩 */}
                           <span
-                            className={`mt-1.5 size-2 shrink-0 rounded-full ${
-                              read ? "bg-transparent" : "bg-primary"
-                            }`}
-                          />
+                            className={`flex size-9 shrink-0 items-center justify-center rounded-full ${meta.bgClass}`}
+                          >
+                            <Icon className={`size-5 ${meta.iconClass}`} />
+                          </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold text-gray-900">
-                              {n.title}
+                            <span className="flex items-center gap-1.5">
+                              <span className="block text-sm font-semibold text-gray-900">
+                                {n.title}
+                              </span>
+                              {!read && (
+                                <span
+                                  className="inline-block size-1.5 shrink-0 rounded-full bg-primary"
+                                  aria-label="안 읽음"
+                                />
+                              )}
                             </span>
                             <span className="mt-0.5 block text-xs text-gray-500">
                               {n.body}

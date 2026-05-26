@@ -64,7 +64,7 @@ export default function AdminReservationsPage() {
       </p>
 
       {isSuper && (
-        <div className="mt-5 max-w-xs">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
           <Select
             id="branch-filter"
             label="지점"
@@ -98,7 +98,50 @@ export default function AdminReservationsPage() {
               </span>
               건
             </p>
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
+            {/* 모바일: 카드 리스트 */}
+            <ul className="space-y-3 lg:hidden">
+              {reservations.map((r) => (
+                <li
+                  key={r.id}
+                  className="rounded-xl border border-gray-200 p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-gray-900">
+                        {r.name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {formatPhone(r.phone)}
+                      </p>
+                    </div>
+                    <RowActionButton
+                      variant="danger"
+                      onClick={() => setDeleteTarget(r)}
+                    >
+                      삭제
+                    </RowActionButton>
+                  </div>
+                  <div className="mt-3 grid gap-1 text-sm">
+                    <p className="text-gray-700">
+                      <span className="text-gray-400">방문 예정 </span>
+                      {formatDate(r.visit_date)}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {isSuper && (
+                        <>
+                          {branchName(r.branch_id)}
+                          <span className="mx-1.5">·</span>
+                        </>
+                      )}
+                      신청일 {formatDate(r.created_at)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* 데스크탑: 기존 테이블 */}
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
                 <tr>

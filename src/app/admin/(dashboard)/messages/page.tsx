@@ -80,52 +80,46 @@ export default function AdminMessagesPage() {
         발송된 알림톡 기록입니다. (최신순)
       </p>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
         {isSuper && (
-          <div className="w-48">
-            <Select
-              id="branch-filter"
-              label="지점"
-              icon={BuildingOffice2Icon}
-              options={[
-                { value: "", label: "전체 지점" },
-                ...(branchesQuery.data ?? []).map((b) => ({
-                  value: b.id,
-                  label: b.name,
-                })),
-              ]}
-              value={branchFilter}
-              onChange={(e) => setBranchFilter(e.target.value)}
-            />
-          </div>
-        )}
-        <div className="w-48">
           <Select
-            id="type-filter"
-            label="종류"
-            icon={TagIcon}
+            id="branch-filter"
+            label="지점"
+            icon={BuildingOffice2Icon}
             options={[
-              { value: "", label: "전체 종류" },
-              ...Object.entries(TRIGGER_LABELS).map(([code, label]) => ({
-                value: code,
-                label,
+              { value: "", label: "전체 지점" },
+              ...(branchesQuery.data ?? []).map((b) => ({
+                value: b.id,
+                label: b.name,
               })),
             ]}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
           />
-        </div>
-        <div className="w-64">
-          <TextField
-            id="search"
-            label="검색"
-            icon={MagnifyingGlassIcon}
-            type="search"
-            placeholder="수신자 전화번호"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
+        )}
+        <Select
+          id="type-filter"
+          label="종류"
+          icon={TagIcon}
+          options={[
+            { value: "", label: "전체 종류" },
+            ...Object.entries(TRIGGER_LABELS).map(([code, label]) => ({
+              value: code,
+              label,
+            })),
+          ]}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+        />
+        <TextField
+          id="search"
+          label="검색"
+          icon={MagnifyingGlassIcon}
+          type="search"
+          placeholder="수신자 전화번호"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
       </div>
 
       <div className="mt-6">
@@ -144,7 +138,50 @@ export default function AdminMessagesPage() {
               </span>
               건
             </p>
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
+            {/* 모바일: 카드 리스트 */}
+            <ul className="space-y-3 lg:hidden">
+              {filteredMessages.map((m) => (
+                <li
+                  key={m.id}
+                  className="rounded-xl border border-gray-200 p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {TRIGGER_LABELS[m.trigger_type] ?? m.trigger_type}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {formatPhone(m.recipient)}
+                      </p>
+                    </div>
+                    <MsgStatusBadge status={m.status} />
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-sm text-gray-600">
+                    {m.content}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <p className="text-xs text-gray-400">
+                      {isSuper && (
+                        <>
+                          {branchName(m.branch_id)}
+                          <span className="mx-1.5">·</span>
+                        </>
+                      )}
+                      {formatDateTime(m.sent_at)}
+                    </p>
+                    <RowActionButton
+                      variant="neutral"
+                      onClick={() => setViewTarget(m)}
+                    >
+                      보기
+                    </RowActionButton>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* 데스크탑: 기존 테이블 */}
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
                 <tr>

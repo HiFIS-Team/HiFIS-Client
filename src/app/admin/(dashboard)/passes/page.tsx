@@ -161,7 +161,7 @@ export default function AdminPassesPage() {
       </p>
 
       {isSuper && (
-        <div className="mt-5 max-w-xs">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
           <Select
             id="branch"
             label="지점"
@@ -176,7 +176,20 @@ export default function AdminPassesPage() {
         </div>
       )}
 
-      <div className="mt-6 flex items-end justify-between border-b border-gray-200">
+      {/* 모바일 전용 — 좌측 정렬, 자체 행 */}
+      <div className="mt-4 flex justify-start lg:hidden">
+        <button
+          type="button"
+          onClick={() => setFormTarget("new")}
+          disabled={!branchId}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold whitespace-nowrap text-white hover:bg-primary-hover disabled:opacity-60"
+        >
+          {typeLabel} 등록
+        </button>
+      </div>
+
+      {/* 탭 행 — 데스크탑에선 등록 버튼이 우측에 함께 */}
+      <div className="mt-4 flex items-end border-b border-gray-200 lg:mt-6 lg:justify-between lg:gap-3">
         <div className="flex gap-1">
           {TABS.map((t) => {
             const Icon = t.icon;
@@ -185,7 +198,7 @@ export default function AdminPassesPage() {
                 key={t.type}
                 type="button"
                 onClick={() => setActiveType(t.type)}
-                className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium ${
+                className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap ${
                   activeType === t.type
                     ? "border-primary text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-800"
@@ -197,11 +210,12 @@ export default function AdminPassesPage() {
             );
           })}
         </div>
+        {/* 데스크탑 전용 — 탭 옆 우측 */}
         <button
           type="button"
           onClick={() => setFormTarget("new")}
           disabled={!branchId}
-          className="mb-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+          className="mb-2 hidden shrink-0 rounded-md bg-primary px-4 py-2 text-sm font-semibold whitespace-nowrap text-white hover:bg-primary-hover disabled:opacity-60 lg:inline-block"
         >
           {typeLabel} 등록
         </button>
@@ -238,21 +252,21 @@ export default function AdminPassesPage() {
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 px-3 py-4 text-center">
-                  <div>
+                  <div className="min-w-0">
                     <p className="flex items-center justify-center gap-1 text-xs text-gray-500">
                       <BanknotesIcon className="size-3.5" />
                       현금가
                     </p>
-                    <p className="mt-1 text-lg font-bold text-gray-900">
+                    <p className="mt-1 truncate text-base font-bold tabular-nums text-gray-900">
                       {formatWon(p.cash_price)}
                     </p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="flex items-center justify-center gap-1 text-xs text-gray-500">
                       <CreditCardIcon className="size-3.5" />
                       카드가
                     </p>
-                    <p className="mt-1 text-lg font-bold text-gray-900">
+                    <p className="mt-1 truncate text-base font-bold tabular-nums text-gray-900">
                       {formatWon(p.card_price)}
                     </p>
                   </div>

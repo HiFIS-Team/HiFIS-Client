@@ -132,7 +132,7 @@ export default function AdminAdminsPage() {
         FC 가입 승인·거부 및 계정 관리.
       </p>
 
-      <div className="mt-5 max-w-xs">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
         <Select
           id="branch-filter"
           label="지점"
