@@ -108,6 +108,8 @@ export function Sidebar({
   }
 
   function logout() {
+    // 모바일 드로어가 열린 채로 로그아웃하면 layout 이 즉시 unmount 되며 깜빡임 — 먼저 닫음
+    onClose();
     clearTokens();
     toast.success("로그아웃되었습니다.");
     router.replace("/admin/login");
@@ -115,14 +117,15 @@ export function Sidebar({
 
   return (
     <>
-      {/* 모바일 드로어 백드롭 — open 시에만, 데스크탑에선 숨김 */}
-      {open && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-          onClick={onClose}
-          aria-hidden
-        />
-      )}
+      {/* 모바일 드로어 백드롭 — 항상 마운트, opacity 토글로 부드럽게 페이드.
+          (unmount 방식은 페이지 이동 시 즉시 사라지며 깜빡임 발생) */}
+      <div
+        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-200 lg:hidden ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+        aria-hidden
+      />
       <aside
         className={`fixed top-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:sticky lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
