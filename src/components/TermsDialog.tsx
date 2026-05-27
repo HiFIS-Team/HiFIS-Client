@@ -29,11 +29,11 @@ export function TermsDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="flex max-h-full w-full max-w-xl flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-xl flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-xl font-bold text-gray-900">

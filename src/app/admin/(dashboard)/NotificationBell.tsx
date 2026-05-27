@@ -148,7 +148,7 @@ export function NotificationBell() {
           {/* 바깥 클릭 시 닫기 */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           {/* 모바일(상단바 우측): 우측 정렬·화면 안에 가두기. 데스크탑(사이드바 좌측): 좌측 정렬. */}
-          <div className="absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:right-auto lg:left-0">
+          <div className="animate-panel-in absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:right-auto lg:left-0">
             <div className="border-b border-gray-200 px-4 py-3">
               <p className="text-sm font-bold text-gray-900">알림</p>
             </div>
