@@ -38,13 +38,19 @@ function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
 
-// 회원권 이름에서 이용 개월 수 추출 ("3개월권"→3, "1년권"→12). 못 찾으면 null.
+// 회원권 이름에서 이용 기간 추출.
+// "3개월권"→{months:3}, "1년권"→{months:12}, "7일권"→{days:7}, "일권"→{days:1}.
 // 백엔드 Pass 에 기간 필드가 없어 이름으로 추정 — 추후 duration 필드가 생기면 그걸 사용할 것.
-function passDurationMonths(name: string): number | null {
+type PassDuration = { months: number } | { days: number };
+function passDuration(name: string): PassDuration | null {
   const year = name.match(/(\d+)\s*년/);
-  if (year) return Number(year[1]) * 12;
+  if (year) return { months: Number(year[1]) * 12 };
   const month = name.match(/(\d+)\s*개월/);
-  if (month) return Number(month[1]);
+  if (month) return { months: Number(month[1]) };
+  const day = name.match(/(\d+)\s*일/);
+  if (day) return { days: Number(day[1]) };
+  // 숫자 없이 "일권"만 있으면 1일로 본다.
+  if (/일\s*권/.test(name)) return { days: 1 };
   return null;
 }
 
@@ -61,6 +67,22 @@ function addMonths(dateStr: string, months: number): string {
   const mm = String(target.getMonth() + 1).padStart(2, "0");
   const dd = String(target.getDate()).padStart(2, "0");
   return `${target.getFullYear()}-${mm}-${dd}`;
+}
+
+// YYYY-MM-DD 에 일 수를 더한다.
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}
+
+// 기간 객체를 적용해 종료일 계산.
+function applyDuration(startDate: string, duration: PassDuration): string {
+  return "months" in duration
+    ? addMonths(startDate, duration.months)
+    : addDays(startDate, duration.days);
 }
 
 // enum 옵션 → Select 옵션
@@ -177,10 +199,10 @@ export function MemberForm({ branchId }: { branchId: string }) {
     });
   };
 
-  // 선택된 회원권의 이용 개월 수 (이름에서 추출, 없으면 null)
-  const monthsOf = (passId: string): number | null => {
+  // 선택된 회원권의 이용 기간 (이름에서 추출, 없으면 null) — months 또는 days
+  const durationOf = (passId: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === passId);
-    return p ? passDurationMonths(p.name) : null;
+    return p ? passDuration(p.name) : null;
   };
   // 회원권 선택 — 가격 + 이용 기간 자동 설정
   // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
@@ -188,18 +210,18 @@ export function MemberForm({ branchId }: { branchId: string }) {
     setForm((f) => {
       const base: FormState = { ...f, membership_pass_id: id };
       base.final_price = String(totalFor(base));
-      const months = monthsOf(id);
-      if (months == null) return base;
+      const d = durationOf(id);
+      if (d == null) return base;
       const start = base.start_date || today;
-      return { ...base, start_date: start, end_date: addMonths(start, months) };
+      return { ...base, start_date: start, end_date: applyDuration(start, d) };
     });
   };
   // 이용 시작일 변경 — 회원권 기간에 맞춰 종료일 재계산
   const onStartDateChange = (value: string) => {
     setForm((f) => {
       const next: FormState = { ...f, start_date: value };
-      const months = monthsOf(f.membership_pass_id);
-      if (months != null && value) next.end_date = addMonths(value, months);
+      const d = durationOf(f.membership_pass_id);
+      if (d != null && value) next.end_date = applyDuration(value, d);
       return next;
     });
   };
