@@ -70,14 +70,14 @@ export function Select({
           <ListboxButton
             id={id}
             aria-invalid={error ? true : undefined}
-            className={`grid w-full min-h-11 cursor-default grid-cols-1 rounded-md bg-white py-2.5 pr-9 pl-3 text-left text-base outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 ${
+            className={`relative block w-full min-h-11 cursor-default rounded-md bg-white py-2.5 pr-10 pl-3 text-left text-base outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 ${
               error
                 ? "outline-red-500 focus:outline-red-500"
                 : "outline-gray-300 focus:outline-primary"
             } ${className}`}
           >
             <span
-              className={`col-start-1 row-start-1 truncate ${
+              className={`block truncate ${
                 empty ? "text-gray-400" : "text-gray-900"
               }`}
             >
@@ -85,7 +85,7 @@ export function Select({
             </span>
             <ChevronDownIcon
               aria-hidden="true"
-              className="pointer-events-none col-start-1 row-start-1 size-5 self-center justify-self-end text-gray-500"
+              className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-gray-500"
             />
           </ListboxButton>
 
