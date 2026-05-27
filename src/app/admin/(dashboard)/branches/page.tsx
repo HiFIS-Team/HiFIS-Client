@@ -30,6 +30,8 @@ import { RowActionButton } from "@/components/RowActionButton";
 import { TableMessage } from "@/components/Table";
 import type { Branch } from "@/lib/api/types";
 import { BranchFormDialog } from "./BranchFormDialog";
+import { QrDialog } from "./QrDialog";
+import { QrCodeIcon } from "@heroicons/react/24/outline";
 
 // 카드 안의 링크 행 — 값이 있으면 새 탭 링크, 없으면 "없음"
 function LinkRow({ label, url }: { label: string; url: string | null }) {
@@ -75,6 +77,7 @@ export default function AdminBranchesPage() {
 
   // null=닫힘, "new"=등록, Branch=수정
   const [formTarget, setFormTarget] = useState<Branch | "new" | null>(null);
+  const [qrTarget, setQrTarget] = useState<Branch | null>(null);
 
   const branchesQuery = useQuery({
     queryKey: ["admin", "branches"],
@@ -225,9 +228,20 @@ export default function AdminBranchesPage() {
                     <MapPinIcon className="size-5 text-primary" />
                     {b.name}
                   </h2>
-                  <RowActionButton onClick={() => setFormTarget(b)}>
-                    수정
-                  </RowActionButton>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setQrTarget(b)}
+                      aria-label="QR 코드 보기"
+                      title="QR 코드"
+                      className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                    >
+                      <QrCodeIcon className="size-5" />
+                    </button>
+                    <RowActionButton onClick={() => setFormTarget(b)}>
+                      수정
+                    </RowActionButton>
+                  </div>
                 </div>
                 <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
                   <PhoneIcon className="size-4" />
@@ -250,6 +264,8 @@ export default function AdminBranchesPage() {
           </div>
         )}
       </div>
+
+      {qrTarget && <QrDialog branch={qrTarget} onClose={() => setQrTarget(null)} />}
 
       <BranchFormDialog
         key={typeof formTarget === "string" ? "new" : (formTarget?.id ?? "closed")}

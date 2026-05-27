@@ -9,10 +9,10 @@ import {
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  BoltIcon,
   CheckBadgeIcon,
   ChatBubbleLeftRightIcon,
   CreditCardIcon,
-  TicketIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
@@ -20,58 +20,33 @@ import { getEnums } from "@/lib/api/enums";
 import {
   getClothesPasses,
   getLockerPasses,
-  getMembershipPasses,
+  getPtPasses,
 } from "@/lib/api/passes";
-import { createMember } from "@/lib/api/members";
+import { createPtApplication } from "@/lib/api/ptApplications";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
+import { formatDate } from "@/lib/format";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
+import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
-import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { PT_NOTICE } from "@/lib/ptNotice";
+import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
-import { KioskSuccess } from "../KioskSuccess";
+import { RegisterSuccess } from "../RegisterSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
 
-// 회원권 이름에서 이용 기간 추출.
-// "3개월권"→{months:3}, "1년권"→{months:12}, "7일권"→{days:7}, "일권"→{days:1}.
-// 백엔드 Pass 에 기간 필드가 없어 이름으로 추정 — 추후 duration 필드가 생기면 그걸 사용할 것.
-type PassDuration = { months: number } | { days: number };
-function passDuration(name: string): PassDuration | null {
-  const year = name.match(/(\d+)\s*년/);
-  if (year) return { months: Number(year[1]) * 12 };
-  const month = name.match(/(\d+)\s*개월/);
-  if (month) return { months: Number(month[1]) };
-  const day = name.match(/(\d+)\s*일/);
-  if (day) return { days: Number(day[1]) };
-  // 숫자 없이 "일권"만 있으면 1일로 본다.
-  if (/일\s*권/.test(name)) return { days: 1 };
-  return null;
-}
+// PT 회원에게 제공되는 헬스권 이용 기간 (일) — 고정값
+const PT_DURATION_DAYS = 40;
 
-// YYYY-MM-DD 에 개월 수를 더한다 (말일 초과 시 해당 월 말일로 보정).
-function addMonths(dateStr: string, months: number): string {
-  const [y, m, day] = dateStr.split("-").map(Number);
-  const target = new Date(y, m - 1 + months, 1);
-  const lastDay = new Date(
-    target.getFullYear(),
-    target.getMonth() + 1,
-    0,
-  ).getDate();
-  target.setDate(Math.min(day, lastDay));
-  const mm = String(target.getMonth() + 1).padStart(2, "0");
-  const dd = String(target.getDate()).padStart(2, "0");
-  return `${target.getFullYear()}-${mm}-${dd}`;
-}
-
-// YYYY-MM-DD 에 일 수를 더한다.
+// YYYY-MM-DD 에 일수를 더한다
 function addDays(dateStr: string, days: number): string {
   const [y, m, d] = dateStr.split("-").map(Number);
   const date = new Date(y, m - 1, d + days);
@@ -80,14 +55,6 @@ function addDays(dateStr: string, days: number): string {
   return `${date.getFullYear()}-${mm}-${dd}`;
 }
 
-// 기간 객체를 적용해 종료일 계산.
-function applyDuration(startDate: string, duration: PassDuration): string {
-  return "months" in duration
-    ? addMonths(startDate, duration.months)
-    : addDays(startDate, duration.days);
-}
-
-// enum 옵션 → Select 옵션
 function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
@@ -106,7 +73,8 @@ const INITIAL = {
   birth_date: "",
   phone: "",
   address: "",
-  membership_pass_id: "",
+  pt_pass_id: "",
+  // PT 회원에게 무료 제공되는 락커·운동복 — admin이 0원 상품으로 등록한 것만 선택
   locker_pass_id: "",
   clothes_pass_id: "",
   start_date: "",
@@ -114,38 +82,42 @@ const INITIAL = {
   payment_method: "",
   final_price: "",
   referral: "",
-  // "기타" 선택 시 사용자 자유 입력 — 제출 직전 enum 자동 매핑 + 백엔드에 detail 로 전송
+  // "기타" 선택 시 자유 입력 — 제출 시 enum 자동 매핑 + 백엔드 detail 로 보관
   referral_detail: "",
   motivation: "",
-  agreed_terms: false,
+  notes: "",
+  agreed_notice: false,
 };
 
 type FormState = typeof INITIAL;
 
-export function MemberForm({ branchId }: { branchId: string }) {
-  // 신청서 진입 시 필요한 데이터 (지점·enum·상품)
+export function PtForm({ branchId }: { branchId: string }) {
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
   });
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
-  const membershipQuery = useQuery({
-    queryKey: ["membership-passes", branchId],
-    queryFn: () => getMembershipPasses(branchId),
+  const ptPassQuery = useQuery({
+    queryKey: ["pt-passes", branchId],
+    queryFn: () => getPtPasses(branchId),
   });
-  const lockerQuery = useQuery({
+  const lockerPassQuery = useQuery({
     queryKey: ["locker-passes", branchId],
     queryFn: () => getLockerPasses(branchId),
   });
-  const clothesQuery = useQuery({
+  const clothesPassQuery = useQuery({
     queryKey: ["clothes-passes", branchId],
     queryFn: () => getClothesPasses(branchId),
   });
 
-  const [form, setForm] = useState<FormState>(INITIAL);
+  // 시작일은 등록일(오늘), 종료일은 +40일로 시작 — PT 헬스권 기간은 40일 고정
+  const [form, setForm] = useState<FormState>(() => {
+    const t = todayStr();
+    return { ...INITIAL, start_date: t, end_date: addDays(t, PT_DURATION_DAYS) };
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [termsOpen, setTermsOpen] = useState(false);
-  const mutation = useMutation({ mutationFn: createMember });
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const mutation = useMutation({ mutationFn: createPtApplication });
 
   const set = (patch: Partial<FormState>) =>
     setForm((f) => ({ ...f, ...patch }));
@@ -154,14 +126,14 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
   const isLoading =
     enumsQuery.isLoading ||
-    membershipQuery.isLoading ||
-    lockerQuery.isLoading ||
-    clothesQuery.isLoading;
+    ptPassQuery.isLoading ||
+    lockerPassQuery.isLoading ||
+    clothesPassQuery.isLoading;
   const isError =
     enumsQuery.isError ||
-    membershipQuery.isError ||
-    lockerQuery.isError ||
-    clothesQuery.isError;
+    ptPassQuery.isError ||
+    lockerPassQuery.isError ||
+    clothesPassQuery.isError;
 
   if (isLoading) {
     return <Center>불러오는 중…</Center>;
@@ -175,27 +147,23 @@ export function MemberForm({ branchId }: { branchId: string }) {
   }
 
   const enums = enumsQuery.data!;
-  const membershipPasses = membershipQuery.data ?? [];
-  const lockerPasses = lockerQuery.data ?? [];
-  const clothesPasses = clothesQuery.data ?? [];
+  const ptPasses = ptPassQuery.data ?? [];
+  // PT 락커·운동복은 무료 제공 — 가격은 PT 신청에선 반영 안 함 (totalFor 가 수강권만 계산).
+  // 백엔드 스키마가 UUID 라 placeholder 로 지점의 첫 패스 ID 를 전달.
+  // 지점에 패스가 하나도 등록 안 돼 있으면 신청 토글 자체를 숨김.
+  const lockerPasses = lockerPassQuery.data ?? [];
+  const clothesPasses = clothesPassQuery.data ?? [];
   const branchName =
     branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
 
-  // 선택한 상품 가격 합계 — 결제수단이 카드면 카드가, 그 외엔 현금가 적용
-  function priceOf(passes: Pass[], id: string, useCard: boolean): number {
-    const p = passes.find((x) => x.id === id);
-    if (!p) return 0;
-    return useCard ? p.card_price : p.cash_price;
-  }
+  // 락커·운동복은 무료라 결제 금액에 영향 없음 — totalFor 는 수강권만 반영
+
+  // 수강권·결제수단 변경 시 최종 금액을 자동 재계산
   function totalFor(next: FormState): number {
-    const useCard = next.payment_method === "CARD";
-    return (
-      priceOf(membershipPasses, next.membership_pass_id, useCard) +
-      priceOf(lockerPasses, next.locker_pass_id, useCard) +
-      priceOf(clothesPasses, next.clothes_pass_id, useCard)
-    );
+    const p = ptPasses.find((x) => x.id === next.pt_pass_id);
+    if (!p) return 0;
+    return next.payment_method === "CARD" ? p.card_price : p.cash_price;
   }
-  // 상품·결제수단 변경 시 최종 금액을 자동 재계산
   const setWithPrice = (patch: Partial<FormState>) => {
     setForm((f) => {
       const next = { ...f, ...patch };
@@ -203,38 +171,20 @@ export function MemberForm({ branchId }: { branchId: string }) {
     });
   };
 
-  // 선택된 회원권의 이용 기간 (이름에서 추출, 없으면 null) — months 또는 days
-  const durationOf = (passId: string): PassDuration | null => {
-    const p = membershipPasses.find((x) => x.id === passId);
-    return p ? passDuration(p.name) : null;
-  };
-  // 회원권 선택 — 가격 + 이용 기간 자동 설정
-  // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
-  const onMembershipChange = (id: string) => {
-    setForm((f) => {
-      const base: FormState = { ...f, membership_pass_id: id };
-      base.final_price = String(totalFor(base));
-      const d = durationOf(id);
-      if (d == null) return base;
-      const start = base.start_date || today;
-      return { ...base, start_date: start, end_date: applyDuration(start, d) };
-    });
-  };
-  // 이용 시작일 변경 — 회원권 기간에 맞춰 종료일 재계산
+  // 이용 시작일 변경 — 종료일은 항상 시작일 + 40일 (PT 헬스권 기간 고정)
   const onStartDateChange = (value: string) => {
-    setForm((f) => {
-      const next: FormState = { ...f, start_date: value };
-      const d = durationOf(f.membership_pass_id);
-      if (d != null && value) next.end_date = applyDuration(value, d);
-      return next;
-    });
+    setForm((f) => ({
+      ...f,
+      start_date: value,
+      end_date: value ? addDays(value, PT_DURATION_DAYS) : "",
+    }));
   };
 
   // 제출 성공 — 완료 화면 (5초 후 키오스크 진입 화면으로 자동 복귀)
   if (mutation.isSuccess) {
     return (
-      <KioskSuccess
-        title="회원가입 신청이 접수되었습니다"
+      <RegisterSuccess
+        title="PT 신청이 접수되었습니다"
         name={mutation.data.name}
       />
     );
@@ -254,13 +204,10 @@ export function MemberForm({ branchId }: { branchId: string }) {
       e.phone = "전화번호를 정확히 입력해 주세요.";
 
     if (!form.address.trim()) e.address = "주소를 입력해 주세요.";
-    if (!form.membership_pass_id)
-      e.membership_pass_id = "회원권을 선택해 주세요.";
+    if (!form.pt_pass_id) e.pt_pass_id = "수강권을 선택해 주세요.";
 
+    // 종료일은 시작일 + 40일로 자동 계산되므로 시작일만 검증
     if (!form.start_date) e.start_date = "이용 시작일을 선택해 주세요.";
-    if (!form.end_date) e.end_date = "이용 종료일을 선택해 주세요.";
-    else if (form.start_date && form.end_date < form.start_date)
-      e.end_date = "종료일은 시작일보다 빠를 수 없습니다.";
 
     if (!form.payment_method) e.payment_method = "결제 방법을 선택해 주세요.";
     if (form.final_price === "")
@@ -273,7 +220,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
-    if (!form.agreed_terms) e.agreed_terms = "운영 회칙에 동의해 주세요.";
+    if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -282,7 +229,6 @@ export function MemberForm({ branchId }: { branchId: string }) {
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
-    // 기타 선택 + 자유 입력 시 enum 자동 매핑 ("블로그" → BLOG). detail 은 입력 그대로 보관.
     const { referral, referral_detail } = resolveReferralForSubmit(
       form.referral,
       form.referral_detail,
@@ -290,7 +236,9 @@ export function MemberForm({ branchId }: { branchId: string }) {
     );
     mutation.mutate({
       branch_id: branchId,
-      membership_pass_id: form.membership_pass_id,
+      pt_pass_id: form.pt_pass_id,
+      locker_pass_id: form.locker_pass_id || null,
+      clothes_pass_id: form.clothes_pass_id || null,
       name: form.name.trim(),
       gender: form.gender,
       birth_date: form.birth_date,
@@ -298,18 +246,16 @@ export function MemberForm({ branchId }: { branchId: string }) {
       address: form.address.trim(),
       referral,
       referral_detail,
+      motivation: form.motivation,
       payment_method: form.payment_method,
       final_price: Number(form.final_price),
       start_date: form.start_date,
       end_date: form.end_date,
-      locker_pass_id: form.locker_pass_id || null,
-      clothes_pass_id: form.clothes_pass_id || null,
-      motivation: form.motivation,
-      agreed_terms: form.agreed_terms,
+      notes: form.notes.trim() || null,
+      agreed_notice: form.agreed_notice,
     });
   }
 
-  // 제출 에러 — 429(호출 제한)는 안내 문구로 대체
   let submitError: string | null = null;
   if (mutation.isError) {
     if (mutation.error instanceof ApiError && mutation.error.status === 429) {
@@ -321,21 +267,13 @@ export function MemberForm({ branchId }: { branchId: string }) {
     }
   }
 
-  // 락커·운동복은 선택 항목 → "선택 안 함" 옵션을 맨 앞에
-  const optional = (arr: SelectOption[]): SelectOption[] => [
-    { value: "", label: "선택 안 함" },
-    ...arr,
-  ];
-
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <header>
         {branchName && (
           <p className="text-sm font-semibold text-primary">{branchName}</p>
         )}
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">
-          회원가입 신청서
-        </h1>
+        <h1 className="mt-1 text-2xl font-bold text-gray-900">PT 신청서</h1>
         <p className="mt-2 text-sm/6 text-gray-500">
           아래 정보를 입력해 주세요. <span className="text-red-500">*</span> 는
           필수 항목입니다.
@@ -396,31 +334,54 @@ export function MemberForm({ branchId }: { branchId: string }) {
           />
         </Section>
 
-        <Section title="회원권 · 이용 기간" icon={TicketIcon}>
+        <Section title="수강권 · 이용 기간" icon={BoltIcon}>
           <Select
-            id="membership-pass"
-            label="회원권"
+            id="pt-pass"
+            label="수강권"
             required
             placeholder="선택해 주세요"
-            options={passOpts(membershipPasses)}
-            value={form.membership_pass_id}
-            onChange={(e) => onMembershipChange(e.target.value)}
-            error={errors.membership_pass_id}
+            options={passOpts(ptPasses)}
+            value={form.pt_pass_id}
+            onChange={(e) => setWithPrice({ pt_pass_id: e.target.value })}
+            error={errors.pt_pass_id}
           />
-          <Select
-            id="locker-pass"
-            label="락커 (선택)"
-            options={optional(passOpts(lockerPasses))}
-            value={form.locker_pass_id}
-            onChange={(e) => setWithPrice({ locker_pass_id: e.target.value })}
-          />
-          <Select
-            id="clothes-pass"
-            label="운동복 (선택)"
-            options={optional(passOpts(clothesPasses))}
-            value={form.clothes_pass_id}
-            onChange={(e) => setWithPrice({ clothes_pass_id: e.target.value })}
-          />
+          {/* 락커·운동복은 PT 회원에게 무료 제공 — 신청 여부만 yes/no.
+              내부적으로는 첫 번째 무료(0원) 패스 UUID 를 전달.
+              무료 패스가 등록 안 된 지점은 필드 자체를 숨김. */}
+          {lockerPasses[0] && (
+            <Select
+              id="locker-pass"
+              label="락커 (무료 제공)"
+              options={[
+                { value: "NO", label: "신청 안 함" },
+                { value: "YES", label: "신청 (무료 제공)" },
+              ]}
+              value={form.locker_pass_id ? "YES" : "NO"}
+              onChange={(e) =>
+                set({
+                  locker_pass_id:
+                    e.target.value === "YES" ? lockerPasses[0].id : "",
+                })
+              }
+            />
+          )}
+          {clothesPasses[0] && (
+            <Select
+              id="clothes-pass"
+              label="운동복 (무료 제공)"
+              options={[
+                { value: "NO", label: "신청 안 함" },
+                { value: "YES", label: "신청 (무료 제공)" },
+              ]}
+              value={form.clothes_pass_id ? "YES" : "NO"}
+              onChange={(e) =>
+                set({
+                  clothes_pass_id:
+                    e.target.value === "YES" ? clothesPasses[0].id : "",
+                })
+              }
+            />
+          )}
           <DateField
             id="start-date"
             label="이용 시작일"
@@ -428,18 +389,19 @@ export function MemberForm({ branchId }: { branchId: string }) {
             value={form.start_date}
             onChange={(e) => onStartDateChange(e.target.value)}
             error={errors.start_date}
-            hint="회원권을 선택하면 등록일(오늘)로 채워져요. 바꾸면 종료일이 다시 계산돼요."
+            hint="등록일(오늘)로 채워져 있어요. 바꾸면 종료일이 다시 계산돼요."
           />
-          <DateField
-            id="end-date"
-            label="이용 종료일"
-            required
-            min={form.start_date || undefined}
-            value={form.end_date}
-            onChange={(e) => set({ end_date: e.target.value })}
-            error={errors.end_date}
-            hint="회원권 기간에 맞춰 자동 계산돼요. 필요하면 직접 수정하세요."
-          />
+          <div>
+            <p className="block text-sm/6 font-medium text-gray-900">
+              이용 종료일
+            </p>
+            <div className="mt-2 rounded-md bg-gray-100 px-3 py-2.5 text-base text-gray-600">
+              {form.end_date ? formatDate(form.end_date) : "—"}
+            </div>
+            <p className="mt-1.5 text-sm text-gray-500">
+              PT 회원은 헬스권 40일이 제공돼요. 시작일 기준 자동 설정됩니다.
+            </p>
+          </div>
         </Section>
 
         <Section title="결제" icon={CreditCardIcon}>
@@ -464,11 +426,11 @@ export function MemberForm({ branchId }: { branchId: string }) {
             value={form.final_price}
             onChange={(e) => set({ final_price: e.target.value })}
             error={errors.final_price}
-            hint="회원권·락커·운동복·결제수단을 선택하면 자동 계산돼요. 할인이 있으면 직접 수정하세요."
+            hint="수강권·결제수단을 선택하면 자동 계산돼요. 할인이 있으면 직접 수정하세요."
           />
         </Section>
 
-        <Section title="설문" icon={ChatBubbleLeftRightIcon}>
+        <Section title="설문 · 추가 정보" icon={ChatBubbleLeftRightIcon}>
           <Select
             id="referral"
             label="유입 경로"
@@ -479,7 +441,6 @@ export function MemberForm({ branchId }: { branchId: string }) {
             onChange={(e) => set({ referral: e.target.value })}
             error={errors.referral}
           />
-          {/* "기타" 선택 시 자유 입력 — 입력값이 enum 라벨과 매치되면 제출 시 그 enum 으로 자동 매핑 */}
           {form.referral === "OTHER" && (
             <TextField
               id="referral-detail"
@@ -501,30 +462,36 @@ export function MemberForm({ branchId }: { branchId: string }) {
             onChange={(e) => set({ motivation: e.target.value })}
             error={errors.motivation}
           />
+          <Textarea
+            id="notes"
+            label="비고 (선택)"
+            value={form.notes}
+            onChange={(e) => set({ notes: e.target.value })}
+            placeholder="요청 사항이 있으면 적어 주세요."
+            maxLength={500}
+          />
         </Section>
 
         <Section title="동의" icon={CheckBadgeIcon}>
           <div>
             {/* 준수 서약문 — 동의 대상 */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
-              <p className="text-base/7 text-gray-700">
-                {MEMBERSHIP_PLEDGE}
-              </p>
+              <p className="text-base/7 text-gray-700">{MEMBERSHIP_PLEDGE}</p>
             </div>
             <button
               type="button"
-              onClick={() => setTermsOpen(true)}
+              onClick={() => setNoticeOpen(true)}
               className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
             >
-              운영 회칙 전문 보기
+              서명 전 유의사항 보기
             </button>
             <div className="mt-4">
               <Checkbox
-                id="agreed-terms"
+                id="agreed-notice"
                 label="위 내용에 동의합니다. (필수)"
-                checked={form.agreed_terms}
-                onChange={(e) => set({ agreed_terms: e.target.checked })}
-                error={errors.agreed_terms}
+                checked={form.agreed_notice}
+                onChange={(e) => set({ agreed_notice: e.target.checked })}
+                error={errors.agreed_notice}
               />
             </div>
           </div>
@@ -538,7 +505,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
         <div className="flex gap-3">
           <Link
-            href="/kiosk"
+            href={`/register?branch_id=${branchId}`}
             className="flex items-center justify-center rounded-md px-4 py-3 text-base font-semibold text-gray-600"
           >
             취소
@@ -547,24 +514,20 @@ export function MemberForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_terms}
+            disabled={!form.agreed_notice}
           >
             신청서 제출
           </Button>
         </div>
       </form>
 
-      {termsOpen && (
-        <TermsDialog
-          content={OPERATING_RULES}
-          onClose={() => setTermsOpen(false)}
-        />
+      {noticeOpen && (
+        <TermsDialog content={PT_NOTICE} onClose={() => setNoticeOpen(false)} />
       )}
     </main>
   );
 }
 
-// 폼 섹션 — 아이콘 칩 + 제목 + 구분선
 function Section({
   title,
   icon: Icon,

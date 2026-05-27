@@ -2,16 +2,14 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getKioskBranchId } from "@/lib/branch";
 
-// 루트 `/` — PWA 시작점.
-// 키오스크 태블릿(localStorage 의 kiosk_branch_id 가 있는 디바이스) → /kiosk
-// 그 외(관리자 폰 등) → /admin/login
+// 루트 `/` — PWA 시작점. 관리자 로그인으로 보낸다.
+// 회원/PT 신청은 매장 QR (/register?branch_id=...), 예약은 네이버 플레이스 링크
+// (/reserve?branch_id=...) 로 진입하므로 루트에 노출할 진입점이 따로 없다.
 export default function HomePage() {
   const router = useRouter();
   useEffect(() => {
-    const isKioskDevice = getKioskBranchId() !== null;
-    router.replace(isKioskDevice ? "/kiosk" : "/admin/login");
+    router.replace("/admin/login");
   }, [router]);
   return null;
 }
