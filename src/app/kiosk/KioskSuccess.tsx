@@ -31,6 +31,14 @@ export function KioskSuccess({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-10 text-center">
+      {/* 작은 로고 — 브랜드 마크 (성공 피드백은 아래 CheckCircle 이 담당) */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/icons/icon-192.png"
+        alt=""
+        aria-hidden="true"
+        className="mb-6 size-10"
+      />
       <div className="flex size-24 items-center justify-center rounded-full bg-violet-50 text-primary">
         <CheckCircleIcon className="size-14" />
       </div>

@@ -59,6 +59,13 @@ export default function DashboardLayout({
         >
           <Bars3Icon className="size-6" />
         </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icons/icon-192.png"
+          alt=""
+          aria-hidden="true"
+          className="size-7"
+        />
         <span className="text-base font-bold text-gray-900">HiFIS</span>
         <span className="text-sm text-gray-500">관리자</span>
         <div className="ml-auto">

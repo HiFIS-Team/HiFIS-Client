@@ -3,11 +3,6 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  CheckCircleIcon,
-  EnvelopeIcon,
-  UserPlusIcon,
-} from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
 import { resendVerification, signup, verifyEmail } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/client";
@@ -85,7 +80,7 @@ export default function AdminSignupPage() {
   // 3단계 — 승인 대기 안내
   if (step === "done") {
     return (
-      <AuthLayout title="회원가입 완료" icon={CheckCircleIcon}>
+      <AuthLayout title="회원가입 완료">
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
           <p className="text-base font-semibold text-gray-900">
             이메일 인증이 완료되었습니다
@@ -108,7 +103,7 @@ export default function AdminSignupPage() {
   // 2단계 — 이메일 인증번호 입력
   if (step === "verify") {
     return (
-      <AuthLayout title="이메일 인증" icon={EnvelopeIcon}>
+      <AuthLayout title="이메일 인증">
         <form
           onSubmit={submitVerify}
           className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
@@ -168,7 +163,7 @@ export default function AdminSignupPage() {
 
   // 1단계 — 회원가입 폼
   return (
-    <AuthLayout title="FC 회원가입" icon={UserPlusIcon}>
+    <AuthLayout title="FC 회원가입">
       <form
         onSubmit={submitForm}
         className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"

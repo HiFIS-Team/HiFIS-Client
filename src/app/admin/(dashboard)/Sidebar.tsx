@@ -129,9 +129,17 @@ export function Sidebar({
         }`}
       >
       <div className="flex items-center justify-between px-5 py-5">
-        <div>
+        <div className="flex items-center gap-2">
+          {/* 정적 PNG — 추가 최적화 불필요 (Next.js static export) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons/icon-192.png"
+            alt=""
+            aria-hidden="true"
+            className="size-7"
+          />
           <span className="text-lg font-bold text-gray-900">HiFIS</span>
-          <span className="ml-1.5 text-sm text-gray-500">관리자</span>
+          <span className="text-sm text-gray-500">관리자</span>
         </div>
         {/* 데스크탑에선 사이드바에, 모바일에선 상단 바에 위치 — 중복 방지 */}
         <div className="hidden lg:block">

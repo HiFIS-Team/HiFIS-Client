@@ -133,7 +133,14 @@ function KioskHome({
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-10">
       <div className="flex flex-1 flex-col justify-center">
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons/icon-512.png"
+            alt=""
+            aria-hidden="true"
+            className="size-24"
+          />
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-4 py-1.5 text-base font-semibold text-primary">
             <MapPinIcon className="size-4" />
             {branch.name}

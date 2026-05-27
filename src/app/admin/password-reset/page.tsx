@@ -3,11 +3,6 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
-import {
-  CheckCircleIcon,
-  EnvelopeIcon,
-  KeyIcon,
-} from "@heroicons/react/24/outline";
 import { confirmPasswordReset, requestPasswordReset } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
@@ -78,7 +73,7 @@ export default function AdminPasswordResetPage() {
   // 4단계 — 완료
   if (step === "done") {
     return (
-      <AuthLayout title="비밀번호 변경 완료" icon={CheckCircleIcon}>
+      <AuthLayout title="비밀번호 변경 완료">
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
           <p className="text-base font-semibold text-gray-900">
             비밀번호가 변경되었습니다
@@ -100,7 +95,7 @@ export default function AdminPasswordResetPage() {
   // 3단계 — 새 비밀번호 입력
   if (step === "password") {
     return (
-      <AuthLayout title="비밀번호 재설정" icon={KeyIcon}>
+      <AuthLayout title="비밀번호 재설정">
         <form
           onSubmit={submitPassword}
           className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
@@ -160,7 +155,7 @@ export default function AdminPasswordResetPage() {
   // 2단계 — 인증번호 입력
   if (step === "code") {
     return (
-      <AuthLayout title="비밀번호 재설정" icon={EnvelopeIcon}>
+      <AuthLayout title="비밀번호 재설정">
         <form
           onSubmit={submitCode}
           className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
@@ -201,7 +196,7 @@ export default function AdminPasswordResetPage() {
 
   // 1단계 — 이메일 입력
   return (
-    <AuthLayout title="비밀번호 재설정" icon={KeyIcon}>
+    <AuthLayout title="비밀번호 재설정">
       <form
         onSubmit={submitRequest}
         className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
