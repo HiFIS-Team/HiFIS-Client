@@ -115,13 +115,10 @@ export function PtEditDialog({
     ptPassQuery.isError ||
     lockerPassQuery.isError ||
     clothesPassQuery.isError;
-  // PT는 락커·운동복 무료 — 0원 상품만 노출
-  const lockerPasses = (lockerPassQuery.data ?? []).filter(
-    (p) => p.cash_price === 0,
-  );
-  const clothesPasses = (clothesPassQuery.data ?? []).filter(
-    (p) => p.cash_price === 0,
-  );
+  // PT 락커·운동복은 무료 제공 — 가격은 PT 에선 반영 안 함.
+  // 백엔드 스키마가 UUID 라 placeholder 로 지점의 첫 패스 ID 를 전달.
+  const lockerPasses = lockerPassQuery.data ?? [];
+  const clothesPasses = clothesPassQuery.data ?? [];
   const today = todayStr();
 
   function validate(): boolean {
@@ -243,30 +240,43 @@ export function PtEditDialog({
                 onChange={(e) => set({ pt_pass_id: e.target.value })}
                 error={errors.pt_pass_id}
               />
-              <Select
-                id="pe-locker-pass"
-                label="락커 (무료 제공, 선택)"
-                options={[
-                  { value: "", label: "선택 안 함" },
-                  ...lockerPasses.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-                value={form.locker_pass_id ?? ""}
-                onChange={(e) =>
-                  set({ locker_pass_id: e.target.value || null })
-                }
-              />
-              <Select
-                id="pe-clothes-pass"
-                label="운동복 (무료 제공, 선택)"
-                options={[
-                  { value: "", label: "선택 안 함" },
-                  ...clothesPasses.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-                value={form.clothes_pass_id ?? ""}
-                onChange={(e) =>
-                  set({ clothes_pass_id: e.target.value || null })
-                }
-              />
+              {/* PT 락커·운동복은 무료 제공 — 신청 여부만 yes/no.
+                  내부적으로는 첫 번째 무료(0원) 패스 UUID 를 전달.
+                  무료 패스가 등록 안 된 지점은 필드 자체를 숨김. */}
+              {lockerPasses[0] && (
+                <Select
+                  id="pe-locker-pass"
+                  label="락커 (무료 제공)"
+                  options={[
+                    { value: "NO", label: "신청 안 함" },
+                    { value: "YES", label: "신청 (무료 제공)" },
+                  ]}
+                  value={form.locker_pass_id ? "YES" : "NO"}
+                  onChange={(e) =>
+                    set({
+                      locker_pass_id:
+                        e.target.value === "YES" ? lockerPasses[0].id : null,
+                    })
+                  }
+                />
+              )}
+              {clothesPasses[0] && (
+                <Select
+                  id="pe-clothes-pass"
+                  label="운동복 (무료 제공)"
+                  options={[
+                    { value: "NO", label: "신청 안 함" },
+                    { value: "YES", label: "신청 (무료 제공)" },
+                  ]}
+                  value={form.clothes_pass_id ? "YES" : "NO"}
+                  onChange={(e) =>
+                    set({
+                      clothes_pass_id:
+                        e.target.value === "YES" ? clothesPasses[0].id : null,
+                    })
+                  }
+                />
+              )}
               <DateField
                 id="pe-start"
                 label="이용 시작일"
