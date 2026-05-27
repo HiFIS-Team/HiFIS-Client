@@ -13,6 +13,7 @@ import { getBranches } from "@/lib/api/branches";
 import { createReservation } from "@/lib/api/reservations";
 import { ApiError } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Button } from "@/components/Button";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
@@ -191,11 +192,10 @@ export function ReserveForm() {
           autoComplete="tel"
           error={errors.phone}
         />
-        <TextField
+        <DateField
           id="visit-date"
           label="방문 예정일"
           required
-          type="date"
           value={visitDate}
           min={today}
           onChange={(e) => setVisitDate(e.target.value)}

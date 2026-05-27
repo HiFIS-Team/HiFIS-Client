@@ -12,6 +12,7 @@ import { updatePtApplication } from "@/lib/api/ptApplications";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
@@ -204,11 +205,10 @@ export function PtEditDialog({
                 onChange={(e) => set({ gender: e.target.value })}
                 error={errors.gender}
               />
-              <TextField
+              <DateField
                 id="pe-birth"
                 label="생년월일"
                 required
-                type="date"
                 max={today}
                 value={form.birth_date}
                 onChange={(e) => set({ birth_date: e.target.value })}
@@ -267,20 +267,18 @@ export function PtEditDialog({
                   set({ clothes_pass_id: e.target.value || null })
                 }
               />
-              <TextField
+              <DateField
                 id="pe-start"
                 label="이용 시작일"
                 required
-                type="date"
                 value={form.start_date}
                 onChange={(e) => set({ start_date: e.target.value })}
                 error={errors.start_date}
               />
-              <TextField
+              <DateField
                 id="pe-end"
                 label="이용 종료일"
                 required
-                type="date"
                 min={form.start_date || undefined}
                 value={form.end_date}
                 onChange={(e) => set({ end_date: e.target.value })}

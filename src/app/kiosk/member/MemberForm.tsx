@@ -26,6 +26,7 @@ import { createMember } from "@/lib/api/members";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
@@ -353,11 +354,10 @@ export function MemberForm({ branchId }: { branchId: string }) {
             onChange={(e) => set({ gender: e.target.value })}
             error={errors.gender}
           />
-          <TextField
+          <DateField
             id="birth-date"
             label="생년월일"
             required
-            type="date"
             max={today}
             value={form.birth_date}
             onChange={(e) => set({ birth_date: e.target.value })}
@@ -411,21 +411,19 @@ export function MemberForm({ branchId }: { branchId: string }) {
             value={form.clothes_pass_id}
             onChange={(e) => setWithPrice({ clothes_pass_id: e.target.value })}
           />
-          <TextField
+          <DateField
             id="start-date"
             label="이용 시작일"
             required
-            type="date"
             value={form.start_date}
             onChange={(e) => onStartDateChange(e.target.value)}
             error={errors.start_date}
             hint="회원권을 선택하면 등록일(오늘)로 채워져요. 바꾸면 종료일이 다시 계산돼요."
           />
-          <TextField
+          <DateField
             id="end-date"
             label="이용 종료일"
             required
-            type="date"
             min={form.start_date || undefined}
             value={form.end_date}
             onChange={(e) => set({ end_date: e.target.value })}

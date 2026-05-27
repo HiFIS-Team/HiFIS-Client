@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createHold } from "@/lib/api/holds";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
-import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Textarea } from "@/components/Textarea";
 import { formatPhone } from "@/lib/format";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -97,20 +97,18 @@ export function HoldDialog({
                 </span>
               </p>
             </div>
-            <TextField
+            <DateField
               id="hold-start"
               label="홀딩 시작일"
               required
-              type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               error={errors.startDate}
             />
-            <TextField
+            <DateField
               id="hold-end"
               label="홀딩 종료일"
               required
-              type="date"
               min={startDate || undefined}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}

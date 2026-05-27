@@ -12,6 +12,7 @@ import { updateMember } from "@/lib/api/members";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -202,11 +203,10 @@ export function MemberEditDialog({
                 onChange={(e) => set({ gender: e.target.value })}
                 error={errors.gender}
               />
-              <TextField
+              <DateField
                 id="e-birth"
                 label="생년월일"
                 required
-                type="date"
                 max={today}
                 value={form.birth_date}
                 onChange={(e) => set({ birth_date: e.target.value })}
@@ -255,20 +255,18 @@ export function MemberEditDialog({
                 value={form.clothes_pass_id}
                 onChange={(e) => set({ clothes_pass_id: e.target.value })}
               />
-              <TextField
+              <DateField
                 id="e-start"
                 label="이용 시작일"
                 required
-                type="date"
                 value={form.start_date}
                 onChange={(e) => set({ start_date: e.target.value })}
                 error={errors.start_date}
               />
-              <TextField
+              <DateField
                 id="e-end"
                 label="이용 종료일"
                 required
-                type="date"
                 min={form.start_date || undefined}
                 value={form.end_date}
                 onChange={(e) => set({ end_date: e.target.value })}

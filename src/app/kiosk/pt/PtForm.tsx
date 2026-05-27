@@ -27,6 +27,7 @@ import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
@@ -294,11 +295,10 @@ export function PtForm({ branchId }: { branchId: string }) {
             onChange={(e) => set({ gender: e.target.value })}
             error={errors.gender}
           />
-          <TextField
+          <DateField
             id="birth-date"
             label="생년월일"
             required
-            type="date"
             max={today}
             value={form.birth_date}
             onChange={(e) => set({ birth_date: e.target.value })}
@@ -358,11 +358,10 @@ export function PtForm({ branchId }: { branchId: string }) {
             value={form.clothes_pass_id}
             onChange={(e) => set({ clothes_pass_id: e.target.value })}
           />
-          <TextField
+          <DateField
             id="start-date"
             label="이용 시작일"
             required
-            type="date"
             value={form.start_date}
             onChange={(e) => onStartDateChange(e.target.value)}
             error={errors.start_date}
