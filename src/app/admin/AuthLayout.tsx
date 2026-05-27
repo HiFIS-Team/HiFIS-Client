@@ -51,18 +51,19 @@ export function AuthLayout({
     >
       <div
         className={`w-full max-w-sm transition-[margin-top] duration-300 ease-out ${
-          shifted ? "max-lg:-mt-[6vh]" : ""
+          shifted ? "max-lg:-mt-[88px]" : "max-lg:-mt-[24px]"
         }`}
       >
-        <div className="text-center">
+        {/* 가로 배치 — 로고와 제목을 한 묶음으로 가운데 정렬 (브랜드 + 제목 시각적 그룹) */}
+        <div className="flex items-center justify-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/icons/icon-192.png"
+            src="/icons/logo.png"
             alt=""
             aria-hidden="true"
-            className="mx-auto size-14"
+            className="size-10 shrink-0"
           />
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">{title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
         </div>
         <div className="mt-8">{children}</div>
       </div>

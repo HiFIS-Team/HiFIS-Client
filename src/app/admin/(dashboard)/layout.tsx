@@ -61,7 +61,7 @@ export default function DashboardLayout({
         </button>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/icons/icon-192.png"
+          src="/icons/logo.png"
           alt=""
           aria-hidden="true"
           className="size-7"

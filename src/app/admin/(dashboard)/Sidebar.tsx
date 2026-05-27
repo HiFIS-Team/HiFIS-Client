@@ -136,7 +136,7 @@ export function Sidebar({
           {/* 정적 PNG — 추가 최적화 불필요 (Next.js static export) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/icons/icon-192.png"
+            src="/icons/logo.png"
             alt=""
             aria-hidden="true"
             className="size-7"

@@ -154,7 +154,7 @@ export function ReserveForm() {
       <header className="text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/icons/icon-192.png"
+          src="/icons/logo.png"
           alt=""
           aria-hidden="true"
           className="mx-auto size-16"

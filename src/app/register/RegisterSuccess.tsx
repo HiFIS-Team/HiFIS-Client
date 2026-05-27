@@ -16,7 +16,7 @@ export function RegisterSuccess({
       {/* 브랜드 마크 (성공 피드백은 아래 CheckCircle 이 담당) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/icons/icon-192.png"
+        src="/icons/logo.png"
         alt=""
         aria-hidden="true"
         className="mb-6 size-10"
