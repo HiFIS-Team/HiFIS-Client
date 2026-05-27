@@ -72,6 +72,8 @@ export interface MemberCreate {
   phone: string;
   address: string;
   referral: string;
+  // referral 이 OTHER 일 때 사용자가 자유 입력한 텍스트 (최대 100자, 비어있으면 null)
+  referral_detail: string | null;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -91,6 +93,7 @@ export interface Member {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -111,6 +114,7 @@ export interface MemberUpdate {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -133,6 +137,7 @@ export interface PTApplicationCreate {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   motivation: string;
   payment_method: string;
   final_price: number;
@@ -153,6 +158,7 @@ export interface PTApplication {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   motivation: string;
   payment_method: string;
   final_price: number;
@@ -174,6 +180,7 @@ export interface PTApplicationUpdate {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   motivation: string;
   payment_method: string;
   final_price: number;

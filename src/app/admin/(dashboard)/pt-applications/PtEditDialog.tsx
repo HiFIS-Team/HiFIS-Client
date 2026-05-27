@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/passes";
 import { updatePtApplication } from "@/lib/api/ptApplications";
 import { getErrorMessage } from "@/lib/api/client";
+import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
@@ -67,6 +68,7 @@ export function PtEditDialog({
     phone: app.phone,
     address: app.address,
     referral: app.referral,
+    referral_detail: app.referral_detail ?? "",
     motivation: app.motivation,
     payment_method: app.payment_method,
     final_price: String(app.final_price),
@@ -79,8 +81,13 @@ export function PtEditDialog({
     setForm((f) => ({ ...f, ...patch }));
 
   const mutation = useMutation({
-    mutationFn: () =>
-      updatePtApplication(app.id, {
+    mutationFn: () => {
+      const { referral, referral_detail } = resolveReferralForSubmit(
+        form.referral,
+        form.referral_detail,
+        enumsQuery.data!.referral,
+      );
+      return updatePtApplication(app.id, {
         pt_pass_id: form.pt_pass_id,
         locker_pass_id: form.locker_pass_id,
         clothes_pass_id: form.clothes_pass_id,
@@ -89,14 +96,16 @@ export function PtEditDialog({
         birth_date: form.birth_date,
         phone: form.phone.trim(),
         address: form.address.trim(),
-        referral: form.referral,
+        referral,
+        referral_detail,
         motivation: form.motivation,
         payment_method: form.payment_method,
         final_price: Number(form.final_price),
         start_date: form.start_date,
         end_date: form.end_date,
         notes: form.notes.trim() || null,
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("PT 정보가 수정되었습니다.");
       queryClient.invalidateQueries({ queryKey: ["admin", "pt-applications"] });
@@ -320,11 +329,22 @@ export function PtEditDialog({
                 label="유입 경로"
                 required
                 placeholder="선택"
-                options={enumOpts(enumsQuery.data!.referral)}
+                options={enumOpts(referralOptions(enumsQuery.data!.referral))}
                 value={form.referral}
                 onChange={(e) => set({ referral: e.target.value })}
                 error={errors.referral}
               />
+              {form.referral === "OTHER" && (
+                <TextField
+                  id="pe-referral-detail"
+                  label="직접 입력"
+                  placeholder="예: 전단지, 블로그, 인스타"
+                  maxLength={100}
+                  value={form.referral_detail}
+                  onChange={(e) => set({ referral_detail: e.target.value })}
+                  hint="기존 항목 이름(전단지·블로그·인스타 등)과 같으면 그 항목으로 자동 분류돼요."
+                />
+              )}
               <Select
                 id="pe-motivation"
                 label="방문 목적"

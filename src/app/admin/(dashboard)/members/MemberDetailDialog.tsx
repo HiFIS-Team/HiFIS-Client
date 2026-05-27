@@ -113,6 +113,11 @@ export function MemberDetailDialog({
             <Row label="결제 금액">{formatWon(member.final_price)}</Row>
             <Row label="유입 경로">
               {enumLabel(enums?.referral, member.referral)}
+              {member.referral_detail && (
+                <span className="ml-1 text-gray-500">
+                  (직접 입력: {member.referral_detail})
+                </span>
+              )}
             </Row>
             <Row label="방문 목적">
               {enumLabel(enums?.motivation, member.motivation)}

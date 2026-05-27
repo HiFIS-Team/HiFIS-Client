@@ -35,6 +35,7 @@ import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { KioskSuccess } from "../KioskSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
@@ -81,6 +82,8 @@ const INITIAL = {
   payment_method: "",
   final_price: "",
   referral: "",
+  // "기타" 선택 시 자유 입력 — 제출 시 enum 자동 매핑 + 백엔드 detail 로 보관
+  referral_detail: "",
   motivation: "",
   notes: "",
   agreed_notice: false,
@@ -226,6 +229,11 @@ export function PtForm({ branchId }: { branchId: string }) {
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
+    const { referral, referral_detail } = resolveReferralForSubmit(
+      form.referral,
+      form.referral_detail,
+      enums.referral,
+    );
     mutation.mutate({
       branch_id: branchId,
       pt_pass_id: form.pt_pass_id,
@@ -236,7 +244,8 @@ export function PtForm({ branchId }: { branchId: string }) {
       birth_date: form.birth_date,
       phone: form.phone.trim(),
       address: form.address.trim(),
-      referral: form.referral,
+      referral,
+      referral_detail,
       motivation: form.motivation,
       payment_method: form.payment_method,
       final_price: Number(form.final_price),
@@ -427,11 +436,22 @@ export function PtForm({ branchId }: { branchId: string }) {
             label="유입 경로"
             required
             placeholder="선택해 주세요"
-            options={enumOpts(enums.referral)}
+            options={enumOpts(referralOptions(enums.referral))}
             value={form.referral}
             onChange={(e) => set({ referral: e.target.value })}
             error={errors.referral}
           />
+          {form.referral === "OTHER" && (
+            <TextField
+              id="referral-detail"
+              label="직접 입력"
+              placeholder="예: 전단지, 블로그, 인스타"
+              maxLength={100}
+              value={form.referral_detail}
+              onChange={(e) => set({ referral_detail: e.target.value })}
+              hint="피트니스스타를 처음 알게 된 경로를 자세히 적어 주세요. 기존 항목 이름(전단지·블로그·인스타 등)과 같으면 그 항목으로 자동 분류돼요."
+            />
+          )}
           <Select
             id="motivation"
             label="방문 목적"

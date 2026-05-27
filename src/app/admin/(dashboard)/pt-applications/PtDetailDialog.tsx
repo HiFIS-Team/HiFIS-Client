@@ -112,6 +112,11 @@ export function PtDetailDialog({
             <Row label="결제 금액">{formatWon(app.final_price)}</Row>
             <Row label="유입 경로">
               {enumLabel(enums?.referral, app.referral)}
+              {app.referral_detail && (
+                <span className="ml-1 text-gray-500">
+                  (직접 입력: {app.referral_detail})
+                </span>
+              )}
             </Row>
             <Row label="방문 목적">
               {enumLabel(enums?.motivation, app.motivation)}

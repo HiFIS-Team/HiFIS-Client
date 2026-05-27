@@ -6,9 +6,16 @@ export interface StatItem {
   label: string;
   count: number;
 }
+// 자유 텍스트 통계 항목 (referral 의 기타 세부 입력) — code 없음
+export interface StatDetailItem {
+  label: string;
+  count: number;
+}
 export interface StatsResponse {
   items: StatItem[];
   total: number;
+  // referral 통계에서만 채워짐 (회원·PT 합산 자유 입력 카운트). motivation 등은 빈 배열.
+  details: StatDetailItem[];
 }
 
 function statsPath(path: string, branchId?: string): string {
