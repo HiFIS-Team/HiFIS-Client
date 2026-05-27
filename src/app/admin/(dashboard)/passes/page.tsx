@@ -34,7 +34,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
-import { formatWon } from "@/lib/format";
+import { formatWon, josaEulReul, josaIGa } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
 import { PassFormDialog } from "./PassFormDialog";
 
@@ -108,7 +108,7 @@ export default function AdminPassesPage() {
     mutationFn: (v: PassInput) =>
       createPass(activeType, { branch_id: branchId, ...v }),
     onSuccess: () => {
-      toast.success(`${typeLabel}이(가) 등록되었습니다.`);
+      toast.success(`${typeLabel}${josaIGa(typeLabel)} 등록되었습니다.`);
       setFormTarget(null);
       invalidate();
     },
@@ -119,7 +119,7 @@ export default function AdminPassesPage() {
     mutationFn: (args: { id: string; values: PassInput }) =>
       updatePass(activeType, args.id, args.values),
     onSuccess: () => {
-      toast.success(`${typeLabel}이(가) 수정되었습니다.`);
+      toast.success(`${typeLabel}${josaIGa(typeLabel)} 수정되었습니다.`);
       setFormTarget(null);
       invalidate();
     },
@@ -129,7 +129,7 @@ export default function AdminPassesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deletePass(activeType, id),
     onSuccess: () => {
-      toast.success(`${typeLabel}이(가) 삭제되었습니다.`);
+      toast.success(`${typeLabel}${josaIGa(typeLabel)} 삭제되었습니다.`);
       setDeleteTarget(null);
       invalidate();
     },
@@ -232,7 +232,7 @@ export default function AdminPassesPage() {
         ) : passesQuery.isError ? (
           <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : passes.length === 0 ? (
-          <TableMessage>등록된 {typeLabel}이(가) 없습니다.</TableMessage>
+          <TableMessage>등록된 {typeLabel}{josaIGa(typeLabel)} 없습니다.</TableMessage>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {passes.map((p) => (
@@ -302,7 +302,7 @@ export default function AdminPassesPage() {
         title={`${typeLabel} 삭제`}
         message={
           deleteTarget
-            ? `'${deleteTarget.name}'을(를) 삭제하시겠습니까?`
+            ? `'${deleteTarget.name}'${josaEulReul(deleteTarget.name)} 삭제하시겠습니까?`
             : ""
         }
         confirmLabel="삭제"

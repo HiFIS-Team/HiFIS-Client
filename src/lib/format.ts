@@ -40,3 +40,19 @@ export function timeAgo(iso: string): string {
   if (day < 7) return `${day}일 전`;
   return formatDate(iso);
 }
+
+// 한글 받침에 따라 조사 선택 — 마지막 글자의 받침(종성) 유무로 결정.
+// 한글 unicode(0xAC00~0xD7A3) 범위 밖이면 with(받침 있을 때) 형태로 fallback.
+function hasFinalConsonant(word: string): boolean {
+  const c = word.charCodeAt(word.length - 1);
+  if (Number.isNaN(c) || c < 0xac00 || c > 0xd7a3) return true;
+  return (c - 0xac00) % 28 !== 0;
+}
+// "회원권" → "이", "락커" → "가"
+export function josaIGa(word: string): string {
+  return hasFinalConsonant(word) ? "이" : "가";
+}
+// "회원권" → "을", "락커" → "를"
+export function josaEulReul(word: string): string {
+  return hasFinalConsonant(word) ? "을" : "를";
+}
