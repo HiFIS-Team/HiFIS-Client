@@ -10,6 +10,7 @@ import { setTokens } from "@/lib/api/tokenStore";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
+import { Checkbox } from "@/components/Checkbox";
 import { useToast } from "@/providers/ToastProvider";
 import { AuthLayout } from "../AuthLayout";
 
@@ -18,6 +19,8 @@ export default function AdminLoginPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // 자동 로그인 — 체크: localStorage(영구), 미체크: sessionStorage(탭 닫으면 풀림)
+  const [remember, setRemember] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {},
   );
@@ -25,8 +28,8 @@ export default function AdminLoginPage() {
   const mutation = useMutation({
     mutationFn: () => login(email.trim(), password),
     onSuccess: (res) => {
-      // access·refresh 토큰 저장 후 대시보드로
-      setTokens(res.access_token, res.refresh_token);
+      // access·refresh 토큰 저장 후 대시보드로 (remember 에 따라 storage 결정)
+      setTokens(res.access_token, res.refresh_token, remember);
       toast.success("로그인되었습니다.");
       router.replace("/admin");
     },
@@ -68,6 +71,19 @@ export default function AdminLoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
+        />
+        <Checkbox
+          id="remember"
+          label={
+            <span className="text-sm text-gray-700">
+              자동 로그인
+              <span className="ml-1.5 text-xs text-gray-500">
+                (체크 해제 시 브라우저를 닫으면 로그아웃)
+              </span>
+            </span>
+          }
+          checked={remember}
+          onChange={(e) => setRemember(e.target.checked)}
         />
         {mutation.isError && (
           <p className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700">
