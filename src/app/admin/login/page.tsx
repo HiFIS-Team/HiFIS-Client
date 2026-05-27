@@ -10,7 +10,6 @@ import { setTokens } from "@/lib/api/tokenStore";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
-import { Checkbox } from "@/components/Checkbox";
 import { useToast } from "@/providers/ToastProvider";
 import { AuthLayout } from "../AuthLayout";
 
@@ -72,19 +71,15 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
         />
-        <Checkbox
-          id="remember"
-          label={
-            <span className="text-sm text-gray-700">
-              자동 로그인
-              <span className="ml-1.5 text-xs text-gray-500">
-                (체크 해제 시 브라우저를 닫으면 로그아웃)
-              </span>
-            </span>
-          }
-          checked={remember}
-          onChange={(e) => setRemember(e.target.checked)}
-        />
+        <label className="flex cursor-pointer items-center gap-2 select-none">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="size-4 rounded accent-primary"
+          />
+          <span className="text-sm text-gray-700">자동 로그인</span>
+        </label>
         {mutation.isError && (
           <p className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700">
             {getErrorMessage(mutation.error)}
