@@ -10,6 +10,7 @@ import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
 import { NotificationBell } from "./NotificationBell";
+import { PushToggle } from "./PushToggle";
 
 interface NavItem {
   href: string;
@@ -216,6 +217,7 @@ export function Sidebar({
         >
           비밀번호 변경
         </button>
+        <PushToggle />
         <button
           type="button"
           onClick={logout}
