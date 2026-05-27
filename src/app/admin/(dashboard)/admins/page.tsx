@@ -120,10 +120,21 @@ export default function AdminAdminsPage() {
     id ? (branchesQuery.data?.find((b) => b.id === id)?.name ?? "-") : "-";
   const admins = adminsQuery.data ?? [];
   // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
-  const visibleAdmins = admins.filter(
-    (a) =>
-      !branchFilter || a.role === "SUPER_ADMIN" || a.branch_id === branchFilter,
-  );
+  // 정렬 — 대표는 항상 맨 위, FC 는 가입(created_at) 오름차순
+  const visibleAdmins = admins
+    .filter(
+      (a) =>
+        !branchFilter ||
+        a.role === "SUPER_ADMIN" ||
+        a.branch_id === branchFilter,
+    )
+    .slice()
+    .sort((a, b) => {
+      if (a.role === "SUPER_ADMIN" && b.role !== "SUPER_ADMIN") return -1;
+      if (a.role !== "SUPER_ADMIN" && b.role === "SUPER_ADMIN") return 1;
+      // 같은 role 안에서는 가입순(created_at 오름차순)
+      return a.created_at.localeCompare(b.created_at);
+    });
 
   return (
     <div>
