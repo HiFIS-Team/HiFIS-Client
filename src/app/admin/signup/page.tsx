@@ -12,6 +12,7 @@ import { getBranches } from "@/lib/api/branches";
 import { resendVerification, signup, verifyEmail } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
+import { GmailField } from "@/components/GmailField";
 import { Select } from "@/components/Select";
 import { Button } from "@/components/Button";
 import { AuthLayout } from "../AuthLayout";
@@ -173,10 +174,9 @@ export default function AdminSignupPage() {
         className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
         noValidate
       >
-        <TextField
+        <GmailField
           id="email"
           label="이메일"
-          type="email"
           required
           autoComplete="email"
           value={email}

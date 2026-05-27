@@ -9,6 +9,7 @@ import { login } from "@/lib/api/auth";
 import { setTokens } from "@/lib/api/tokenStore";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
+import { GmailField } from "@/components/GmailField";
 import { Button } from "@/components/Button";
 import { useToast } from "@/providers/ToastProvider";
 import { AuthLayout } from "../AuthLayout";
@@ -51,10 +52,9 @@ export default function AdminLoginPage() {
         className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
         noValidate
       >
-        <TextField
+        <GmailField
           id="email"
           label="이메일"
-          type="email"
           required
           autoComplete="email"
           value={email}

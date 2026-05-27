@@ -11,6 +11,7 @@ import {
 import { confirmPasswordReset, requestPasswordReset } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
+import { GmailField } from "@/components/GmailField";
 import { Button } from "@/components/Button";
 import { AuthLayout } from "../AuthLayout";
 
@@ -209,10 +210,9 @@ export default function AdminPasswordResetPage() {
         <p className="text-sm/6 text-gray-600">
           가입한 이메일로 인증번호를 보내드립니다.
         </p>
-        <TextField
+        <GmailField
           id="email"
           label="이메일"
-          type="email"
           required
           autoComplete="email"
           value={email}
