@@ -34,6 +34,8 @@ export interface Enums {
   // 알림톡 발송 종류·출처 — 알림톡 이력 화면에서 사용
   trigger_type: EnumOption[];
   source_type: EnumOption[];
+  // 관리자 직책 (점장/팀장/트레이너/FC) — 회원가입 시 선택
+  position: EnumOption[];
 }
 
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---
@@ -198,6 +200,8 @@ export interface Admin {
   email: string;
   name: string;
   role: AdminRole;
+  // 직책 — SUPER_ADMIN 은 null, FC 는 점장/팀장/트레이너/FC 중 하나
+  position: string | null;
   status: AdminStatus;
   branch_id: string | null;
   created_at: string;
@@ -217,6 +221,8 @@ export interface AdminSignupRequest {
   name: string;
   password: string;
   branch_id: string;
+  // 직책 (점장/팀장/트레이너/FC) — 백엔드 Position enum
+  position: string;
 }
 
 // --- 알림톡 이력 (GET /admin/messages) ---

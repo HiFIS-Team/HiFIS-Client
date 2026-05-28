@@ -90,7 +90,7 @@ export default function AdminLoginPage() {
       </form>
       <p className="mt-4 text-center text-sm text-gray-500">
         <Link href="/admin/signup" className="text-primary">
-          FC 회원가입
+          회원가입
         </Link>
         <span className="mx-2">·</span>
         <Link href="/admin/password-reset" className="text-primary">
