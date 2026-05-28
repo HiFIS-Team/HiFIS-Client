@@ -18,13 +18,8 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
-import { formatDate } from "@/lib/format";
+import { adminRoleLabel, formatDate } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
-
-const ROLE_LABEL: Record<string, string> = {
-  SUPER_ADMIN: "대표",
-  FC: "FC",
-};
 
 // 관리자 계정 상태 배지
 function AdminStatusBadge({ status }: { status: string }) {
@@ -180,7 +175,7 @@ export default function AdminAdminsPage() {
                       {a.name}
                     </h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                      {ROLE_LABEL[a.role] ?? a.role}
+                      {adminRoleLabel(a)}
                       {a.branch_id ? ` · ${branchName(a.branch_id)}` : ""}
                     </p>
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600">

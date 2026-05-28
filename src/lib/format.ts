@@ -56,3 +56,20 @@ export function josaIGa(word: string): string {
 export function josaEulReul(word: string): string {
   return hasFinalConsonant(word) ? "을" : "를";
 }
+
+// 관리자 직책 코드 → 한국어 (백엔드 POSITION_LABELS 와 일치)
+const POSITION_LABEL_MAP: Record<string, string> = {
+  MANAGER: "점장",
+  TEAM_LEADER: "팀장",
+  TRAINER: "트레이너",
+  FC: "FC",
+};
+// 관리자 표시 라벨 — SUPER_ADMIN 은 "대표", FC 는 직책(점장/팀장/트레이너/FC) 표시.
+export function adminRoleLabel(admin: {
+  role: string;
+  position: string | null;
+}): string {
+  if (admin.role === "SUPER_ADMIN") return "대표";
+  if (admin.position) return POSITION_LABEL_MAP[admin.position] ?? admin.position;
+  return "FC";
+}

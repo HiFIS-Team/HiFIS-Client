@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { clearTokens } from "@/lib/api/tokenStore";
+import { adminRoleLabel } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
@@ -81,11 +82,6 @@ const NAV: NavGroup[] = [
     items: [{ href: "/admin/admins", label: "관리자 관리", superOnly: true }],
   },
 ];
-
-const ROLE_LABEL: Record<string, string> = {
-  SUPER_ADMIN: "대표",
-  FC: "FC",
-};
 
 // 모바일: 드로어 (open/onClose 제어). 데스크탑(lg+): 항상 sticky 표시.
 export function Sidebar({
@@ -218,9 +214,7 @@ export function Sidebar({
         <p className="truncate text-sm font-semibold text-gray-900">
           {admin.name}
         </p>
-        <p className="text-xs text-gray-500">
-          {ROLE_LABEL[admin.role] ?? admin.role}
-        </p>
+        <p className="text-xs text-gray-500">{adminRoleLabel(admin)}</p>
         <button
           type="button"
           onClick={() => setPasswordOpen(true)}
