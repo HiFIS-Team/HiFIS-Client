@@ -393,7 +393,7 @@ export default function AdminDashboardPage() {
   });
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
-    queryFn: getAdmins,
+    queryFn: () => getAdmins(),
     enabled: isSuper,
   });
 

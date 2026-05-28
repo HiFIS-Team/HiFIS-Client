@@ -17,6 +17,13 @@ export interface Branch {
   phone: string;
   kakao_url: string | null;
   naver_place_url: string | null;
+  // 알림톡 발송자 — 지점 소속 admin 중 하나 (없으면 null)
+  messenger_admin_id: string | null;
+  messenger: {
+    id: string;
+    name: string;
+    position: string;
+  } | null;
   created_at: string;
 }
 

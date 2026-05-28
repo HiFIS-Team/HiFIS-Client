@@ -61,7 +61,7 @@ export default function AdminAdminsPage() {
 
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
-    queryFn: getAdmins,
+    queryFn: () => getAdmins(),
     enabled: isSuper,
   });
   const branchesQuery = useQuery({
