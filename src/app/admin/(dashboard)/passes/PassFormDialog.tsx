@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/TextField";
 import type { PassInput } from "@/lib/api/passes";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 interface PassFormDialogProps {
   open: boolean;

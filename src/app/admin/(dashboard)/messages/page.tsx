@@ -66,11 +66,14 @@ export default function AdminMessagesPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // 페이지 — 필터/검색 변경 시 자동 1페이지로
+  // 페이지 — 필터/검색 변경 시 자동 1페이지로 (React 19: useEffect 안 setState 회피)
   const [page, setPage] = useState(1);
-  useEffect(() => {
+  const filterKey = `${branchId ?? ""}|${debouncedSearch}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
-  }, [branchId, debouncedSearch]);
+  }
 
   const messagesQuery = useQuery({
     queryKey: [

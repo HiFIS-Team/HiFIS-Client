@@ -5,7 +5,7 @@ import {
   ExclamationTriangleIcon,
   QuestionMarkCircleIcon,
 } from "@heroicons/react/24/outline";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 interface ConfirmDialogProps {
   open: boolean;

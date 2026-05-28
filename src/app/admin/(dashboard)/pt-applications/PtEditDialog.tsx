@@ -17,7 +17,7 @@ import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");

@@ -7,7 +7,7 @@ import { Select } from "@/components/Select";
 import { getAdmins } from "@/lib/api/admins";
 import type { BranchInput } from "@/lib/api/branches";
 import type { Branch } from "@/lib/api/types";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 // 직책 코드 → 한국어 (페이지의 POSITION_LABEL 와 일치)
 const POSITION_LABEL: Record<string, string> = {

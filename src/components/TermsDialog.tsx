@@ -1,6 +1,6 @@
 "use client";
 
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 // 약관 한 묶음 — 제목(선택) + 본문 문단들 (번호·불릿 항목이면 "1. "·"• " 형태로 그대로 넣는다)
 export interface TermsSection {

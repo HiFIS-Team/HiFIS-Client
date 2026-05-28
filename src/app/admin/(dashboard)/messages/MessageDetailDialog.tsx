@@ -7,7 +7,7 @@ import { getEnums } from "@/lib/api/enums";
 import { enumLabel } from "@/lib/api/messages";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (

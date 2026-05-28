@@ -8,7 +8,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { DateField } from "@/components/DateField";
 import { Textarea } from "@/components/Textarea";
 import { formatPhone } from "@/lib/format";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 // 회원·PT 신청의 이용 기간을 일시 정지(홀딩)하는 모달.
 // 목록 행의 [홀딩] 버튼에서 대상이 정해진 채로 열린다 — 대상은 따로 고르지 않는다.

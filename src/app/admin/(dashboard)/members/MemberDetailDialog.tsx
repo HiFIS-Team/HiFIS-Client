@@ -12,7 +12,7 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 function enumLabel(arr: EnumOption[] | undefined, code: string): string {
   return arr?.find((o) => o.code === code)?.label ?? code;

@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useEffect, useState, type ComponentType } from "react";
+import { useState, type ComponentType } from "react";
 import {
   BanknotesIcon,
   BoltIcon,
@@ -72,15 +72,11 @@ export default function AdminPassesPage() {
   const [formTarget, setFormTarget] = useState<Pass | "new" | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Pass | null>(null);
 
-  // SUPER_ADMIN: 지점 목록 로드되면 첫 지점을 기본 선택
-  useEffect(() => {
-    if (isSuper && !selectedBranch && branchesQuery.data?.length) {
-      setSelectedBranch(branchesQuery.data[0].id);
-    }
-  }, [isSuper, selectedBranch, branchesQuery.data]);
-
-  // FC는 본인 지점 고정, SUPER_ADMIN은 선택한 지점
-  const branchId = isSuper ? selectedBranch : (me?.branch_id ?? "");
+  // FC는 본인 지점 고정. SUPER_ADMIN 은 선택한 지점, 아직 선택 안 했으면 목록 첫 지점.
+  // (useEffect + setState 패턴 대신 derive — React 19 권장)
+  const branchId = isSuper
+    ? selectedBranch || branchesQuery.data?.[0]?.id || ""
+    : (me?.branch_id ?? "");
   const typeLabel = TABS.find((t) => t.type === activeType)!.label;
 
   const passesQuery = useQuery({

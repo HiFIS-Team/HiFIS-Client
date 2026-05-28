@@ -6,7 +6,7 @@ import { changePassword } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 // 로그인 상태에서 비밀번호 변경 모달 — 사이드바에서 호출.
 export function PasswordChangeDialog({ onClose }: { onClose: () => void }) {

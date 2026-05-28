@@ -5,7 +5,7 @@ import {
   BellSlashIcon,
 } from "@heroicons/react/24/outline";
 import { useToast } from "@/providers/ToastProvider";
-import { usePushNotifications } from "@/lib/usePushNotifications";
+import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 
 // 사이드바 하단의 "푸시 알림 켜기/끄기" 토글.
 // 권한 거부·미지원·VAPID 미설정 환경에선 비활성 + 안내 텍스트.

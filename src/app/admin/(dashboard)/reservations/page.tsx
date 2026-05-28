@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import {
   keepPreviousData,
@@ -44,11 +44,13 @@ export default function AdminReservationsPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
 
-  // 페이지 — 필터 변경 시 자동 1페이지로
+  // 페이지 — 필터 변경 시 자동 1페이지로 (React 19: useEffect 안 setState 회피)
   const [page, setPage] = useState(1);
-  useEffect(() => {
+  const [prevBranchId, setPrevBranchId] = useState(branchId);
+  if (branchId !== prevBranchId) {
+    setPrevBranchId(branchId);
     setPage(1);
-  }, [branchId]);
+  }
 
   const reservationsQuery = useQuery({
     queryKey: ["admin", "reservations", branchId ?? "all", page],

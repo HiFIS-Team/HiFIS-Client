@@ -61,30 +61,34 @@ function isSupportedEnv(): boolean {
 }
 
 export function usePushNotifications(): PushNotificationsState {
-  const [supported, setSupported] = useState(false);
-  const [permission, setPermission] = useState<PushPermission>("default");
+  // lazy init — window/navigator 접근은 마운트 시 1회 (React 19: effect 안 setState 회피)
+  const [supported] = useState<boolean>(() => isSupportedEnv());
+  const [permission, setPermission] = useState<PushPermission>(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return "unsupported";
+    }
+    return Notification.permission as PushPermission;
+  });
   const [subscribed, setSubscribed] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
 
-  // 초기 — 환경 지원 + 권한 + 기존 구독 여부 확인
+  // 기존 구독 여부 — async 라 effect 에서 외부 시스템(SW) 와 동기화
   useEffect(() => {
-    if (!isSupportedEnv()) {
-      setSupported(false);
-      setPermission("unsupported");
-      return;
-    }
-    setSupported(true);
-    setPermission(Notification.permission as PushPermission);
+    if (!supported) return;
+    let cancelled = false;
     (async () => {
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
-        setSubscribed(!!sub);
+        if (!cancelled) setSubscribed(!!sub);
       } catch {
         // 서비스워커가 아직 등록 안 됐을 수 있음 — 정상 (subscribed false)
       }
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [supported]);
 
   const enable = useCallback(async () => {
     if (!isSupportedEnv()) throw new Error("이 브라우저는 푸시 알림을 지원하지 않습니다.");

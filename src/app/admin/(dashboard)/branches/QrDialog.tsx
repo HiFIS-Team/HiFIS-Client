@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import QRCode from "qrcode";
 import { ArrowDownTrayIcon, ClipboardIcon } from "@heroicons/react/24/outline";
 import { useToast } from "@/providers/ToastProvider";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 // 지점별 등록 QR 코드 미리보기 + PNG 다운로드.
 // URL: <origin>/register?branch_id=<id>
