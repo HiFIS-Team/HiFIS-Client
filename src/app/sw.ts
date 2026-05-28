@@ -61,13 +61,26 @@ self.addEventListener("push", (event) => {
   }
   const url = pathForSource(payload.source_type);
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      data: { url },
-      tag: payload.source_type, // 같은 종류는 마지막 것으로 갱신
-    }),
+    (async () => {
+      await self.registration.showNotification(payload.title, {
+        body: payload.body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        data: { url },
+        tag: payload.source_type, // 같은 종류는 마지막 것으로 갱신
+      });
+      // 열려있는 어드민 클라이언트에 알려서 query 즉시 갱신 (폴링 30초 안 기다리고 바로)
+      const clients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const c of clients) {
+        c.postMessage({
+          type: "push-received",
+          source_type: payload.source_type,
+        });
+      }
+    })(),
   );
 });
 
