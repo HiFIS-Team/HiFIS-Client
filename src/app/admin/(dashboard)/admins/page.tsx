@@ -58,6 +58,9 @@ export default function AdminAdminsPage() {
     queryKey: ["admin", "admins"],
     queryFn: () => getAdmins(),
     enabled: isSuper,
+    // FC 가입 신청 들어오면 새로고침 없이 보이게 — 30초마다 폴링 (탭 백그라운드는 제외)
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
   const branchesQuery = useQuery({
     queryKey: ["branches"],
