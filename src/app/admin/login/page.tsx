@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { login } from "@/lib/api/auth";
-import { setTokens } from "@/lib/api/tokenStore";
+import { getAccessToken, setTokens } from "@/lib/api/tokenStore";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
 import { GmailField } from "@/components/GmailField";
@@ -16,6 +16,20 @@ import { AuthLayout } from "../AuthLayout";
 export default function AdminLoginPage() {
   const router = useRouter();
   const toast = useToast();
+  // PWA start_url 이 /admin/login 이라 PWA 진입 시 무조건 여기로 옴.
+  // 자동 로그인 체크해서 토큰이 살아있으면 곧장 대시보드로 보낸다.
+  // checking 동안 폼 안 보여 — 깜빡임 방지 (토큰 있을 때 로그인 폼이 잠깐 떴다가 사라지는 현상).
+  // (토큰 무효(401)는 dashboard layout 의 me 쿼리에서 redirect 처리)
+  const [checking, setChecking] = useState(true);
+  useEffect(() => {
+    if (getAccessToken()) {
+      router.replace("/admin");
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setChecking(false);
+    }
+  }, [router]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   // 자동 로그인 — 체크: localStorage(영구), 미체크: sessionStorage(탭 닫으면 풀림)
@@ -43,6 +57,9 @@ export default function AdminLoginPage() {
     if (Object.keys(errs).length > 0) return;
     mutation.mutate();
   }
+
+  // 토큰 검사 중에는 폼 안 표시 — 토큰 있으면 곧 dashboard 로, 없으면 setChecking(false) → 폼 표시
+  if (checking) return null;
 
   return (
     <AuthLayout title="관리자 로그인">
