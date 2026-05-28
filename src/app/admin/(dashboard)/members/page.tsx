@@ -8,6 +8,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import {
+  keepPreviousData,
   useMutation,
   useQueries,
   useQuery,
@@ -89,11 +90,14 @@ export default function AdminMembersPage() {
   const searchPhone =
     debouncedSearch && isPhoneSearch ? debouncedSearch : undefined;
 
-  // 페이지 — 필터/검색 변경 시 자동 1페이지로
+  // 페이지 — 필터/검색 변경 시 자동 1페이지로 (React 19: useEffect 안 setState 회피)
   const [page, setPage] = useState(1);
-  useEffect(() => {
+  const filterKey = `${branchId ?? ""}|${searchName}|${searchPhone}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
-  }, [branchId, searchName, searchPhone]);
+  }
 
   const membersQuery = useQuery({
     queryKey: [
@@ -112,6 +116,8 @@ export default function AdminMembersPage() {
         page,
         pageSize: PAGE_SIZE,
       }),
+    // 필터·페이지 변경 시 깜빡임 방지 — 새 데이터 도착할 때까지 이전 페이지 유지
+    placeholderData: keepPreviousData,
   });
 
   const deleteMutation = useMutation({

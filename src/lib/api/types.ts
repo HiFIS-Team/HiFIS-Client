@@ -17,6 +17,13 @@ export interface Branch {
   phone: string;
   kakao_url: string | null;
   naver_place_url: string | null;
+  // 알림톡 발송자 — 지점 소속 admin 중 하나 (없으면 null)
+  messenger_admin_id: string | null;
+  messenger: {
+    id: string;
+    name: string;
+    position: string;
+  } | null;
   created_at: string;
 }
 
@@ -34,6 +41,8 @@ export interface Enums {
   // 알림톡 발송 종류·출처 — 알림톡 이력 화면에서 사용
   trigger_type: EnumOption[];
   source_type: EnumOption[];
+  // 관리자 직책 (점장/팀장/트레이너/FC) — 회원가입 시 선택
+  position: EnumOption[];
 }
 
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---
@@ -72,6 +81,8 @@ export interface MemberCreate {
   phone: string;
   address: string;
   referral: string;
+  // referral 이 OTHER 일 때 사용자가 자유 입력한 텍스트 (최대 100자, 비어있으면 null)
+  referral_detail: string | null;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -80,6 +91,8 @@ export interface MemberCreate {
   clothes_pass_id: string | null;
   motivation: string;
   agreed_terms: boolean;
+  // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
+  agreed_marketing: boolean;
 }
 export interface Member {
   id: string;
@@ -91,6 +104,7 @@ export interface Member {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -98,6 +112,7 @@ export interface Member {
   locker_pass_id: string | null;
   clothes_pass_id: string | null;
   motivation: string;
+  agreed_marketing: boolean;
   status: string;
   created_at: string;
 }
@@ -111,6 +126,7 @@ export interface MemberUpdate {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   payment_method: string;
   final_price: number;
   start_date: string;
@@ -118,6 +134,7 @@ export interface MemberUpdate {
   locker_pass_id: string | null;
   clothes_pass_id: string | null;
   motivation: string;
+  agreed_marketing: boolean;
 }
 
 // --- PT 신청 (POST /pt-applications) ---
@@ -133,6 +150,7 @@ export interface PTApplicationCreate {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   motivation: string;
   payment_method: string;
   final_price: number;
@@ -140,6 +158,8 @@ export interface PTApplicationCreate {
   end_date: string;
   notes: string | null;
   agreed_notice: boolean;
+  // 마케팅 정보 수신 동의 (선택)
+  agreed_marketing: boolean;
 }
 export interface PTApplication {
   id: string;
@@ -153,12 +173,14 @@ export interface PTApplication {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   motivation: string;
   payment_method: string;
   final_price: number;
   start_date: string;
   end_date: string;
   notes: string | null;
+  agreed_marketing: boolean;
   status: string;
   created_at: string;
 }
@@ -174,12 +196,14 @@ export interface PTApplicationUpdate {
   phone: string;
   address: string;
   referral: string;
+  referral_detail: string | null;
   motivation: string;
   payment_method: string;
   final_price: number;
   start_date: string;
   end_date: string;
   notes: string | null;
+  agreed_marketing: boolean;
 }
 
 // --- 관리자 (인증) ---
@@ -191,6 +215,8 @@ export interface Admin {
   email: string;
   name: string;
   role: AdminRole;
+  // 직책 — SUPER_ADMIN 은 null, FC 는 점장/팀장/트레이너/FC 중 하나
+  position: string | null;
   status: AdminStatus;
   branch_id: string | null;
   created_at: string;
@@ -210,6 +236,8 @@ export interface AdminSignupRequest {
   name: string;
   password: string;
   branch_id: string;
+  // 직책 (점장/팀장/트레이너/FC) — 백엔드 Position enum
+  position: string;
 }
 
 // --- 알림톡 이력 (GET /admin/messages) ---

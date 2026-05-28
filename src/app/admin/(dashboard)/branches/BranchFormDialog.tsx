@@ -1,15 +1,27 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { TextField } from "@/components/TextField";
+import { Select } from "@/components/Select";
+import { getAdmins } from "@/lib/api/admins";
 import type { BranchInput } from "@/lib/api/branches";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import type { Branch } from "@/lib/api/types";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+
+// 직책 코드 → 한국어 (페이지의 POSITION_LABEL 와 일치)
+const POSITION_LABEL: Record<string, string> = {
+  MANAGER: "점장",
+  TEAM_LEADER: "팀장",
+  TRAINER: "트레이너",
+  FC: "FC",
+};
 
 interface BranchFormDialogProps {
   open: boolean;
   title: string;
-  // 수정 시 기존 값, 등록 시 null
-  initial?: BranchInput | null;
+  // 수정 시 기존 지점, 등록 시 null
+  initial?: Branch | null;
   loading?: boolean;
   onSubmit: (values: BranchInput) => void;
   onCancel: () => void;
@@ -24,12 +36,23 @@ export function BranchFormDialog({
   onSubmit,
   onCancel,
 }: BranchFormDialogProps) {
+  const branchId = initial?.id ?? null;
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [kakao, setKakao] = useState(initial?.kakao_url ?? "");
   const [naver, setNaver] = useState(initial?.naver_place_url ?? "");
+  const [messengerId, setMessengerId] = useState(
+    initial?.messenger_admin_id ?? "",
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEscapeKey(onCancel, open);
+
+  // 수정 모드에서만 해당 지점 admin 목록 — 신규 등록 시엔 admin 이 없음
+  const adminsQuery = useQuery({
+    queryKey: ["admin", "admins", "by-branch", branchId],
+    queryFn: () => getAdmins(branchId!),
+    enabled: !!branchId,
+  });
 
   if (!open) return null;
 
@@ -45,18 +68,39 @@ export function BranchFormDialog({
       phone: phone.trim(),
       kakao_url: kakao.trim() || null,
       naver_place_url: naver.trim() || null,
+      messenger_admin_id: messengerId || null,
     });
   }
+
+  // 발송자 옵션 — "미설정" + 해당 지점 admin 목록 (직책 표시)
+  const messengerOptions = [
+    { value: "", label: "미설정" },
+    ...(adminsQuery.data ?? []).map((a) => ({
+      value: a.id,
+      label: a.position
+        ? `${a.name} (${POSITION_LABEL[a.position] ?? a.position})`
+        : a.name,
+    })),
+  ];
+  const messengerDisabled =
+    !branchId || adminsQuery.isLoading || (adminsQuery.data?.length ?? 0) === 0;
+  const messengerHint = !branchId
+    ? "지점 등록 후 설정할 수 있어요."
+    : adminsQuery.isLoading
+      ? undefined
+      : (adminsQuery.data?.length ?? 0) === 0
+        ? "이 지점 소속 관리자가 아직 없어요."
+        : undefined;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onCancel}
     >
       <div
-        className="flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
@@ -104,6 +148,28 @@ export function BranchFormDialog({
               value={naver}
               onChange={(e) => setNaver(e.target.value)}
             />
+            <div>
+              <Select
+                id="branch-messenger"
+                label="알림톡 발송자"
+                placeholder={
+                  !branchId
+                    ? "지점 등록 후 설정"
+                    : adminsQuery.isLoading
+                      ? "불러오는 중…"
+                      : "선택"
+                }
+                options={messengerOptions}
+                value={messengerId}
+                onChange={(e) => setMessengerId(e.target.value)}
+                disabled={messengerDisabled}
+              />
+              {messengerHint && (
+                <p className="mt-1.5 text-sm text-gray-500">
+                  {messengerHint}
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
             <button

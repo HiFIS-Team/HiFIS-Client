@@ -1,9 +1,14 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import { deleteReservation, getAdminReservations } from "@/lib/api/reservations";
@@ -39,16 +44,20 @@ export default function AdminReservationsPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
 
-  // 페이지 — 필터 변경 시 자동 1페이지로
+  // 페이지 — 필터 변경 시 자동 1페이지로 (React 19: useEffect 안 setState 회피)
   const [page, setPage] = useState(1);
-  useEffect(() => {
+  const [prevBranchId, setPrevBranchId] = useState(branchId);
+  if (branchId !== prevBranchId) {
+    setPrevBranchId(branchId);
     setPage(1);
-  }, [branchId]);
+  }
 
   const reservationsQuery = useQuery({
     queryKey: ["admin", "reservations", branchId ?? "all", page],
     queryFn: () =>
       getAdminReservations({ branchId, page, pageSize: PAGE_SIZE }),
+    // 필터·페이지 변경 시 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
 
   const deleteMutation = useMutation({

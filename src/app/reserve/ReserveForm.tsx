@@ -4,7 +4,6 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  CalendarDaysIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   MapPinIcon,
@@ -13,6 +12,7 @@ import { getBranches } from "@/lib/api/branches";
 import { createReservation } from "@/lib/api/reservations";
 import { ApiError } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Button } from "@/components/Button";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
@@ -152,14 +152,18 @@ export function ReserveForm() {
   return (
     <main className="mx-auto max-w-md px-6 py-10">
       <header className="text-center">
-        <div className="flex justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icons/logo.png"
+          alt=""
+          aria-hidden="true"
+          className="mx-auto size-16"
+        />
+        <div className="mt-4 flex justify-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-sm font-semibold text-primary">
             <MapPinIcon className="size-3.5" />
             {branch.name}
           </span>
-        </div>
-        <div className="mx-auto mt-4 flex size-14 items-center justify-center rounded-2xl bg-violet-50 text-primary">
-          <CalendarDaysIcon className="size-7" />
         </div>
         <h1 className="mt-5 text-2xl font-bold text-gray-900">예약 신청</h1>
         <p className="mt-2 text-sm/6 text-gray-500">
@@ -191,11 +195,10 @@ export function ReserveForm() {
           autoComplete="tel"
           error={errors.phone}
         />
-        <TextField
+        <DateField
           id="visit-date"
           label="방문 예정일"
           required
-          type="date"
           value={visitDate}
           min={today}
           onChange={(e) => setVisitDate(e.target.value)}

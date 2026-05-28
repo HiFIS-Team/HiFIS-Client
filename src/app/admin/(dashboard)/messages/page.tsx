@@ -7,7 +7,7 @@ import {
   MagnifyingGlassIcon,
   TagIcon,
 } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
@@ -66,11 +66,14 @@ export default function AdminMessagesPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // 페이지 — 필터/검색 변경 시 자동 1페이지로
+  // 페이지 — 필터/검색 변경 시 자동 1페이지로 (React 19: useEffect 안 setState 회피)
   const [page, setPage] = useState(1);
-  useEffect(() => {
+  const filterKey = `${branchId ?? ""}|${debouncedSearch}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setPage(1);
-  }, [branchId, debouncedSearch]);
+  }
 
   const messagesQuery = useQuery({
     queryKey: [
@@ -87,6 +90,8 @@ export default function AdminMessagesPage() {
         page,
         pageSize: PAGE_SIZE,
       }),
+    // 필터·페이지 변경 시 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
 
   const branchName = (id: string) =>

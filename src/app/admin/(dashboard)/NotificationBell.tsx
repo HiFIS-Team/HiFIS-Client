@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
@@ -127,8 +127,25 @@ export function NotificationBell() {
     if (link) router.push(link);
   }
 
+  // 외부 클릭 감지 — fixed 백드롭은 부모(Sidebar)의 transform 때문에 viewport 밖
+  // 전체를 못 덮어서 우측 메인 콘텐츠 클릭이 잡히지 않음 → document pointerdown 으로 처리.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function handle(e: PointerEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", handle);
+    return () => document.removeEventListener("pointerdown", handle);
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => (open ? setOpen(false) : openPanel())}
@@ -145,10 +162,8 @@ export function NotificationBell() {
 
       {open && (
         <>
-          {/* 바깥 클릭 시 닫기 */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           {/* 모바일(상단바 우측): 우측 정렬·화면 안에 가두기. 데스크탑(사이드바 좌측): 좌측 정렬. */}
-          <div className="absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:right-auto lg:left-0">
+          <div className="animate-panel-in absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:right-auto lg:left-0">
             <div className="border-b border-gray-200 px-4 py-3">
               <p className="text-sm font-bold text-gray-900">알림</p>
             </div>

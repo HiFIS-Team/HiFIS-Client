@@ -30,6 +30,39 @@ import { RowActionButton } from "@/components/RowActionButton";
 import { TableMessage } from "@/components/Table";
 import type { Branch } from "@/lib/api/types";
 import { BranchFormDialog } from "./BranchFormDialog";
+import { QrDialog } from "./QrDialog";
+import { QrCodeIcon } from "@heroicons/react/24/outline";
+
+// 직책 코드 → 한국어 라벨 (백엔드 POSITION_LABELS 와 일치)
+const POSITION_LABEL: Record<string, string> = {
+  MANAGER: "점장",
+  TEAM_LEADER: "팀장",
+  TRAINER: "트레이너",
+  FC: "FC",
+};
+
+// 알림톡 발송자 표시 — 지점 카드에서 사용
+function MessengerRow({
+  messenger,
+}: {
+  messenger: Branch["messenger"];
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-gray-500">알림톡 발송자</span>
+      {messenger ? (
+        <span className="font-medium text-gray-900">
+          {messenger.name}{" "}
+          <span className="text-xs text-gray-500">
+            ({POSITION_LABEL[messenger.position] ?? messenger.position})
+          </span>
+        </span>
+      ) : (
+        <span className="text-gray-400">미설정</span>
+      )}
+    </div>
+  );
+}
 
 // 카드 안의 링크 행 — 값이 있으면 새 탭 링크, 없으면 "없음"
 function LinkRow({ label, url }: { label: string; url: string | null }) {
@@ -75,6 +108,7 @@ export default function AdminBranchesPage() {
 
   // null=닫힘, "new"=등록, Branch=수정
   const [formTarget, setFormTarget] = useState<Branch | "new" | null>(null);
+  const [qrTarget, setQrTarget] = useState<Branch | null>(null);
 
   const branchesQuery = useQuery({
     queryKey: ["admin", "branches"],
@@ -225,9 +259,20 @@ export default function AdminBranchesPage() {
                     <MapPinIcon className="size-5 text-primary" />
                     {b.name}
                   </h2>
-                  <RowActionButton onClick={() => setFormTarget(b)}>
-                    수정
-                  </RowActionButton>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setQrTarget(b)}
+                      aria-label="QR 코드 보기"
+                      title="QR 코드"
+                      className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                    >
+                      <QrCodeIcon className="size-5" />
+                    </button>
+                    <RowActionButton onClick={() => setFormTarget(b)}>
+                      수정
+                    </RowActionButton>
+                  </div>
                 </div>
                 <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
                   <PhoneIcon className="size-4" />
@@ -243,6 +288,7 @@ export default function AdminBranchesPage() {
                 <div className="mt-4 space-y-1.5 text-sm">
                   <LinkRow label="카카오 채널" url={b.kakao_url} />
                   <LinkRow label="네이버 플레이스" url={b.naver_place_url} />
+                  <MessengerRow messenger={b.messenger} />
                 </div>
               </article>
               );
@@ -250,6 +296,8 @@ export default function AdminBranchesPage() {
           </div>
         )}
       </div>
+
+      {qrTarget && <QrDialog branch={qrTarget} onClose={() => setQrTarget(null)} />}
 
       <BranchFormDialog
         key={typeof formTarget === "string" ? "new" : (formTarget?.id ?? "closed")}

@@ -18,13 +18,8 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
-import { formatDate } from "@/lib/format";
+import { adminRoleLabel, formatDate } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
-
-const ROLE_LABEL: Record<string, string> = {
-  SUPER_ADMIN: "대표",
-  FC: "FC",
-};
 
 // 관리자 계정 상태 배지
 function AdminStatusBadge({ status }: { status: string }) {
@@ -61,8 +56,11 @@ export default function AdminAdminsPage() {
 
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
-    queryFn: getAdmins,
+    queryFn: () => getAdmins(),
     enabled: isSuper,
+    // FC 가입 신청 들어오면 새로고침 없이 보이게 — 30초마다 폴링 (탭 백그라운드는 제외)
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
   const branchesQuery = useQuery({
     queryKey: ["branches"],
@@ -120,10 +118,21 @@ export default function AdminAdminsPage() {
     id ? (branchesQuery.data?.find((b) => b.id === id)?.name ?? "-") : "-";
   const admins = adminsQuery.data ?? [];
   // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
-  const visibleAdmins = admins.filter(
-    (a) =>
-      !branchFilter || a.role === "SUPER_ADMIN" || a.branch_id === branchFilter,
-  );
+  // 정렬 — 대표는 항상 맨 위, FC 는 가입(created_at) 오름차순
+  const visibleAdmins = admins
+    .filter(
+      (a) =>
+        !branchFilter ||
+        a.role === "SUPER_ADMIN" ||
+        a.branch_id === branchFilter,
+    )
+    .slice()
+    .sort((a, b) => {
+      if (a.role === "SUPER_ADMIN" && b.role !== "SUPER_ADMIN") return -1;
+      if (a.role !== "SUPER_ADMIN" && b.role === "SUPER_ADMIN") return 1;
+      // 같은 role 안에서는 가입순(created_at 오름차순)
+      return a.created_at.localeCompare(b.created_at);
+    });
 
   return (
     <div>
@@ -169,7 +178,7 @@ export default function AdminAdminsPage() {
                       {a.name}
                     </h2>
                     <p className="mt-0.5 text-sm text-gray-500">
-                      {ROLE_LABEL[a.role] ?? a.role}
+                      {adminRoleLabel(a)}
                       {a.branch_id ? ` · ${branchName(a.branch_id)}` : ""}
                     </p>
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600">

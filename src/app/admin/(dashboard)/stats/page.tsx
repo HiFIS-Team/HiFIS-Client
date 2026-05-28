@@ -4,19 +4,22 @@ import { PageTitle } from "../PageTitle";
 import { useState, type ComponentType } from "react";
 import {
   BuildingOffice2Icon,
+  ChatBubbleBottomCenterTextIcon,
   FlagIcon,
   MegaphoneIcon,
 } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
   getMotivationStats,
   getReferralStats,
+  type StatDetailItem,
   type StatsResponse,
 } from "@/lib/api/stats";
 import { getEnums } from "@/lib/api/enums";
 import type { EnumOption } from "@/lib/api/types";
+import { aggregateReferralDetails } from "@/lib/referral";
 import { Select } from "@/components/Select";
 
 // 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이)
@@ -49,6 +52,58 @@ function StatChart({
                 : 0;
             return (
               <div key={item.code}>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-700">{item.label}</span>
+                  <span className="text-gray-500">
+                    {item.count}건 · {pct}%
+                  </span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// 자유 입력 항목(referral_detail) 별 카운트 — enum 차트와 별개 섹션.
+// 백엔드가 "기타" 선택 후 자유 입력된 텍스트들을 집계해 내려준다.
+function StatDetailChart({
+  title,
+  items,
+  icon: Icon,
+}: {
+  title: string;
+  items: StatDetailItem[];
+  icon?: ComponentType<{ className?: string }>;
+}) {
+  const total = items.reduce((sum, x) => sum + x.count, 0);
+  return (
+    <section className="rounded-xl border border-gray-200 p-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
+          {Icon && <Icon className="size-4 text-primary" />}
+          {title}
+        </h2>
+        <span className="text-sm text-gray-500">총 {total}건</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="mt-4 text-sm text-gray-500">
+          기타에 직접 입력된 항목이 없습니다.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {items.map((item) => {
+            const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
+            return (
+              <div key={item.label}>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-700">{item.label}</span>
                   <span className="text-gray-500">
@@ -106,10 +161,13 @@ export default function AdminStatsPage() {
   const referralQuery = useQuery({
     queryKey: ["admin", "stats", "referral", branchId ?? "all"],
     queryFn: () => getReferralStats(branchId),
+    // 지점 변경 시 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
   const motivationQuery = useQuery({
     queryKey: ["admin", "stats", "motivation", branchId ?? "all"],
     queryFn: () => getMotivationStats(branchId),
+    placeholderData: keepPreviousData,
   });
 
   const isLoading =
@@ -168,6 +226,19 @@ export default function AdminStatsPage() {
                 enumsQuery.data!.motivation,
               )}
             />
+            {/* 기타 세부 입력 — "기타" 선택 시 자유 입력된 텍스트별 집계.
+                enum 라벨이 포함된 입력들은 같은 라벨로 합산 ("블로그를 보고 방문" → "블로그").
+                항목 없으면 차트 숨김. */}
+            {referralQuery.data!.details.length > 0 && (
+              <StatDetailChart
+                title="유입 경로 — 기타 세부 입력"
+                icon={ChatBubbleBottomCenterTextIcon}
+                items={aggregateReferralDetails(
+                  referralQuery.data!.details,
+                  enumsQuery.data!.referral,
+                )}
+              />
+            )}
           </div>
         )}
       </div>

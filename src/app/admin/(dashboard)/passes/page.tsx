@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useEffect, useState, type ComponentType } from "react";
+import { useState, type ComponentType } from "react";
 import {
   BanknotesIcon,
   BoltIcon,
@@ -11,7 +11,12 @@ import {
   ShoppingBagIcon,
   TicketIcon,
 } from "@heroicons/react/24/outline";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
@@ -29,7 +34,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
-import { formatWon } from "@/lib/format";
+import { formatWon, josaEulReul, josaIGa } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
 import { PassFormDialog } from "./PassFormDialog";
 
@@ -67,21 +72,19 @@ export default function AdminPassesPage() {
   const [formTarget, setFormTarget] = useState<Pass | "new" | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Pass | null>(null);
 
-  // SUPER_ADMIN: 지점 목록 로드되면 첫 지점을 기본 선택
-  useEffect(() => {
-    if (isSuper && !selectedBranch && branchesQuery.data?.length) {
-      setSelectedBranch(branchesQuery.data[0].id);
-    }
-  }, [isSuper, selectedBranch, branchesQuery.data]);
-
-  // FC는 본인 지점 고정, SUPER_ADMIN은 선택한 지점
-  const branchId = isSuper ? selectedBranch : (me?.branch_id ?? "");
+  // FC는 본인 지점 고정. SUPER_ADMIN 은 선택한 지점, 아직 선택 안 했으면 목록 첫 지점.
+  // (useEffect + setState 패턴 대신 derive — React 19 권장)
+  const branchId = isSuper
+    ? selectedBranch || branchesQuery.data?.[0]?.id || ""
+    : (me?.branch_id ?? "");
   const typeLabel = TABS.find((t) => t.type === activeType)!.label;
 
   const passesQuery = useQuery({
     queryKey: ["admin", "passes", activeType, branchId],
     queryFn: () => getAdminPasses(activeType, branchId),
     enabled: !!branchId,
+    // 탭(회원권/수강권/락커/운동복) 전환 시 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
 
   // 카드의 "이용자 N명" 표시용 — 대시보드 summary 의 by_membership_pass / by_pt_pass 사용
@@ -101,7 +104,7 @@ export default function AdminPassesPage() {
     mutationFn: (v: PassInput) =>
       createPass(activeType, { branch_id: branchId, ...v }),
     onSuccess: () => {
-      toast.success(`${typeLabel}이(가) 등록되었습니다.`);
+      toast.success(`${typeLabel}${josaIGa(typeLabel)} 등록되었습니다.`);
       setFormTarget(null);
       invalidate();
     },
@@ -112,7 +115,7 @@ export default function AdminPassesPage() {
     mutationFn: (args: { id: string; values: PassInput }) =>
       updatePass(activeType, args.id, args.values),
     onSuccess: () => {
-      toast.success(`${typeLabel}이(가) 수정되었습니다.`);
+      toast.success(`${typeLabel}${josaIGa(typeLabel)} 수정되었습니다.`);
       setFormTarget(null);
       invalidate();
     },
@@ -122,7 +125,7 @@ export default function AdminPassesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deletePass(activeType, id),
     onSuccess: () => {
-      toast.success(`${typeLabel}이(가) 삭제되었습니다.`);
+      toast.success(`${typeLabel}${josaIGa(typeLabel)} 삭제되었습니다.`);
       setDeleteTarget(null);
       invalidate();
     },
@@ -225,7 +228,7 @@ export default function AdminPassesPage() {
         ) : passesQuery.isError ? (
           <TableMessage variant="error">목록을 불러오지 못했습니다.</TableMessage>
         ) : passes.length === 0 ? (
-          <TableMessage>등록된 {typeLabel}이(가) 없습니다.</TableMessage>
+          <TableMessage>등록된 {typeLabel}{josaIGa(typeLabel)} 없습니다.</TableMessage>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {passes.map((p) => (
@@ -295,7 +298,7 @@ export default function AdminPassesPage() {
         title={`${typeLabel} 삭제`}
         message={
           deleteTarget
-            ? `'${deleteTarget.name}'을(를) 삭제하시겠습니까?`
+            ? `'${deleteTarget.name}'${josaEulReul(deleteTarget.name)} 삭제하시겠습니까?`
             : ""
         }
         confirmLabel="삭제"

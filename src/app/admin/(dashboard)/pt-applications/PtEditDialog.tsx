@@ -10,12 +10,14 @@ import {
 } from "@/lib/api/passes";
 import { updatePtApplication } from "@/lib/api/ptApplications";
 import { getErrorMessage } from "@/lib/api/client";
+import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
@@ -66,20 +68,27 @@ export function PtEditDialog({
     phone: app.phone,
     address: app.address,
     referral: app.referral,
+    referral_detail: app.referral_detail ?? "",
     motivation: app.motivation,
     payment_method: app.payment_method,
     final_price: String(app.final_price),
     start_date: app.start_date,
     end_date: app.end_date,
     notes: app.notes ?? "",
+    agreed_marketing: app.agreed_marketing,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
     setForm((f) => ({ ...f, ...patch }));
 
   const mutation = useMutation({
-    mutationFn: () =>
-      updatePtApplication(app.id, {
+    mutationFn: () => {
+      const { referral, referral_detail } = resolveReferralForSubmit(
+        form.referral,
+        form.referral_detail,
+        enumsQuery.data!.referral,
+      );
+      return updatePtApplication(app.id, {
         pt_pass_id: form.pt_pass_id,
         locker_pass_id: form.locker_pass_id,
         clothes_pass_id: form.clothes_pass_id,
@@ -88,14 +97,17 @@ export function PtEditDialog({
         birth_date: form.birth_date,
         phone: form.phone.trim(),
         address: form.address.trim(),
-        referral: form.referral,
+        referral,
+        referral_detail,
         motivation: form.motivation,
         payment_method: form.payment_method,
         final_price: Number(form.final_price),
         start_date: form.start_date,
         end_date: form.end_date,
         notes: form.notes.trim() || null,
-      }),
+        agreed_marketing: form.agreed_marketing,
+      });
+    },
     onSuccess: () => {
       toast.success("PT 정보가 수정되었습니다.");
       queryClient.invalidateQueries({ queryKey: ["admin", "pt-applications"] });
@@ -114,13 +126,10 @@ export function PtEditDialog({
     ptPassQuery.isError ||
     lockerPassQuery.isError ||
     clothesPassQuery.isError;
-  // PT는 락커·운동복 무료 — 0원 상품만 노출
-  const lockerPasses = (lockerPassQuery.data ?? []).filter(
-    (p) => p.cash_price === 0,
-  );
-  const clothesPasses = (clothesPassQuery.data ?? []).filter(
-    (p) => p.cash_price === 0,
-  );
+  // PT 락커·운동복은 무료 제공 — 가격은 PT 에선 반영 안 함.
+  // 백엔드 스키마가 UUID 라 placeholder 로 지점의 첫 패스 ID 를 전달.
+  const lockerPasses = lockerPassQuery.data ?? [];
+  const clothesPasses = clothesPassQuery.data ?? [];
   const today = todayStr();
 
   function validate(): boolean {
@@ -163,11 +172,11 @@ export function PtEditDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
@@ -204,11 +213,10 @@ export function PtEditDialog({
                 onChange={(e) => set({ gender: e.target.value })}
                 error={errors.gender}
               />
-              <TextField
+              <DateField
                 id="pe-birth"
                 label="생년월일"
                 required
-                type="date"
                 max={today}
                 value={form.birth_date}
                 onChange={(e) => set({ birth_date: e.target.value })}
@@ -243,44 +251,55 @@ export function PtEditDialog({
                 onChange={(e) => set({ pt_pass_id: e.target.value })}
                 error={errors.pt_pass_id}
               />
-              <Select
-                id="pe-locker-pass"
-                label="락커 (무료 제공, 선택)"
-                options={[
-                  { value: "", label: "선택 안 함" },
-                  ...lockerPasses.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-                value={form.locker_pass_id ?? ""}
-                onChange={(e) =>
-                  set({ locker_pass_id: e.target.value || null })
-                }
-              />
-              <Select
-                id="pe-clothes-pass"
-                label="운동복 (무료 제공, 선택)"
-                options={[
-                  { value: "", label: "선택 안 함" },
-                  ...clothesPasses.map((p) => ({ value: p.id, label: p.name })),
-                ]}
-                value={form.clothes_pass_id ?? ""}
-                onChange={(e) =>
-                  set({ clothes_pass_id: e.target.value || null })
-                }
-              />
-              <TextField
+              {/* PT 락커·운동복은 무료 제공 — 신청 여부만 yes/no.
+                  내부적으로는 첫 번째 무료(0원) 패스 UUID 를 전달.
+                  무료 패스가 등록 안 된 지점은 필드 자체를 숨김. */}
+              {lockerPasses[0] && (
+                <Select
+                  id="pe-locker-pass"
+                  label="락커 (무료 제공)"
+                  options={[
+                    { value: "NO", label: "신청 안 함" },
+                    { value: "YES", label: "신청 (무료 제공)" },
+                  ]}
+                  value={form.locker_pass_id ? "YES" : "NO"}
+                  onChange={(e) =>
+                    set({
+                      locker_pass_id:
+                        e.target.value === "YES" ? lockerPasses[0].id : null,
+                    })
+                  }
+                />
+              )}
+              {clothesPasses[0] && (
+                <Select
+                  id="pe-clothes-pass"
+                  label="운동복 (무료 제공)"
+                  options={[
+                    { value: "NO", label: "신청 안 함" },
+                    { value: "YES", label: "신청 (무료 제공)" },
+                  ]}
+                  value={form.clothes_pass_id ? "YES" : "NO"}
+                  onChange={(e) =>
+                    set({
+                      clothes_pass_id:
+                        e.target.value === "YES" ? clothesPasses[0].id : null,
+                    })
+                  }
+                />
+              )}
+              <DateField
                 id="pe-start"
                 label="이용 시작일"
                 required
-                type="date"
                 value={form.start_date}
                 onChange={(e) => set({ start_date: e.target.value })}
                 error={errors.start_date}
               />
-              <TextField
+              <DateField
                 id="pe-end"
                 label="이용 종료일"
                 required
-                type="date"
                 min={form.start_date || undefined}
                 value={form.end_date}
                 onChange={(e) => set({ end_date: e.target.value })}
@@ -312,11 +331,22 @@ export function PtEditDialog({
                 label="유입 경로"
                 required
                 placeholder="선택"
-                options={enumOpts(enumsQuery.data!.referral)}
+                options={enumOpts(referralOptions(enumsQuery.data!.referral))}
                 value={form.referral}
                 onChange={(e) => set({ referral: e.target.value })}
                 error={errors.referral}
               />
+              {form.referral === "OTHER" && (
+                <TextField
+                  id="pe-referral-detail"
+                  label="직접 입력"
+                  placeholder="예: 전단지, 블로그, 인스타"
+                  maxLength={100}
+                  value={form.referral_detail}
+                  onChange={(e) => set({ referral_detail: e.target.value })}
+                  hint="기존 항목 이름(전단지·블로그·인스타 등)과 같으면 그 항목으로 자동 분류돼요."
+                />
+              )}
               <Select
                 id="pe-motivation"
                 label="방문 목적"
@@ -334,6 +364,19 @@ export function PtEditDialog({
                 value={form.notes}
                 onChange={(e) => set({ notes: e.target.value })}
               />
+              <label className="flex cursor-pointer items-center gap-2 select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={form.agreed_marketing}
+                  onChange={(e) =>
+                    set({ agreed_marketing: e.target.checked })
+                  }
+                  className="size-4 rounded accent-primary"
+                />
+                <span className="text-sm text-gray-700">
+                  마케팅 정보 수신 동의
+                </span>
+              </label>
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
               <button

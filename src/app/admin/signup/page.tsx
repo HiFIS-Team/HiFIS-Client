@@ -3,15 +3,12 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  CheckCircleIcon,
-  EnvelopeIcon,
-  UserPlusIcon,
-} from "@heroicons/react/24/outline";
 import { getBranches } from "@/lib/api/branches";
+import { getEnums } from "@/lib/api/enums";
 import { resendVerification, signup, verifyEmail } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/client";
 import { TextField } from "@/components/TextField";
+import { GmailField } from "@/components/GmailField";
 import { Select } from "@/components/Select";
 import { Button } from "@/components/Button";
 import { AuthLayout } from "../AuthLayout";
@@ -26,6 +23,7 @@ export default function AdminSignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [branchId, setBranchId] = useState("");
+  const [position, setPosition] = useState("");
   const [code, setCode] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -33,6 +31,7 @@ export default function AdminSignupPage() {
     queryKey: ["branches"],
     queryFn: getBranches,
   });
+  const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
 
   const signupMutation = useMutation({
     mutationFn: () =>
@@ -41,6 +40,7 @@ export default function AdminSignupPage() {
         name: name.trim(),
         password,
         branch_id: branchId,
+        position,
       }),
     onSuccess: () => {
       setErrors({});
@@ -67,6 +67,7 @@ export default function AdminSignupPage() {
     if (password !== passwordConfirm)
       errs.passwordConfirm = "비밀번호가 일치하지 않습니다.";
     if (!branchId) errs.branchId = "소속 지점을 선택해 주세요.";
+    if (!position) errs.position = "직책을 선택해 주세요.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     signupMutation.mutate();
@@ -84,7 +85,7 @@ export default function AdminSignupPage() {
   // 3단계 — 승인 대기 안내
   if (step === "done") {
     return (
-      <AuthLayout title="회원가입 완료" icon={CheckCircleIcon}>
+      <AuthLayout title="회원가입 완료">
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
           <p className="text-base font-semibold text-gray-900">
             이메일 인증이 완료되었습니다
@@ -107,7 +108,7 @@ export default function AdminSignupPage() {
   // 2단계 — 이메일 인증번호 입력
   if (step === "verify") {
     return (
-      <AuthLayout title="이메일 인증" icon={EnvelopeIcon}>
+      <AuthLayout title="이메일 인증">
         <form
           onSubmit={submitVerify}
           className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
@@ -167,16 +168,15 @@ export default function AdminSignupPage() {
 
   // 1단계 — 회원가입 폼
   return (
-    <AuthLayout title="FC 회원가입" icon={UserPlusIcon}>
+    <AuthLayout title="회원가입">
       <form
         onSubmit={submitForm}
         className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
         noValidate
       >
-        <TextField
+        <GmailField
           id="email"
           label="이메일"
-          type="email"
           required
           autoComplete="email"
           value={email}
@@ -227,6 +227,21 @@ export default function AdminSignupPage() {
           value={branchId}
           onChange={(e) => setBranchId(e.target.value)}
           error={errors.branchId}
+        />
+        <Select
+          id="position"
+          label="직책"
+          required
+          placeholder={
+            enumsQuery.isLoading ? "불러오는 중…" : "선택해 주세요"
+          }
+          options={(enumsQuery.data?.position ?? []).map((p) => ({
+            value: p.code,
+            label: p.label,
+          }))}
+          value={position}
+          onChange={(e) => setPosition(e.target.value)}
+          error={errors.position}
         />
         {signupMutation.isError && (
           <p className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700">

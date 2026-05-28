@@ -10,11 +10,13 @@ import {
 } from "@/lib/api/passes";
 import { updateMember } from "@/lib/api/members";
 import { getErrorMessage } from "@/lib/api/client";
+import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Select, type SelectOption } from "@/components/Select";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
@@ -63,6 +65,8 @@ export function MemberEditDialog({
     phone: member.phone,
     address: member.address,
     referral: member.referral,
+    // 기타 자유 입력 — 기존 회원이 가지고 있던 detail 보존 + 수정 가능
+    referral_detail: member.referral_detail ?? "",
     payment_method: member.payment_method,
     final_price: String(member.final_price),
     start_date: member.start_date,
@@ -70,21 +74,28 @@ export function MemberEditDialog({
     locker_pass_id: member.locker_pass_id ?? "",
     clothes_pass_id: member.clothes_pass_id ?? "",
     motivation: member.motivation,
+    agreed_marketing: member.agreed_marketing,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
     setForm((f) => ({ ...f, ...patch }));
 
   const mutation = useMutation({
-    mutationFn: () =>
-      updateMember(member.id, {
+    mutationFn: () => {
+      const { referral, referral_detail } = resolveReferralForSubmit(
+        form.referral,
+        form.referral_detail,
+        enumsQuery.data!.referral,
+      );
+      return updateMember(member.id, {
         membership_pass_id: form.membership_pass_id,
         name: form.name.trim(),
         gender: form.gender,
         birth_date: form.birth_date,
         phone: form.phone.trim(),
         address: form.address.trim(),
-        referral: form.referral,
+        referral,
+        referral_detail,
         payment_method: form.payment_method,
         final_price: Number(form.final_price),
         start_date: form.start_date,
@@ -92,7 +103,9 @@ export function MemberEditDialog({
         locker_pass_id: form.locker_pass_id || null,
         clothes_pass_id: form.clothes_pass_id || null,
         motivation: form.motivation,
-      }),
+        agreed_marketing: form.agreed_marketing,
+      });
+    },
     onSuccess: () => {
       toast.success("회원 정보가 수정되었습니다.");
       queryClient.invalidateQueries({ queryKey: ["admin", "members"] });
@@ -161,11 +174,11 @@ export function MemberEditDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
@@ -202,11 +215,10 @@ export function MemberEditDialog({
                 onChange={(e) => set({ gender: e.target.value })}
                 error={errors.gender}
               />
-              <TextField
+              <DateField
                 id="e-birth"
                 label="생년월일"
                 required
-                type="date"
                 max={today}
                 value={form.birth_date}
                 onChange={(e) => set({ birth_date: e.target.value })}
@@ -255,20 +267,18 @@ export function MemberEditDialog({
                 value={form.clothes_pass_id}
                 onChange={(e) => set({ clothes_pass_id: e.target.value })}
               />
-              <TextField
+              <DateField
                 id="e-start"
                 label="이용 시작일"
                 required
-                type="date"
                 value={form.start_date}
                 onChange={(e) => set({ start_date: e.target.value })}
                 error={errors.start_date}
               />
-              <TextField
+              <DateField
                 id="e-end"
                 label="이용 종료일"
                 required
-                type="date"
                 min={form.start_date || undefined}
                 value={form.end_date}
                 onChange={(e) => set({ end_date: e.target.value })}
@@ -300,11 +310,22 @@ export function MemberEditDialog({
                 label="유입 경로"
                 required
                 placeholder="선택"
-                options={enumOpts(enumsQuery.data!.referral)}
+                options={enumOpts(referralOptions(enumsQuery.data!.referral))}
                 value={form.referral}
                 onChange={(e) => set({ referral: e.target.value })}
                 error={errors.referral}
               />
+              {form.referral === "OTHER" && (
+                <TextField
+                  id="e-referral-detail"
+                  label="직접 입력"
+                  placeholder="예: 전단지, 블로그, 인스타"
+                  maxLength={100}
+                  value={form.referral_detail}
+                  onChange={(e) => set({ referral_detail: e.target.value })}
+                  hint="기존 항목 이름(전단지·블로그·인스타 등)과 같으면 그 항목으로 자동 분류돼요."
+                />
+              )}
               <Select
                 id="e-motivation"
                 label="방문 목적"
@@ -315,6 +336,19 @@ export function MemberEditDialog({
                 onChange={(e) => set({ motivation: e.target.value })}
                 error={errors.motivation}
               />
+              <label className="flex cursor-pointer items-center gap-2 select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={form.agreed_marketing}
+                  onChange={(e) =>
+                    set({ agreed_marketing: e.target.checked })
+                  }
+                  className="size-4 rounded accent-primary"
+                />
+                <span className="text-sm text-gray-700">
+                  마케팅 정보 수신 동의
+                </span>
+              </label>
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
               <button

@@ -12,7 +12,7 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 function enumLabel(arr: EnumOption[] | undefined, code: string): string {
   return arr?.find((o) => o.code === code)?.label ?? code;
@@ -72,11 +72,11 @@ export function MemberDetailDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
@@ -113,9 +113,17 @@ export function MemberDetailDialog({
             <Row label="결제 금액">{formatWon(member.final_price)}</Row>
             <Row label="유입 경로">
               {enumLabel(enums?.referral, member.referral)}
+              {member.referral_detail && (
+                <span className="ml-1 text-gray-500">
+                  (직접 입력: {member.referral_detail})
+                </span>
+              )}
             </Row>
             <Row label="방문 목적">
               {enumLabel(enums?.motivation, member.motivation)}
+            </Row>
+            <Row label="마케팅 동의">
+              {member.agreed_marketing ? "동의" : "미동의"}
             </Row>
             <Row label="상태">
               <StatusBadge status={member.status} />

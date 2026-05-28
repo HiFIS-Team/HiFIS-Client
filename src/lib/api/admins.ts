@@ -1,9 +1,11 @@
 import { apiFetch } from "./client";
 import type { Admin } from "./types";
 
-// GET /admin/admins — 전체 관리자 목록 (SUPER_ADMIN)
-export function getAdmins(): Promise<Admin[]> {
-  return apiFetch<Admin[]>("/admin/admins", { auth: true });
+// GET /admin/admins — 관리자 목록 (SUPER_ADMIN).
+// branchId 주면 해당 지점 소속 admin 만 필터.
+export function getAdmins(branchId?: string): Promise<Admin[]> {
+  const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+  return apiFetch<Admin[]>(`/admin/admins${query}`, { auth: true });
 }
 
 // POST /admin/admins/{id}/approve — FC 가입 승인 (PENDING_APPROVAL → ACTIVE)

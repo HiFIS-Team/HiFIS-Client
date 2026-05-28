@@ -5,10 +5,10 @@ import { useMutation } from "@tanstack/react-query";
 import { createHold } from "@/lib/api/holds";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
-import { TextField } from "@/components/TextField";
+import { DateField } from "@/components/DateField";
 import { Textarea } from "@/components/Textarea";
 import { formatPhone } from "@/lib/format";
-import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 // 회원·PT 신청의 이용 기간을 일시 정지(홀딩)하는 모달.
 // 목록 행의 [홀딩] 버튼에서 대상이 정해진 채로 열린다 — 대상은 따로 고르지 않는다.
@@ -70,11 +70,11 @@ export function HoldDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
@@ -97,20 +97,18 @@ export function HoldDialog({
                 </span>
               </p>
             </div>
-            <TextField
+            <DateField
               id="hold-start"
               label="홀딩 시작일"
               required
-              type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               error={errors.startDate}
             />
-            <TextField
+            <DateField
               id="hold-end"
               label="홀딩 종료일"
               required
-              type="date"
               min={startDate || undefined}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}

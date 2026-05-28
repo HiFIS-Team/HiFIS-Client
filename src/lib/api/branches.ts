@@ -12,6 +12,8 @@ export interface BranchInput {
   phone: string;
   kakao_url: string | null;
   naver_place_url: string | null;
+  // 알림톡 발송자 admin id (선택) — null 이면 미설정
+  messenger_admin_id?: string | null;
 }
 
 // GET /admin/branches — 지점 목록 (SUPER_ADMIN)
