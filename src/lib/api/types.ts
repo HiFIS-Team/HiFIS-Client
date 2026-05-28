@@ -91,6 +91,8 @@ export interface MemberCreate {
   clothes_pass_id: string | null;
   motivation: string;
   agreed_terms: boolean;
+  // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
+  agreed_marketing: boolean;
 }
 export interface Member {
   id: string;
@@ -110,6 +112,7 @@ export interface Member {
   locker_pass_id: string | null;
   clothes_pass_id: string | null;
   motivation: string;
+  agreed_marketing: boolean;
   status: string;
   created_at: string;
 }
@@ -131,6 +134,7 @@ export interface MemberUpdate {
   locker_pass_id: string | null;
   clothes_pass_id: string | null;
   motivation: string;
+  agreed_marketing: boolean;
 }
 
 // --- PT 신청 (POST /pt-applications) ---
@@ -154,6 +158,8 @@ export interface PTApplicationCreate {
   end_date: string;
   notes: string | null;
   agreed_notice: boolean;
+  // 마케팅 정보 수신 동의 (선택)
+  agreed_marketing: boolean;
 }
 export interface PTApplication {
   id: string;
@@ -174,6 +180,7 @@ export interface PTApplication {
   start_date: string;
   end_date: string;
   notes: string | null;
+  agreed_marketing: boolean;
   status: string;
   created_at: string;
 }
@@ -196,6 +203,7 @@ export interface PTApplicationUpdate {
   start_date: string;
   end_date: string;
   notes: string | null;
+  agreed_marketing: boolean;
 }
 
 // --- 관리자 (인증) ---

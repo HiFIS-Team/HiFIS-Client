@@ -75,6 +75,7 @@ export function PtEditDialog({
     start_date: app.start_date,
     end_date: app.end_date,
     notes: app.notes ?? "",
+    agreed_marketing: app.agreed_marketing,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
@@ -104,6 +105,7 @@ export function PtEditDialog({
         start_date: form.start_date,
         end_date: form.end_date,
         notes: form.notes.trim() || null,
+        agreed_marketing: form.agreed_marketing,
       });
     },
     onSuccess: () => {
@@ -362,6 +364,19 @@ export function PtEditDialog({
                 value={form.notes}
                 onChange={(e) => set({ notes: e.target.value })}
               />
+              <label className="flex cursor-pointer items-center gap-2 select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={form.agreed_marketing}
+                  onChange={(e) =>
+                    set({ agreed_marketing: e.target.checked })
+                  }
+                  className="size-4 rounded accent-primary"
+                />
+                <span className="text-sm text-gray-700">
+                  마케팅 정보 수신 동의
+                </span>
+              </label>
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
               <button

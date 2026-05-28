@@ -122,6 +122,9 @@ export function PtDetailDialog({
               {enumLabel(enums?.motivation, app.motivation)}
             </Row>
             <Row label="비고">{app.notes || "-"}</Row>
+            <Row label="마케팅 동의">
+              {app.agreed_marketing ? "동의" : "미동의"}
+            </Row>
             <Row label="상태">
               <StatusBadge status={app.status} />
             </Row>

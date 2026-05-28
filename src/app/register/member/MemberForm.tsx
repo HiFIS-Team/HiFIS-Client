@@ -118,6 +118,8 @@ const INITIAL = {
   referral_detail: "",
   motivation: "",
   agreed_terms: false,
+  // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
+  agreed_marketing: false,
 };
 
 type FormState = typeof INITIAL;
@@ -306,6 +308,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
       clothes_pass_id: form.clothes_pass_id || null,
       motivation: form.motivation,
       agreed_terms: form.agreed_terms,
+      agreed_marketing: form.agreed_marketing,
     });
   }
 
@@ -518,13 +521,19 @@ export function MemberForm({ branchId }: { branchId: string }) {
             >
               운영 회칙 전문 보기
             </button>
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
               <Checkbox
                 id="agreed-terms"
                 label="위 내용에 동의합니다. (필수)"
                 checked={form.agreed_terms}
                 onChange={(e) => set({ agreed_terms: e.target.checked })}
                 error={errors.agreed_terms}
+              />
+              <Checkbox
+                id="agreed-marketing"
+                label="마케팅 정보 수신에 동의합니다. (선택)"
+                checked={form.agreed_marketing}
+                onChange={(e) => set({ agreed_marketing: e.target.checked })}
               />
             </div>
           </div>

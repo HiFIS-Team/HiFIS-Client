@@ -122,6 +122,9 @@ export function MemberDetailDialog({
             <Row label="방문 목적">
               {enumLabel(enums?.motivation, member.motivation)}
             </Row>
+            <Row label="마케팅 동의">
+              {member.agreed_marketing ? "동의" : "미동의"}
+            </Row>
             <Row label="상태">
               <StatusBadge status={member.status} />
             </Row>

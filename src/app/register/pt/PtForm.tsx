@@ -87,6 +87,8 @@ const INITIAL = {
   motivation: "",
   notes: "",
   agreed_notice: false,
+  // 마케팅 정보 수신 동의 (선택)
+  agreed_marketing: false,
 };
 
 type FormState = typeof INITIAL;
@@ -253,6 +255,7 @@ export function PtForm({ branchId }: { branchId: string }) {
       end_date: form.end_date,
       notes: form.notes.trim() || null,
       agreed_notice: form.agreed_notice,
+      agreed_marketing: form.agreed_marketing,
     });
   }
 
@@ -485,13 +488,19 @@ export function PtForm({ branchId }: { branchId: string }) {
             >
               서명 전 유의사항 보기
             </button>
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
               <Checkbox
                 id="agreed-notice"
                 label="위 내용에 동의합니다. (필수)"
                 checked={form.agreed_notice}
                 onChange={(e) => set({ agreed_notice: e.target.checked })}
                 error={errors.agreed_notice}
+              />
+              <Checkbox
+                id="agreed-marketing"
+                label="마케팅 정보 수신에 동의합니다. (선택)"
+                checked={form.agreed_marketing}
+                onChange={(e) => set({ agreed_marketing: e.target.checked })}
               />
             </div>
           </div>
