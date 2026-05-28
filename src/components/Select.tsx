@@ -92,7 +92,7 @@ export function Select({
           <ListboxOptions
             anchor={{ to: "bottom start", gap: 4 }}
             transition
-            className="z-40 w-[var(--button-width)] max-h-72 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in data-[closed]:opacity-0"
+            className="z-[60] w-[var(--button-width)] max-h-72 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in data-[closed]:opacity-0"
           >
             {options.map((o) => (
               <ListboxOption
