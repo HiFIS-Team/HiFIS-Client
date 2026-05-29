@@ -3,6 +3,7 @@ import type {
   Page,
   PTApplication,
   PTApplicationCreate,
+  PTApplicationReRegister,
   PTApplicationUpdate,
 } from "./types";
 
@@ -11,6 +12,17 @@ export function createPtApplication(
   payload: PTApplicationCreate,
 ): Promise<PTApplication> {
   return apiFetch<PTApplication>("/pt-applications", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// POST /pt-applications/re-register — PT 재등록 (공개).
+// branch+name+phone 으로 기존 PT 신청 식별 → 404 면 본인 확인 실패.
+export function reRegisterPtApplication(
+  payload: PTApplicationReRegister,
+): Promise<PTApplication> {
+  return apiFetch<PTApplication>("/pt-applications/re-register", {
     method: "POST",
     body: payload,
   });
