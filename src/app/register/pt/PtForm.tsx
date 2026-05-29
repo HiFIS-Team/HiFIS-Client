@@ -59,17 +59,18 @@ function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
 
-// 상품 목록 → Select 옵션 (가격 + 회원권·수강권은 락커·운동복 무료 제공 태그)
-// 둘 다 무료 제공이면 "락커, 운동복 무료 제공" 한 덩어리로 — 라벨이 길어서 잘리는 거 방지
+// 상품 목록 → Select 옵션.
+// label = 상품명 (메인), description = 가격 (옵션 list 안에서 작은 글씨), meta = 무료 제공 태그 (우측 회색).
 function passOpts(arr: Pass[]): SelectOption[] {
   return arr.map((p) => {
     const items: string[] = [];
     if (p.provides_locker) items.push("락커");
     if (p.provides_clothes) items.push("운동복");
-    const tail = items.length > 0 ? ` · ${items.join(", ")} 무료 제공` : "";
     return {
       value: p.id,
-      label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원${tail}`,
+      label: p.name,
+      description: `현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
+      meta: items.length > 0 ? `${items.join(", ")} 무료 제공` : undefined,
     };
   });
 }
@@ -96,6 +97,10 @@ const INITIAL = {
   agreed_notice: false,
   // 마케팅 정보 수신 동의 (선택)
   agreed_marketing: false,
+  // 수강권이 락커·운동복을 무료 제공할 때 사용자가 "선택 안 함" 으로 바꾼 경우 (UI 표시용).
+  // 제출 시점엔 어차피 null.
+  locker_opt_out: false,
+  clothes_opt_out: false,
 };
 
 type FormState = typeof INITIAL;
@@ -173,13 +178,20 @@ export function PtForm({ branchId }: { branchId: string }) {
     if (!p) return 0;
     return next.payment_method === "CARD" ? p.card_price : p.cash_price;
   }
-  // 수강권 변경 — 가격 재계산 + 무료 제공 수강권이면 별도 락커·운동복 선택 비움
+  // 수강권 변경 — 가격 재계산 + 무료 제공 수강권이면 별도 락커·운동복 선택과 opt-out 리셋
+  // → 기본값 "포함 (무료 제공)" 으로 자연 노출
   const onPtPassChange = (id: string) => {
     const next = ptPasses.find((x) => x.id === id);
     setForm((f) => {
       const base: FormState = { ...f, pt_pass_id: id };
-      if (next?.provides_locker) base.locker_pass_id = "";
-      if (next?.provides_clothes) base.clothes_pass_id = "";
+      if (next?.provides_locker) {
+        base.locker_pass_id = "";
+        base.locker_opt_out = false;
+      }
+      if (next?.provides_clothes) {
+        base.clothes_pass_id = "";
+        base.clothes_opt_out = false;
+      }
       return { ...base, final_price: String(totalFor(base)) };
     });
   };
@@ -371,18 +383,20 @@ export function PtForm({ branchId }: { branchId: string }) {
             onChange={(e) => onPtPassChange(e.target.value)}
             error={errors.pt_pass_id}
           />
-          {/* 락커·운동복 — 수강권이 무료 제공이면 잠금(Select 비활성),
+          {/* 락커·운동복 — 수강권이 무료 제공이면 "포함(기본)" / "선택 안 함" 두 옵션 (잠금 X),
               아니면 기존 yes/no 토글 (지점에 0원 무료 패스가 등록된 경우만 노출). */}
           {lockerProvided ? (
             <Select
               id="locker-pass"
-              label="락커 (무료 제공)"
+              label="락커 (선택)"
               options={[
                 { value: "PROVIDED", label: "수강권에 포함 (무료 제공)" },
+                { value: "OPT_OUT", label: "선택 안 함" },
               ]}
-              value="PROVIDED"
-              onChange={() => {}}
-              disabled
+              value={form.locker_opt_out ? "OPT_OUT" : "PROVIDED"}
+              onChange={(e) =>
+                set({ locker_opt_out: e.target.value === "OPT_OUT" })
+              }
             />
           ) : (
             lockerPasses[0] && (
@@ -406,13 +420,15 @@ export function PtForm({ branchId }: { branchId: string }) {
           {clothesProvided ? (
             <Select
               id="clothes-pass"
-              label="운동복 (무료 제공)"
+              label="운동복 (선택)"
               options={[
                 { value: "PROVIDED", label: "수강권에 포함 (무료 제공)" },
+                { value: "OPT_OUT", label: "선택 안 함" },
               ]}
-              value="PROVIDED"
-              onChange={() => {}}
-              disabled
+              value={form.clothes_opt_out ? "OPT_OUT" : "PROVIDED"}
+              onChange={(e) =>
+                set({ clothes_opt_out: e.target.value === "OPT_OUT" })
+              }
             />
           ) : (
             clothesPasses[0] && (

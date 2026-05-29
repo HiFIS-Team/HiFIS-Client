@@ -79,17 +79,18 @@ function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
 
-// 상품 목록 → Select 옵션 (가격 + 회원권·수강권은 락커·운동복 무료 제공 태그)
-// 둘 다 무료 제공이면 "락커, 운동복 무료 제공" 한 덩어리로 — 라벨이 길어서 잘리는 거 방지
+// 상품 목록 → Select 옵션.
+// label = 상품명 (메인), description = 가격 (옵션 list 안에서 작은 글씨), meta = 무료 제공 태그 (우측 회색).
 function passOpts(arr: Pass[]): SelectOption[] {
   return arr.map((p) => {
     const items: string[] = [];
     if (p.provides_locker) items.push("락커");
     if (p.provides_clothes) items.push("운동복");
-    const tail = items.length > 0 ? ` · ${items.join(", ")} 무료 제공` : "";
     return {
       value: p.id,
-      label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원${tail}`,
+      label: p.name,
+      description: `현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
+      meta: items.length > 0 ? `${items.join(", ")} 무료 제공` : undefined,
     };
   });
 }
@@ -114,6 +115,10 @@ const INITIAL = {
   agreed_terms: false,
   // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
   agreed_marketing: false,
+  // 회원권이 락커·운동복을 무료 제공할 때 사용자가 "선택 안 함" 으로 바꾼 경우 (UI 표시용).
+  // 백엔드 제출 시점엔 어차피 null 이라 별도 전송 필드는 아님.
+  locker_opt_out: false,
+  clothes_opt_out: false,
 };
 
 type FormState = typeof INITIAL;
@@ -212,13 +217,20 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const clothesProvided = !!selectedMembership?.provides_clothes;
   // 회원권 선택 — 가격 + 이용 기간 자동 설정
   // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
-  // 새 회원권이 락커·운동복을 무료 제공하면 기존 별도 선택은 비움 (백엔드가 400으로 막음)
+  // 새 회원권이 락커·운동복을 무료 제공하면 기존 별도 선택을 비우고 opt-out 상태도 리셋
+  // → 기본값은 "포함 (무료 제공)" 으로 자연 노출
   const onMembershipChange = (id: string) => {
     const next = membershipPasses.find((x) => x.id === id);
     setForm((f) => {
       const base: FormState = { ...f, membership_pass_id: id };
-      if (next?.provides_locker) base.locker_pass_id = "";
-      if (next?.provides_clothes) base.clothes_pass_id = "";
+      if (next?.provides_locker) {
+        base.locker_pass_id = "";
+        base.locker_opt_out = false;
+      }
+      if (next?.provides_clothes) {
+        base.clothes_pass_id = "";
+        base.clothes_opt_out = false;
+      }
       base.final_price = String(totalFor(base));
       const d = durationOf(id);
       if (d == null) return base;
@@ -415,29 +427,55 @@ export function MemberForm({ branchId }: { branchId: string }) {
             onChange={(e) => onMembershipChange(e.target.value)}
             error={errors.membership_pass_id}
           />
+          {/* 무료 제공 회원권일 땐 "포함(기본)" / "선택 안 함" 두 옵션. 안 쓰는 회원도
+              있으니 잠그지 않음. 백엔드 제출은 어차피 null (옵션 차이는 UI 표시용) */}
           <Select
             id="locker-pass"
             label="락커 (선택)"
             options={
               lockerProvided
-                ? [{ value: "PROVIDED", label: "회원권에 포함 (무료 제공)" }]
+                ? [
+                    { value: "PROVIDED", label: "회원권에 포함 (무료 제공)" },
+                    { value: "OPT_OUT", label: "선택 안 함" },
+                  ]
                 : optional(passOpts(lockerPasses))
             }
-            value={lockerProvided ? "PROVIDED" : form.locker_pass_id}
-            onChange={(e) => setWithPrice({ locker_pass_id: e.target.value })}
-            disabled={lockerProvided}
+            value={
+              lockerProvided
+                ? form.locker_opt_out
+                  ? "OPT_OUT"
+                  : "PROVIDED"
+                : form.locker_pass_id
+            }
+            onChange={(e) =>
+              lockerProvided
+                ? set({ locker_opt_out: e.target.value === "OPT_OUT" })
+                : setWithPrice({ locker_pass_id: e.target.value })
+            }
           />
           <Select
             id="clothes-pass"
             label="운동복 (선택)"
             options={
               clothesProvided
-                ? [{ value: "PROVIDED", label: "회원권에 포함 (무료 제공)" }]
+                ? [
+                    { value: "PROVIDED", label: "회원권에 포함 (무료 제공)" },
+                    { value: "OPT_OUT", label: "선택 안 함" },
+                  ]
                 : optional(passOpts(clothesPasses))
             }
-            value={clothesProvided ? "PROVIDED" : form.clothes_pass_id}
-            onChange={(e) => setWithPrice({ clothes_pass_id: e.target.value })}
-            disabled={clothesProvided}
+            value={
+              clothesProvided
+                ? form.clothes_opt_out
+                  ? "OPT_OUT"
+                  : "PROVIDED"
+                : form.clothes_pass_id
+            }
+            onChange={(e) =>
+              clothesProvided
+                ? set({ clothes_opt_out: e.target.value === "OPT_OUT" })
+                : setWithPrice({ clothes_pass_id: e.target.value })
+            }
           />
           <DateField
             id="start-date"

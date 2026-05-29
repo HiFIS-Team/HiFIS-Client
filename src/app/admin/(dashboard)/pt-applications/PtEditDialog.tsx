@@ -25,16 +25,17 @@ function todayStr(): string {
 function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
-// 둘 다 무료 제공이면 "락커, 운동복 무료 제공" 한 덩어리로 — 라벨이 길어서 잘리는 거 방지
+// label = 상품명, description = 가격 (옵션 list 안에서만 노출), meta = 무료 제공 태그 (우측 회색).
 function passOpts(arr: Pass[]): SelectOption[] {
   return arr.map((p) => {
     const items: string[] = [];
     if (p.provides_locker) items.push("락커");
     if (p.provides_clothes) items.push("운동복");
-    const tail = items.length > 0 ? ` · ${items.join(", ")} 무료 제공` : "";
     return {
       value: p.id,
-      label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원${tail}`,
+      label: p.name,
+      description: `현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
+      meta: items.length > 0 ? `${items.join(", ")} 무료 제공` : undefined,
     };
   });
 }
@@ -83,6 +84,9 @@ export function PtEditDialog({
     end_date: app.end_date,
     notes: app.notes ?? "",
     agreed_marketing: app.agreed_marketing,
+    // 무료 제공 수강권에서 "선택 안 함" 으로 바꾼 경우의 UI 표시용 (백엔드엔 어차피 null)
+    locker_opt_out: false,
+    clothes_opt_out: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
@@ -263,20 +267,21 @@ export function PtEditDialog({
                   const next = (ptPassQuery.data ?? []).find(
                     (p) => p.id === e.target.value,
                   );
-                  // 무료 제공 수강권으로 바꾸면 별도 선택 자동 비움
+                  // 무료 제공 수강권으로 바꾸면 별도 선택 자동 비움 + opt-out 리셋 (기본 포함)
                   set({
                     pt_pass_id: e.target.value,
                     ...(next?.provides_locker
-                      ? { locker_pass_id: null }
+                      ? { locker_pass_id: null, locker_opt_out: false }
                       : {}),
                     ...(next?.provides_clothes
-                      ? { clothes_pass_id: null }
+                      ? { clothes_pass_id: null, clothes_opt_out: false }
                       : {}),
                   });
                 }}
                 error={errors.pt_pass_id}
               />
-              {/* PT 락커·운동복 — 수강권이 무료 제공이면 잠금, 아니면 기존 yes/no */}
+              {/* PT 락커·운동복 — 수강권이 무료 제공이면 "포함(기본)" / "선택 안 함" 두 옵션,
+                  아니면 기존 yes/no 토글 */}
               {(() => {
                 const sel = (ptPassQuery.data ?? []).find(
                   (p) => p.id === form.pt_pass_id,
@@ -288,16 +293,20 @@ export function PtEditDialog({
                     {lockerProvided ? (
                       <Select
                         id="pe-locker-pass"
-                        label="락커 (무료 제공)"
+                        label="락커 (선택)"
                         options={[
                           {
                             value: "PROVIDED",
                             label: "수강권에 포함 (무료 제공)",
                           },
+                          { value: "OPT_OUT", label: "선택 안 함" },
                         ]}
-                        value="PROVIDED"
-                        onChange={() => {}}
-                        disabled
+                        value={form.locker_opt_out ? "OPT_OUT" : "PROVIDED"}
+                        onChange={(e) =>
+                          set({
+                            locker_opt_out: e.target.value === "OPT_OUT",
+                          })
+                        }
                       />
                     ) : (
                       lockerPasses[0] && (
@@ -323,16 +332,20 @@ export function PtEditDialog({
                     {clothesProvided ? (
                       <Select
                         id="pe-clothes-pass"
-                        label="운동복 (무료 제공)"
+                        label="운동복 (선택)"
                         options={[
                           {
                             value: "PROVIDED",
                             label: "수강권에 포함 (무료 제공)",
                           },
+                          { value: "OPT_OUT", label: "선택 안 함" },
                         ]}
-                        value="PROVIDED"
-                        onChange={() => {}}
-                        disabled
+                        value={form.clothes_opt_out ? "OPT_OUT" : "PROVIDED"}
+                        onChange={(e) =>
+                          set({
+                            clothes_opt_out: e.target.value === "OPT_OUT",
+                          })
+                        }
                       />
                     ) : (
                       clothesPasses[0] && (
