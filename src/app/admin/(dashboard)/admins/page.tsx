@@ -18,7 +18,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
-import { adminRoleLabel, formatDate } from "@/lib/format";
+import { adminRoleLabel, formatDate, timeAgo } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
 
 // 관리자 계정 상태 배지
@@ -174,8 +174,20 @@ export default function AdminAdminsPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-lg font-bold text-gray-900">
+                    <h2 className="flex items-center gap-2 truncate text-lg font-bold text-gray-900">
                       {a.name}
+                      {a.is_online && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
+                          title="최근 5분 안에 접속 신호가 있었어요"
+                        >
+                          <span
+                            className="size-1.5 rounded-full bg-green-500"
+                            aria-hidden="true"
+                          />
+                          접속중
+                        </span>
+                      )}
                     </h2>
                     <p className="mt-0.5 text-sm text-gray-500">
                       {adminRoleLabel(a)}
@@ -185,6 +197,14 @@ export default function AdminAdminsPage() {
                       <EnvelopeIcon className="size-4 shrink-0" />
                       <span className="truncate">{a.email}</span>
                     </p>
+                    {/* 활성 계정 한정 — 오프라인이면 마지막 접속 시각 표시 */}
+                    {!a.is_online && a.status === "ACTIVE" && (
+                      <p className="mt-1 text-xs text-gray-400">
+                        {a.last_seen_at
+                          ? `마지막 접속 ${timeAgo(a.last_seen_at)}`
+                          : "접속 기록 없음"}
+                      </p>
+                    )}
                   </div>
                   <AdminStatusBadge status={a.status} />
                 </div>

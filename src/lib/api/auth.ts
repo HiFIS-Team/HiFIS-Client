@@ -68,3 +68,12 @@ export function changePassword(
     auth: true,
   });
 }
+
+// POST /admin/me/heartbeat — 접속 신호 (204).
+// 프론트가 60초마다 ping → 백엔드가 last_seen_at 갱신 → SUPER_ADMIN 목록에서 is_online 으로 보임.
+export function postHeartbeat(): Promise<void> {
+  return apiFetch<void>("/admin/me/heartbeat", {
+    method: "POST",
+    auth: true,
+  });
+}

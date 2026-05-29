@@ -224,6 +224,11 @@ export interface Admin {
   status: AdminStatus;
   branch_id: string | null;
   created_at: string;
+  // 마지막 heartbeat 시각 (없으면 한 번도 접속한 적 없음).
+  // 프론트가 /admin/me/heartbeat 를 60초마다 ping → 백엔드가 갱신.
+  last_seen_at: string | null;
+  // 5분 이내 heartbeat 가 있으면 true — 백엔드 계산값 (서버 시계 기준).
+  is_online: boolean;
 }
 
 // POST /admin/login·/refresh 응답

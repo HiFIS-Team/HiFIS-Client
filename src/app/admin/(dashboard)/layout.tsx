@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowPathIcon, Bars3Icon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getAccessToken } from "@/lib/api/tokenStore";
+import { useHeartbeat } from "@/lib/hooks/useHeartbeat";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 
@@ -26,6 +27,10 @@ export default function DashboardLayout({
     queryFn: getMe,
     retry: false,
   });
+
+  // 60초마다 heartbeat ping — SUPER_ADMIN 의 "관리자 관리" 화면에서 접속중 표시용.
+  // (토큰 없으면 hook 내부에서 skip — 로그인 화면으로 리다이렉트 되는 짧은 순간 안전)
+  useHeartbeat();
 
   // 토큰이 아예 없으면 즉시 로그인 화면으로
   useEffect(() => {
