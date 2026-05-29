@@ -209,7 +209,11 @@ export default function AdminMembersPage() {
         키오스크 회원가입 신청서로 접수된 회원입니다.
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+      <div
+        className={`mt-5 grid gap-3 sm:grid-cols-2 ${
+          isSuper ? "lg:max-w-5xl lg:grid-cols-4" : "lg:max-w-4xl lg:grid-cols-3"
+        }`}
+      >
         {isSuper && (
           <Select
             id="branch-filter"
