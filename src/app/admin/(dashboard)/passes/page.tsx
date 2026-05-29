@@ -297,23 +297,28 @@ export default function AdminPassesPage() {
                     </p>
                   </div>
                 </div>
-                <p className="mt-4 text-sm text-gray-500">
-                  이용자{" "}
-                  <span className="font-semibold text-gray-900">
-                    {userCountFor(p.id)}명
-                  </span>
-                </p>
-                {/* 회원권·수강권 한정 — 락커·운동복 무료 제공 여부를 한눈에
-                    (가운데 정렬, 제공이면 보라 칩 / 미제공이면 옅은 회색 칩) */}
-                {(activeType === "membership" || activeType === "pt") && (
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2 border-t border-gray-100 pt-3">
-                    <ProvidesRow label="락커 무료 제공" on={!!p.provides_locker} />
-                    <ProvidesRow
-                      label="운동복 무료 제공"
-                      on={!!p.provides_clothes}
-                    />
-                  </div>
-                )}
+                {/* 이용자 수 + (회원권·수강권 한정) 락커·운동복 무료 제공 칩
+                    한 줄에 — 좌측 이용자 수, 우측에 무료 제공 칩 두 개 */}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-gray-500">
+                    이용자{" "}
+                    <span className="font-semibold text-gray-900">
+                      {userCountFor(p.id)}명
+                    </span>
+                  </p>
+                  {(activeType === "membership" || activeType === "pt") && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <ProvidesRow
+                        label="락커 무료 제공"
+                        on={!!p.provides_locker}
+                      />
+                      <ProvidesRow
+                        label="운동복 무료 제공"
+                        on={!!p.provides_clothes}
+                      />
+                    </div>
+                  )}
+                </div>
               </article>
             ))}
           </div>
