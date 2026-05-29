@@ -21,6 +21,13 @@ import { TableMessage, TableSkeleton } from "@/components/Table";
 import { adminRoleLabel, formatDate, timeAgo } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
 
+// 대표(SUPER_ADMIN) 표시 순서 — 운영진 우선순위. 목록에 없는 이름은 뒤로.
+const SUPER_ADMIN_ORDER = ["이준경", "이준승", "문명진", "김은후"];
+function superAdminRank(name: string): number {
+  const idx = SUPER_ADMIN_ORDER.indexOf(name);
+  return idx === -1 ? SUPER_ADMIN_ORDER.length : idx;
+}
+
 // 관리자 계정 상태 배지
 function AdminStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -118,7 +125,11 @@ export default function AdminAdminsPage() {
     id ? (branchesQuery.data?.find((b) => b.id === id)?.name ?? "-") : "-";
   const admins = adminsQuery.data ?? [];
   // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
-  // 정렬 — 대표는 항상 맨 위, FC 는 가입(created_at) 오름차순
+  // 정렬 규칙:
+  //   1) 대표(SUPER_ADMIN) 가 항상 맨 위
+  //   2) 대표끼리는 운영진 우선순위 (이준경 → 이준승 → 문명진 → 김은후),
+  //      목록에 없는 대표는 그 뒤에 created_at 순으로
+  //   3) FC 는 가입(created_at) 오름차순
   const visibleAdmins = admins
     .filter(
       (a) =>
@@ -130,7 +141,11 @@ export default function AdminAdminsPage() {
     .sort((a, b) => {
       if (a.role === "SUPER_ADMIN" && b.role !== "SUPER_ADMIN") return -1;
       if (a.role !== "SUPER_ADMIN" && b.role === "SUPER_ADMIN") return 1;
-      // 같은 role 안에서는 가입순(created_at 오름차순)
+      if (a.role === "SUPER_ADMIN" && b.role === "SUPER_ADMIN") {
+        const ra = superAdminRank(a.name);
+        const rb = superAdminRank(b.name);
+        if (ra !== rb) return ra - rb;
+      }
       return a.created_at.localeCompare(b.created_at);
     });
 
@@ -176,16 +191,31 @@ export default function AdminAdminsPage() {
                   <div className="min-w-0 flex-1">
                     <h2 className="flex items-center gap-2 truncate text-lg font-bold text-gray-900">
                       {a.name}
-                      {a.is_online && (
+                      {/* 활성 계정 한정 — online 이면 녹색 "접속중", offline 이면
+                          회색으로 마지막 접속 시각 (예: "방금 전", "5분 전").
+                          last_seen_at 이 아예 없으면 칩 자체를 안 보임 (신규/대기 계정) */}
+                      {a.status === "ACTIVE" && (a.is_online || a.last_seen_at) && (
                         <span
-                          className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
-                          title="최근 5분 안에 접속 신호가 있었어요"
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            a.is_online
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                          title={
+                            a.is_online
+                              ? "최근 5분 안에 접속 신호가 있었어요"
+                              : a.last_seen_at
+                                ? `마지막 접속: ${a.last_seen_at}`
+                                : undefined
+                          }
                         >
                           <span
-                            className="size-1.5 rounded-full bg-green-500"
+                            className={`size-1.5 rounded-full ${
+                              a.is_online ? "bg-green-500" : "bg-gray-400"
+                            }`}
                             aria-hidden="true"
                           />
-                          접속중
+                          {a.is_online ? "접속중" : timeAgo(a.last_seen_at!)}
                         </span>
                       )}
                     </h2>
@@ -197,14 +227,6 @@ export default function AdminAdminsPage() {
                       <EnvelopeIcon className="size-4 shrink-0" />
                       <span className="truncate">{a.email}</span>
                     </p>
-                    {/* 활성 계정 한정 — 오프라인이면 마지막 접속 시각 표시 */}
-                    {!a.is_online && a.status === "ACTIVE" && (
-                      <p className="mt-1 text-xs text-gray-400">
-                        {a.last_seen_at
-                          ? `마지막 접속 ${timeAgo(a.last_seen_at)}`
-                          : "접속 기록 없음"}
-                      </p>
-                    )}
                   </div>
                   <AdminStatusBadge status={a.status} />
                 </div>
