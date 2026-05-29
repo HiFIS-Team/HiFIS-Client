@@ -101,10 +101,21 @@ export function MemberEditDialog({
         form.referral_detail,
         enumsQuery.data!.referral,
       );
-      // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
-      const sel = (membershipQuery.data ?? []).find(
+      // 무료 제공 잠금 — 회원권/락커/운동복 어느 쪽이든 끼워주면 별도 선택은 null.
+      // (회원권 provides_locker 는 백엔드가 400 으로도 막아주지만 클라이언트도 안전하게.)
+      const sm = (membershipQuery.data ?? []).find(
         (p) => p.id === form.membership_pass_id,
       );
+      const sl = (lockerQuery.data ?? []).find(
+        (p) => p.id === form.locker_pass_id,
+      );
+      const sc = (clothesQuery.data ?? []).find(
+        (p) => p.id === form.clothes_pass_id,
+      );
+      const lockerLocked =
+        !!sm?.provides_locker || !!sc?.provides_locker;
+      const clothesLocked =
+        !!sm?.provides_clothes || !!sl?.provides_clothes;
       return updateMember(member.id, {
         membership_pass_id: form.membership_pass_id,
         name: form.name.trim(),
@@ -118,8 +129,8 @@ export function MemberEditDialog({
         final_price: Number(form.final_price),
         start_date: form.start_date,
         end_date: form.end_date,
-        locker_pass_id: sel?.provides_locker ? null : form.locker_pass_id || null,
-        clothes_pass_id: sel?.provides_clothes ? null : form.clothes_pass_id || null,
+        locker_pass_id: lockerLocked ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesLocked ? null : form.clothes_pass_id || null,
         motivation: form.motivation,
         agreed_marketing: form.agreed_marketing,
       });
@@ -286,24 +297,41 @@ export function MemberEditDialog({
                 error={errors.membership_pass_id}
               />
               {(() => {
-                const sel = (membershipQuery.data ?? []).find(
+                const sm = (membershipQuery.data ?? []).find(
                   (p) => p.id === form.membership_pass_id,
                 );
-                const lockerProvided = !!sel?.provides_locker;
-                const clothesProvided = !!sel?.provides_clothes;
+                const sl = (lockerQuery.data ?? []).find(
+                  (p) => p.id === form.locker_pass_id,
+                );
+                const sc = (clothesQuery.data ?? []).find(
+                  (p) => p.id === form.clothes_pass_id,
+                );
+                // 락커 잠금 — 회원권이 락커 무료 제공이거나, 선택한 운동복이 락커 무료 제공
+                // 운동복 잠금 — 그 대칭
+                const lockerProvided =
+                  !!sm?.provides_locker || !!sc?.provides_locker;
+                const clothesProvided =
+                  !!sm?.provides_clothes || !!sl?.provides_clothes;
+                const lockerProvidedLabel = sm?.provides_locker
+                  ? "회원권에 포함 (무료 제공)"
+                  : sc?.provides_locker
+                    ? "운동복에 포함 (무료 제공)"
+                    : "포함 (무료 제공)";
+                const clothesProvidedLabel = sm?.provides_clothes
+                  ? "회원권에 포함 (무료 제공)"
+                  : sl?.provides_clothes
+                    ? "락커에 포함 (무료 제공)"
+                    : "포함 (무료 제공)";
                 return (
                   <>
-                    {/* 무료 제공 회원권일 때 "포함(기본)" / "선택 안 함" 두 옵션 (잠금 X) */}
+                    {/* "포함(기본)" / "선택 안 함" 두 옵션. 잠금 출처에 따라 라벨이 달라짐 */}
                     <Select
                       id="e-locker"
                       label="락커 (선택)"
                       options={
                         lockerProvided
                           ? [
-                              {
-                                value: "PROVIDED",
-                                label: "회원권에 포함 (무료 제공)",
-                              },
+                              { value: "PROVIDED", label: lockerProvidedLabel },
                               { value: "OPT_OUT", label: "선택 안 함" },
                             ]
                           : optional(passOpts(lockerQuery.data ?? []))
@@ -315,13 +343,22 @@ export function MemberEditDialog({
                             : "PROVIDED"
                           : form.locker_pass_id
                       }
-                      onChange={(e) =>
-                        lockerProvided
-                          ? set({
-                              locker_opt_out: e.target.value === "OPT_OUT",
-                            })
-                          : set({ locker_pass_id: e.target.value })
-                      }
+                      onChange={(e) => {
+                        if (lockerProvided) {
+                          set({ locker_opt_out: e.target.value === "OPT_OUT" });
+                        } else {
+                          // 새로 선택한 락커가 운동복을 무료 제공하면 운동복 별도 선택 비움
+                          const next = (lockerQuery.data ?? []).find(
+                            (p) => p.id === e.target.value,
+                          );
+                          set({
+                            locker_pass_id: e.target.value,
+                            ...(next?.provides_clothes
+                              ? { clothes_pass_id: "", clothes_opt_out: false }
+                              : {}),
+                          });
+                        }
+                      }}
                     />
                     <Select
                       id="e-clothes"
@@ -329,10 +366,7 @@ export function MemberEditDialog({
                       options={
                         clothesProvided
                           ? [
-                              {
-                                value: "PROVIDED",
-                                label: "회원권에 포함 (무료 제공)",
-                              },
+                              { value: "PROVIDED", label: clothesProvidedLabel },
                               { value: "OPT_OUT", label: "선택 안 함" },
                             ]
                           : optional(passOpts(clothesQuery.data ?? []))
@@ -344,13 +378,23 @@ export function MemberEditDialog({
                             : "PROVIDED"
                           : form.clothes_pass_id
                       }
-                      onChange={(e) =>
-                        clothesProvided
-                          ? set({
-                              clothes_opt_out: e.target.value === "OPT_OUT",
-                            })
-                          : set({ clothes_pass_id: e.target.value })
-                      }
+                      onChange={(e) => {
+                        if (clothesProvided) {
+                          set({
+                            clothes_opt_out: e.target.value === "OPT_OUT",
+                          });
+                        } else {
+                          const next = (clothesQuery.data ?? []).find(
+                            (p) => p.id === e.target.value,
+                          );
+                          set({
+                            clothes_pass_id: e.target.value,
+                            ...(next?.provides_locker
+                              ? { locker_pass_id: "", locker_opt_out: false }
+                              : {}),
+                          });
+                        }
+                      }}
                     />
                   </>
                 );

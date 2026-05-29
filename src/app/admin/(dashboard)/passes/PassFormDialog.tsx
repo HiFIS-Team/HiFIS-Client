@@ -42,9 +42,13 @@ export function PassFormDialog({
   const [durationMonths, setDurationMonths] = useState(
     initial?.duration_months != null ? String(initial.duration_months) : "",
   );
-  // 회원권·수강권 전용 — 락커·운동복 무료 제공 토글.
-  // 수강권 신규 등록 시 락커·운동복은 기본 무료 제공으로 켜둠 (PT 회원에게 무료 지급이 관행).
-  // 기존 패스 수정 시엔 저장된 값(false 포함) 그대로 사용.
+  // 무료 제공 토글:
+  //  - 회원권/수강권: 락커·운동복 둘 다 노출 (둘 다 끼워줄 수 있음).
+  //    수강권은 기본 둘 다 ON (PT 회원에게 락커·운동복 무료 지급이 관행).
+  //  - 락커 패스: "운동복 무료 제공"만 (자기 자신 락커는 의미 없음).
+  //  - 운동복 패스: "락커 무료 제공"만 (자기 자신 운동복은 의미 없음).
+  //  예: 어드민이 "운동복 1개월 (락커 무료 지급)" 운동복 패스를 가격 +5,000원으로
+  //     등록 → 회원이 선택 시 락커 자동 포함, 별도 락커 선택 차단.
   const ptDefault = type === "pt";
   const [providesLocker, setProvidesLocker] = useState(
     initial?.provides_locker ?? ptDefault,
@@ -57,7 +61,10 @@ export function PassFormDialog({
 
   if (!open) return null;
 
-  const showProvides = type === "membership" || type === "pt";
+  // 자기 자신은 끼워줄 수 없으므로 같은 종류 체크박스는 숨김.
+  const showLockerCheckbox = type !== "locker";
+  const showClothesCheckbox = type !== "clothes";
+  const showProvides = showLockerCheckbox || showClothesCheckbox;
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -88,11 +95,9 @@ export function PassFormDialog({
             ? null
             : Number(durationMonths),
     };
-    // 회원권·수강권에만 provides_* 포함 — 락커·운동복엔 서버 스키마에 없는 필드라 누락시켜야 함
-    if (showProvides) {
-      payload.provides_locker = providesLocker;
-      payload.provides_clothes = providesClothes;
-    }
+    // 자기 자신 종류는 백엔드 스키마에 필드가 없으므로 누락시킴.
+    if (showLockerCheckbox) payload.provides_locker = providesLocker;
+    if (showClothesCheckbox) payload.provides_clothes = providesClothes;
     onSubmit(payload);
   }
 
@@ -170,22 +175,26 @@ export function PassFormDialog({
                   무료 제공
                 </p>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  체크 시 신청자는 별도 락커·운동복 상품을 선택할 수 없고
-                  자동 포함됩니다.
+                  체크 시 신청자가 이 상품을 선택하면 해당 상품이 무료로 함께
+                  제공돼요. 다른 상품 선택 UI는 자동으로 차단됩니다.
                 </p>
                 <div className="mt-3 space-y-2.5">
-                  <Checkbox
-                    id="provides-locker"
-                    label="락커 무료 제공"
-                    checked={providesLocker}
-                    onChange={(e) => setProvidesLocker(e.target.checked)}
-                  />
-                  <Checkbox
-                    id="provides-clothes"
-                    label="운동복 무료 제공"
-                    checked={providesClothes}
-                    onChange={(e) => setProvidesClothes(e.target.checked)}
-                  />
+                  {showLockerCheckbox && (
+                    <Checkbox
+                      id="provides-locker"
+                      label="락커 무료 제공"
+                      checked={providesLocker}
+                      onChange={(e) => setProvidesLocker(e.target.checked)}
+                    />
+                  )}
+                  {showClothesCheckbox && (
+                    <Checkbox
+                      id="provides-clothes"
+                      label="운동복 무료 제공"
+                      checked={providesClothes}
+                      onChange={(e) => setProvidesClothes(e.target.checked)}
+                    />
+                  )}
                 </div>
               </div>
             )}

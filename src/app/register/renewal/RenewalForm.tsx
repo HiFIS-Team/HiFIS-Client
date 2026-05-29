@@ -493,10 +493,19 @@ function MemberRenewalForm({
   }
   function totalFor(next: typeof form): number {
     const useCard = next.payment_method === "CARD";
+    const sm = membershipPasses.find((x) => x.id === next.membership_pass_id);
+    const sl = lockerPasses.find((x) => x.id === next.locker_pass_id);
+    const sc = clothesPasses.find((x) => x.id === next.clothes_pass_id);
+    const lockerLockedNext = !!sm?.provides_locker || !!sc?.provides_locker;
+    const clothesLockedNext = !!sm?.provides_clothes || !!sl?.provides_clothes;
     return (
       priceOf(membershipPasses, next.membership_pass_id, useCard) +
-      priceOf(lockerPasses, next.locker_pass_id, useCard) +
-      priceOf(clothesPasses, next.clothes_pass_id, useCard)
+      (lockerLockedNext
+        ? 0
+        : priceOf(lockerPasses, next.locker_pass_id, useCard)) +
+      (clothesLockedNext
+        ? 0
+        : priceOf(clothesPasses, next.clothes_pass_id, useCard))
     );
   }
   const setWithPrice = (patch: Partial<typeof form>) => {
@@ -509,8 +518,26 @@ function MemberRenewalForm({
   const selected = membershipPasses.find(
     (x) => x.id === form.membership_pass_id,
   );
-  const lockerProvided = !!selected?.provides_locker;
-  const clothesProvided = !!selected?.provides_clothes;
+  const selectedLocker = lockerPasses.find(
+    (x) => x.id === form.locker_pass_id,
+  );
+  const selectedClothes = clothesPasses.find(
+    (x) => x.id === form.clothes_pass_id,
+  );
+  const lockerProvided =
+    !!selected?.provides_locker || !!selectedClothes?.provides_locker;
+  const clothesProvided =
+    !!selected?.provides_clothes || !!selectedLocker?.provides_clothes;
+  const lockerProvidedLabel = selected?.provides_locker
+    ? "회원권에 포함 (무료 제공)"
+    : selectedClothes?.provides_locker
+      ? "운동복에 포함 (무료 제공)"
+      : "포함 (무료 제공)";
+  const clothesProvidedLabel = selected?.provides_clothes
+    ? "회원권에 포함 (무료 제공)"
+    : selectedLocker?.provides_clothes
+      ? "락커에 포함 (무료 제공)"
+      : "포함 (무료 제공)";
 
   const onMembershipChange = (id: string) => {
     const next = membershipPasses.find((x) => x.id === id);
@@ -537,6 +564,29 @@ function MemberRenewalForm({
       const d = durationOf(f.membership_pass_id);
       if (d != null && value) next.end_date = applyDuration(value, d);
       return next;
+    });
+  };
+  // 락커 변경 — 그 락커가 운동복을 무료 제공하면 운동복 별도 선택 비움
+  const onLockerChange = (id: string) => {
+    const next = lockerPasses.find((x) => x.id === id);
+    setForm((f) => {
+      const base = { ...f, locker_pass_id: id };
+      if (next?.provides_clothes) {
+        base.clothes_pass_id = "";
+        base.clothes_opt_out = false;
+      }
+      return { ...base, final_price: String(totalFor(base)) };
+    });
+  };
+  const onClothesChange = (id: string) => {
+    const next = clothesPasses.find((x) => x.id === id);
+    setForm((f) => {
+      const base = { ...f, clothes_pass_id: id };
+      if (next?.provides_locker) {
+        base.locker_pass_id = "";
+        base.locker_opt_out = false;
+      }
+      return { ...base, final_price: String(totalFor(base)) };
     });
   };
 
@@ -621,7 +671,7 @@ function MemberRenewalForm({
           options={
             lockerProvided
               ? [
-                  { value: "PROVIDED", label: "회원권에 포함 (무료 제공)" },
+                  { value: "PROVIDED", label: lockerProvidedLabel },
                   { value: "OPT_OUT", label: "선택 안 함" },
                 ]
               : optional(passOpts(lockerPasses))
@@ -636,7 +686,7 @@ function MemberRenewalForm({
           onChange={(e) =>
             lockerProvided
               ? set({ locker_opt_out: e.target.value === "OPT_OUT" })
-              : setWithPrice({ locker_pass_id: e.target.value })
+              : onLockerChange(e.target.value)
           }
         />
         <Select
@@ -645,7 +695,7 @@ function MemberRenewalForm({
           options={
             clothesProvided
               ? [
-                  { value: "PROVIDED", label: "회원권에 포함 (무료 제공)" },
+                  { value: "PROVIDED", label: clothesProvidedLabel },
                   { value: "OPT_OUT", label: "선택 안 함" },
                 ]
               : optional(passOpts(clothesPasses))
@@ -660,7 +710,7 @@ function MemberRenewalForm({
           onChange={(e) =>
             clothesProvided
               ? set({ clothes_opt_out: e.target.value === "OPT_OUT" })
-              : setWithPrice({ clothes_pass_id: e.target.value })
+              : onClothesChange(e.target.value)
           }
         />
         <DateField
