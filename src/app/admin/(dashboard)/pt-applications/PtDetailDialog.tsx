@@ -111,6 +111,9 @@ export function PtDetailDialog({
               {enumLabel(enums?.payment_method, app.payment_method)}
             </Row>
             <Row label="결제 금액">{formatWon(app.final_price)}</Row>
+            <Row label="누적 결제">
+              {app.total_paid != null ? formatWon(app.total_paid) : "-"}
+            </Row>
             <Row label="유입 경로">
               {enumLabel(enums?.referral, app.referral)}
               {app.referral_detail && (

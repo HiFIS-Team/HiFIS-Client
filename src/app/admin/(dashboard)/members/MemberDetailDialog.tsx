@@ -112,6 +112,9 @@ export function MemberDetailDialog({
               {enumLabel(enums?.payment_method, member.payment_method)}
             </Row>
             <Row label="결제 금액">{formatWon(member.final_price)}</Row>
+            <Row label="누적 결제">
+              {member.total_paid != null ? formatWon(member.total_paid) : "-"}
+            </Row>
             <Row label="유입 경로">
               {enumLabel(enums?.referral, member.referral)}
               {member.referral_detail && (

@@ -114,7 +114,10 @@ export interface Member {
   referral: string;
   referral_detail: string | null;
   payment_method: string;
+  // 이번(마지막) 결제 금액. 재등록 시 새 값으로 덮어씀.
   final_price: number;
+  // 누적 결제 금액 (신규=final_price 동일, 재등록 시 += 이번 결제).
+  total_paid: number | null;
   start_date: string;
   end_date: string;
   locker_pass_id: string | null;
@@ -137,6 +140,8 @@ interface RenewalLookupCommon {
   clothes_pass_id: string | null;
   payment_method: string | null;
   final_price: number | null;
+  // 누적 결제 금액 — 안내 banner 등에 노출 가능
+  total_paid: number | null;
   start_date: string;
   end_date: string;
   status: RenewalStatus;
@@ -233,7 +238,9 @@ export interface PTApplication {
   referral_detail: string | null;
   motivation: string;
   payment_method: string;
+  // 이번(마지막) 결제 금액 / 누적 결제 금액 — Member 와 동일 규칙
   final_price: number;
+  total_paid: number | null;
   start_date: string;
   end_date: string;
   notes: string | null;
