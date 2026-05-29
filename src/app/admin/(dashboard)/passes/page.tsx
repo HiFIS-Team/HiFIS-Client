@@ -160,20 +160,10 @@ export default function AdminPassesPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
-  // 표시 정렬:
-  //  - 회원권·수강권: 카테고리(일반·학생·제휴 등) → 기간 → 가격 → 이름 (sortPassesForUI)
-  //    같은 카테고리(예: "학생")끼리 묶이고, 그 안에서 기간 오름차순으로 보임
-  //  - 락커·운동복:   현금가 오름차순, 동가면 이름순
-  const passes = (() => {
-    const raw = passesQuery.data ?? [];
-    if (activeType === "membership" || activeType === "pt") {
-      return sortPassesForUI(raw);
-    }
-    return raw.slice().sort((a, b) => {
-      if (a.cash_price !== b.cash_price) return a.cash_price - b.cash_price;
-      return a.name.localeCompare(b.name);
-    });
-  })();
+  // 표시 정렬 — 4종 모두 신청서 Select 와 동일 (sortPassesForUI):
+  // 카테고리(일반·학생·제휴 등) → 기간 → 가격 → 이름. "락커 3개월" 같이 이름에 기간이
+  // 들어있는 락커·운동복도 자연스럽게 기간 오름차순으로 정렬됨.
+  const passes = sortPassesForUI(passesQuery.data ?? []);
   const editing = formTarget && formTarget !== "new" ? formTarget : null;
 
   // 현재 활성 탭의 상품을 회원/PT 신청 중 몇 건이 선택했는지 — summary 에서 직접 조회
