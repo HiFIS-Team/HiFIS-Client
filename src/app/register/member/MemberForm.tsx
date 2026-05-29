@@ -210,11 +210,21 @@ export function MemberForm({ branchId }: { branchId: string }) {
     const p = membershipPasses.find((x) => x.id === passId);
     return p ? passDuration(p.name) : null;
   };
+  // 선택된 회원권 — 락커·운동복 무료 제공 여부 판단용
+  const selectedMembership = membershipPasses.find(
+    (x) => x.id === form.membership_pass_id,
+  );
+  const lockerProvided = !!selectedMembership?.provides_locker;
+  const clothesProvided = !!selectedMembership?.provides_clothes;
   // 회원권 선택 — 가격 + 이용 기간 자동 설정
   // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
+  // 새 회원권이 락커·운동복을 무료 제공하면 기존 별도 선택은 비움 (백엔드가 400으로 막음)
   const onMembershipChange = (id: string) => {
+    const next = membershipPasses.find((x) => x.id === id);
     setForm((f) => {
       const base: FormState = { ...f, membership_pass_id: id };
+      if (next?.provides_locker) base.locker_pass_id = "";
+      if (next?.provides_clothes) base.clothes_pass_id = "";
       base.final_price = String(totalFor(base));
       const d = durationOf(id);
       if (d == null) return base;
@@ -304,8 +314,9 @@ export function MemberForm({ branchId }: { branchId: string }) {
       final_price: Number(form.final_price),
       start_date: form.start_date,
       end_date: form.end_date,
-      locker_pass_id: form.locker_pass_id || null,
-      clothes_pass_id: form.clothes_pass_id || null,
+      // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
       motivation: form.motivation,
       agreed_terms: form.agreed_terms,
       agreed_marketing: form.agreed_marketing,
@@ -413,16 +424,26 @@ export function MemberForm({ branchId }: { branchId: string }) {
           <Select
             id="locker-pass"
             label="락커 (선택)"
-            options={optional(passOpts(lockerPasses))}
-            value={form.locker_pass_id}
+            options={
+              lockerProvided
+                ? [{ value: "PROVIDED", label: "회원권에 포함 (무료 제공)" }]
+                : optional(passOpts(lockerPasses))
+            }
+            value={lockerProvided ? "PROVIDED" : form.locker_pass_id}
             onChange={(e) => setWithPrice({ locker_pass_id: e.target.value })}
+            disabled={lockerProvided}
           />
           <Select
             id="clothes-pass"
             label="운동복 (선택)"
-            options={optional(passOpts(clothesPasses))}
-            value={form.clothes_pass_id}
+            options={
+              clothesProvided
+                ? [{ value: "PROVIDED", label: "회원권에 포함 (무료 제공)" }]
+                : optional(passOpts(clothesPasses))
+            }
+            value={clothesProvided ? "PROVIDED" : form.clothes_pass_id}
             onChange={(e) => setWithPrice({ clothes_pass_id: e.target.value })}
+            disabled={clothesProvided}
           />
           <DateField
             id="start-date"

@@ -88,10 +88,14 @@ export function PtEditDialog({
         form.referral_detail,
         enumsQuery.data!.referral,
       );
+      // 수강권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+      const sel = (ptPassQuery.data ?? []).find(
+        (p) => p.id === form.pt_pass_id,
+      );
       return updatePtApplication(app.id, {
         pt_pass_id: form.pt_pass_id,
-        locker_pass_id: form.locker_pass_id,
-        clothes_pass_id: form.clothes_pass_id,
+        locker_pass_id: sel?.provides_locker ? null : form.locker_pass_id,
+        clothes_pass_id: sel?.provides_clothes ? null : form.clothes_pass_id,
         name: form.name.trim(),
         gender: form.gender,
         birth_date: form.birth_date,
@@ -248,46 +252,105 @@ export function PtEditDialog({
                 placeholder="선택"
                 options={passOpts(ptPassQuery.data ?? [])}
                 value={form.pt_pass_id}
-                onChange={(e) => set({ pt_pass_id: e.target.value })}
+                onChange={(e) => {
+                  const next = (ptPassQuery.data ?? []).find(
+                    (p) => p.id === e.target.value,
+                  );
+                  // 무료 제공 수강권으로 바꾸면 별도 선택 자동 비움
+                  set({
+                    pt_pass_id: e.target.value,
+                    ...(next?.provides_locker
+                      ? { locker_pass_id: null }
+                      : {}),
+                    ...(next?.provides_clothes
+                      ? { clothes_pass_id: null }
+                      : {}),
+                  });
+                }}
                 error={errors.pt_pass_id}
               />
-              {/* PT 락커·운동복은 무료 제공 — 신청 여부만 yes/no.
-                  내부적으로는 첫 번째 무료(0원) 패스 UUID 를 전달.
-                  무료 패스가 등록 안 된 지점은 필드 자체를 숨김. */}
-              {lockerPasses[0] && (
-                <Select
-                  id="pe-locker-pass"
-                  label="락커 (무료 제공)"
-                  options={[
-                    { value: "NO", label: "신청 안 함" },
-                    { value: "YES", label: "신청 (무료 제공)" },
-                  ]}
-                  value={form.locker_pass_id ? "YES" : "NO"}
-                  onChange={(e) =>
-                    set({
-                      locker_pass_id:
-                        e.target.value === "YES" ? lockerPasses[0].id : null,
-                    })
-                  }
-                />
-              )}
-              {clothesPasses[0] && (
-                <Select
-                  id="pe-clothes-pass"
-                  label="운동복 (무료 제공)"
-                  options={[
-                    { value: "NO", label: "신청 안 함" },
-                    { value: "YES", label: "신청 (무료 제공)" },
-                  ]}
-                  value={form.clothes_pass_id ? "YES" : "NO"}
-                  onChange={(e) =>
-                    set({
-                      clothes_pass_id:
-                        e.target.value === "YES" ? clothesPasses[0].id : null,
-                    })
-                  }
-                />
-              )}
+              {/* PT 락커·운동복 — 수강권이 무료 제공이면 잠금, 아니면 기존 yes/no */}
+              {(() => {
+                const sel = (ptPassQuery.data ?? []).find(
+                  (p) => p.id === form.pt_pass_id,
+                );
+                const lockerProvided = !!sel?.provides_locker;
+                const clothesProvided = !!sel?.provides_clothes;
+                return (
+                  <>
+                    {lockerProvided ? (
+                      <Select
+                        id="pe-locker-pass"
+                        label="락커 (무료 제공)"
+                        options={[
+                          {
+                            value: "PROVIDED",
+                            label: "수강권에 포함 (무료 제공)",
+                          },
+                        ]}
+                        value="PROVIDED"
+                        onChange={() => {}}
+                        disabled
+                      />
+                    ) : (
+                      lockerPasses[0] && (
+                        <Select
+                          id="pe-locker-pass"
+                          label="락커 (무료 제공)"
+                          options={[
+                            { value: "NO", label: "신청 안 함" },
+                            { value: "YES", label: "신청 (무료 제공)" },
+                          ]}
+                          value={form.locker_pass_id ? "YES" : "NO"}
+                          onChange={(e) =>
+                            set({
+                              locker_pass_id:
+                                e.target.value === "YES"
+                                  ? lockerPasses[0].id
+                                  : null,
+                            })
+                          }
+                        />
+                      )
+                    )}
+                    {clothesProvided ? (
+                      <Select
+                        id="pe-clothes-pass"
+                        label="운동복 (무료 제공)"
+                        options={[
+                          {
+                            value: "PROVIDED",
+                            label: "수강권에 포함 (무료 제공)",
+                          },
+                        ]}
+                        value="PROVIDED"
+                        onChange={() => {}}
+                        disabled
+                      />
+                    ) : (
+                      clothesPasses[0] && (
+                        <Select
+                          id="pe-clothes-pass"
+                          label="운동복 (무료 제공)"
+                          options={[
+                            { value: "NO", label: "신청 안 함" },
+                            { value: "YES", label: "신청 (무료 제공)" },
+                          ]}
+                          value={form.clothes_pass_id ? "YES" : "NO"}
+                          onChange={(e) =>
+                            set({
+                              clothes_pass_id:
+                                e.target.value === "YES"
+                                  ? clothesPasses[0].id
+                                  : null,
+                            })
+                          }
+                        />
+                      )
+                    )}
+                  </>
+                );
+              })()}
               <DateField
                 id="pe-start"
                 label="이용 시작일"

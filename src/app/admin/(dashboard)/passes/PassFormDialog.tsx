@@ -2,12 +2,15 @@
 
 import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/TextField";
-import type { PassInput } from "@/lib/api/passes";
+import { Checkbox } from "@/components/Checkbox";
+import type { PassInput, PassType } from "@/lib/api/passes";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 interface PassFormDialogProps {
   open: boolean;
   title: string;
+  // 회원권/수강권일 때만 락커·운동복 무료 제공 옵션 노출
+  type: PassType;
   // 수정 시 기존 값, 등록 시 null
   initial?: PassInput | null;
   loading?: boolean;
@@ -20,6 +23,7 @@ interface PassFormDialogProps {
 export function PassFormDialog({
   open,
   title,
+  type,
   initial,
   loading = false,
   onSubmit,
@@ -32,10 +36,19 @@ export function PassFormDialog({
   const [card, setCard] = useState(
     initial ? String(initial.card_price) : "",
   );
+  // 회원권·수강권 전용 — 락커·운동복 무료 제공 토글
+  const [providesLocker, setProvidesLocker] = useState(
+    initial?.provides_locker ?? false,
+  );
+  const [providesClothes, setProvidesClothes] = useState(
+    initial?.provides_clothes ?? false,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEscapeKey(onCancel, open);
 
   if (!open) return null;
+
+  const showProvides = type === "membership" || type === "pt";
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -47,11 +60,17 @@ export function PassFormDialog({
       errs.card = "카드가를 정확히 입력해 주세요.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
-    onSubmit({
+    const payload: PassInput = {
       name: name.trim(),
       cash_price: Number(cash),
       card_price: Number(card),
-    });
+    };
+    // 회원권·수강권에만 provides_* 포함 — 락커·운동복엔 서버 스키마에 없는 필드라 누락시켜야 함
+    if (showProvides) {
+      payload.provides_locker = providesLocker;
+      payload.provides_clothes = providesClothes;
+    }
+    onSubmit(payload);
   }
 
   return (
@@ -105,6 +124,31 @@ export function PassFormDialog({
               onChange={(e) => setCard(e.target.value)}
               error={errors.card}
             />
+            {showProvides && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                <p className="text-sm font-semibold text-gray-900">
+                  무료 제공
+                </p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  체크 시 신청자는 별도 락커·운동복 상품을 선택할 수 없고
+                  자동 포함됩니다.
+                </p>
+                <div className="mt-3 space-y-2.5">
+                  <Checkbox
+                    id="provides-locker"
+                    label="락커 무료 제공"
+                    checked={providesLocker}
+                    onChange={(e) => setProvidesLocker(e.target.checked)}
+                  />
+                  <Checkbox
+                    id="provides-clothes"
+                    label="운동복 무료 제공"
+                    checked={providesClothes}
+                    onChange={(e) => setProvidesClothes(e.target.checked)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
             <button

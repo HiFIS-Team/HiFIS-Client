@@ -6,8 +6,10 @@ import {
   BanknotesIcon,
   BoltIcon,
   BuildingOffice2Icon,
+  CheckCircleIcon,
   CreditCardIcon,
   LockClosedIcon,
+  MinusCircleIcon,
   ShoppingBagIcon,
   TicketIcon,
 } from "@heroicons/react/24/outline";
@@ -48,6 +50,24 @@ const TABS: {
   { type: "locker", label: "락커", icon: LockClosedIcon },
   { type: "clothes", label: "운동복", icon: ShoppingBagIcon },
 ];
+
+// 회원권·수강권 카드 하단의 무료 제공 칩 — on 이면 보라 배경 + 체크,
+// off 면 옅은 회색으로 한눈에 대비. 카드 내 가운데 정렬로 배치.
+function ProvidesRow({ label, on }: { label: string; on: boolean }) {
+  const Icon = on ? CheckCircleIcon : MinusCircleIcon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
+        on
+          ? "bg-violet-50 font-semibold text-primary"
+          : "bg-gray-50 text-gray-400"
+      }`}
+    >
+      <Icon className="size-4" />
+      {label}
+    </span>
+  );
+}
 
 export default function AdminPassesPage() {
   const toast = useToast();
@@ -114,9 +134,16 @@ export default function AdminPassesPage() {
   const updateMutation = useMutation({
     mutationFn: (args: { id: string; values: PassInput }) =>
       updatePass(activeType, args.id, args.values),
-    onSuccess: () => {
+    onSuccess: (updated) => {
       toast.success(`${typeLabel}${josaIGa(typeLabel)} 수정되었습니다.`);
       setFormTarget(null);
+      // invalidate 의 refetch 가 끝나기 전 사용자가 같은 카드 "수정" 을 다시
+      // 누를 수 있으므로, 서버 응답으로 캐시를 동기 갱신해 stale 값이 모달에
+      // 다시 뜨는 것을 막는다 (특히 provides_locker / provides_clothes 토글)
+      queryClient.setQueryData<Pass[]>(
+        ["admin", "passes", activeType, branchId],
+        (old) => old?.map((p) => (p.id === updated.id ? updated : p)),
+      );
       invalidate();
     },
     onError: (e) => toast.error(getErrorMessage(e)),
@@ -276,6 +303,17 @@ export default function AdminPassesPage() {
                     {userCountFor(p.id)}명
                   </span>
                 </p>
+                {/* 회원권·수강권 한정 — 락커·운동복 무료 제공 여부를 한눈에
+                    (가운데 정렬, 제공이면 보라 칩 / 미제공이면 옅은 회색 칩) */}
+                {(activeType === "membership" || activeType === "pt") && (
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2 border-t border-gray-100 pt-3">
+                    <ProvidesRow label="락커 무료 제공" on={!!p.provides_locker} />
+                    <ProvidesRow
+                      label="운동복 무료 제공"
+                      on={!!p.provides_clothes}
+                    />
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -285,6 +323,7 @@ export default function AdminPassesPage() {
       <PassFormDialog
         key={typeof formTarget === "string" ? "new" : (formTarget?.id ?? "closed")}
         open={formTarget !== null}
+        type={activeType}
         title={editing ? `${typeLabel} 수정` : `${typeLabel} 등록`}
         initial={editing}
         loading={createMutation.isPending || updateMutation.isPending}

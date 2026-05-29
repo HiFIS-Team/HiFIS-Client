@@ -46,12 +46,16 @@ export interface Enums {
 }
 
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---
+// provides_locker / provides_clothes 는 회원권·수강권에만 존재 (락커·운동복 패스 응답엔 없음).
+// true 이면 신청 시 별도 락커/운동복 선택을 차단하고 자동 포함 — 백엔드가 검증 (400).
 export interface Pass {
   id: string;
   branch_id: string;
   name: string;
   cash_price: number;
   card_price: number;
+  provides_locker?: boolean;
+  provides_clothes?: boolean;
   created_at: string;
 }
 

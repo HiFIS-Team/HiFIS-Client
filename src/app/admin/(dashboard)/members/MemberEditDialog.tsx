@@ -87,6 +87,10 @@ export function MemberEditDialog({
         form.referral_detail,
         enumsQuery.data!.referral,
       );
+      // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+      const sel = (membershipQuery.data ?? []).find(
+        (p) => p.id === form.membership_pass_id,
+      );
       return updateMember(member.id, {
         membership_pass_id: form.membership_pass_id,
         name: form.name.trim(),
@@ -100,8 +104,8 @@ export function MemberEditDialog({
         final_price: Number(form.final_price),
         start_date: form.start_date,
         end_date: form.end_date,
-        locker_pass_id: form.locker_pass_id || null,
-        clothes_pass_id: form.clothes_pass_id || null,
+        locker_pass_id: sel?.provides_locker ? null : form.locker_pass_id || null,
+        clothes_pass_id: sel?.provides_clothes ? null : form.clothes_pass_id || null,
         motivation: form.motivation,
         agreed_marketing: form.agreed_marketing,
       });
@@ -250,23 +254,70 @@ export function MemberEditDialog({
                 placeholder="선택"
                 options={passOpts(membershipQuery.data ?? [])}
                 value={form.membership_pass_id}
-                onChange={(e) => set({ membership_pass_id: e.target.value })}
+                onChange={(e) => {
+                  const next = (membershipQuery.data ?? []).find(
+                    (p) => p.id === e.target.value,
+                  );
+                  // 무료 제공 회원권으로 바꾸면 별도 선택 자동 비움
+                  set({
+                    membership_pass_id: e.target.value,
+                    ...(next?.provides_locker ? { locker_pass_id: "" } : {}),
+                    ...(next?.provides_clothes ? { clothes_pass_id: "" } : {}),
+                  });
+                }}
                 error={errors.membership_pass_id}
               />
-              <Select
-                id="e-locker"
-                label="락커 (선택)"
-                options={optional(passOpts(lockerQuery.data ?? []))}
-                value={form.locker_pass_id}
-                onChange={(e) => set({ locker_pass_id: e.target.value })}
-              />
-              <Select
-                id="e-clothes"
-                label="운동복 (선택)"
-                options={optional(passOpts(clothesQuery.data ?? []))}
-                value={form.clothes_pass_id}
-                onChange={(e) => set({ clothes_pass_id: e.target.value })}
-              />
+              {(() => {
+                const sel = (membershipQuery.data ?? []).find(
+                  (p) => p.id === form.membership_pass_id,
+                );
+                const lockerProvided = !!sel?.provides_locker;
+                const clothesProvided = !!sel?.provides_clothes;
+                return (
+                  <>
+                    <Select
+                      id="e-locker"
+                      label="락커 (선택)"
+                      options={
+                        lockerProvided
+                          ? [
+                              {
+                                value: "PROVIDED",
+                                label: "회원권에 포함 (무료 제공)",
+                              },
+                            ]
+                          : optional(passOpts(lockerQuery.data ?? []))
+                      }
+                      value={
+                        lockerProvided ? "PROVIDED" : form.locker_pass_id
+                      }
+                      onChange={(e) => set({ locker_pass_id: e.target.value })}
+                      disabled={lockerProvided}
+                    />
+                    <Select
+                      id="e-clothes"
+                      label="운동복 (선택)"
+                      options={
+                        clothesProvided
+                          ? [
+                              {
+                                value: "PROVIDED",
+                                label: "회원권에 포함 (무료 제공)",
+                              },
+                            ]
+                          : optional(passOpts(clothesQuery.data ?? []))
+                      }
+                      value={
+                        clothesProvided ? "PROVIDED" : form.clothes_pass_id
+                      }
+                      onChange={(e) =>
+                        set({ clothes_pass_id: e.target.value })
+                      }
+                      disabled={clothesProvided}
+                    />
+                  </>
+                );
+              })()}
               <DateField
                 id="e-start"
                 label="이용 시작일"
