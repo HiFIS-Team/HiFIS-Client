@@ -1,12 +1,11 @@
-// 회원권·수강권 이름에서 이용 기간을 추출 + 정렬용 일(day) 환산.
-// 백엔드 Pass 스키마에 duration 필드가 없어서 이름으로 추정한다.
-// register 폼(시작·종료일 자동 계산)과 admin 상품관리(정렬)에서 공용.
+// 회원권·수강권 이용 기간 추출 — 백엔드 `duration_months` 컬럼 우선,
+// 없으면(예: 일권·2주권) 이름에서 정규식 fallback. 정렬·자동 일자 계산·그룹화에 공용.
 
 export type PassDuration = { months: number } | { days: number };
 
-// "3개월권" → {months:3}, "1년권" → {months:12}, "7일권" → {days:7}.
-// "일권" 만 있으면 1일로 본다. 추출 못 하면 null.
-export function passDuration(name: string): PassDuration | null {
+// 이름에서 기간 토큰을 잡는다 — "3개월권" → {months:3}, "1년권" → {months:12},
+// "7일권" → {days:7}, "일권" → {days:1}.
+function durationFromName(name: string): PassDuration | null {
   const year = name.match(/(\d+)\s*년/);
   if (year) return { months: Number(year[1]) * 12 };
   const month = name.match(/(\d+)\s*개월/);
@@ -17,10 +16,24 @@ export function passDuration(name: string): PassDuration | null {
   return null;
 }
 
-// 정렬 비교용 — 일 단위 환산 (개월은 30일로 단순 환산. 정렬 순서만 정하면 되므로 충분).
-// 기간 추출 못 한 패스는 Infinity 로 뒤로 보낸다.
-export function passDurationDays(name: string): number {
-  const d = passDuration(name);
+// 백엔드 duration_months 가 있으면 그걸 사용, 없으면 이름에서 추출.
+// 호출처는 가능하면 Pass 객체를 전달 — 정확도 높아짐.
+export function passDuration(
+  name: string,
+  durationMonths?: number | null,
+): PassDuration | null {
+  if (durationMonths != null && durationMonths > 0) {
+    return { months: durationMonths };
+  }
+  return durationFromName(name);
+}
+
+// 정렬 비교용 — 일 단위 환산. 개월은 30일로 단순 환산.
+export function passDurationDays(
+  name: string,
+  durationMonths?: number | null,
+): number {
+  const d = passDuration(name, durationMonths);
   if (!d) return Number.POSITIVE_INFINITY;
   return "months" in d ? d.months * 30 : d.days;
 }
@@ -50,8 +63,8 @@ export function sortPassesForUI(arr: Pass[]): Pass[] {
     const cb = passCategoryKey(b.name);
     if (ca.sort !== cb.sort) return ca.sort - cb.sort;
     if (ca.label !== cb.label) return ca.label.localeCompare(cb.label);
-    const da = passDurationDays(a.name);
-    const db = passDurationDays(b.name);
+    const da = passDurationDays(a.name, a.duration_months);
+    const db = passDurationDays(b.name, b.duration_months);
     if (da !== db) return da - db;
     if (a.cash_price !== b.cash_price) return a.cash_price - b.cash_price;
     return a.name.localeCompare(b.name);

@@ -477,7 +477,7 @@ function MemberRenewalForm({
   // 회원권 기간 → 종료일 미세팅 시 처음 한 번 채움 (render 중 derive)
   const durationOf = (id: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === id);
-    return p ? passDuration(p.name) : null;
+    return p ? passDuration(p.name, p.duration_months) : null;
   };
   if (form.end_date === "" && form.membership_pass_id) {
     const d = durationOf(form.membership_pass_id);
@@ -525,7 +525,7 @@ function MemberRenewalForm({
         base.clothes_opt_out = false;
       }
       base.final_price = String(totalFor(base));
-      const d = next ? passDuration(next.name) : null;
+      const d = next ? passDuration(next.name, next.duration_months) : null;
       if (d == null) return base;
       const start = base.start_date || todayStr();
       return { ...base, start_date: start, end_date: applyDuration(start, d) };

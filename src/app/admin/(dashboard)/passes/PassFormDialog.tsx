@@ -37,6 +37,11 @@ export function PassFormDialog({
   const [card, setCard] = useState(
     initial ? String(initial.card_price) : "",
   );
+  // 이용 기간 (개월) — 선택. 일권·2주권 같은 예외는 비워두면 백엔드 NULL,
+  // 프론트 정렬·일자 계산은 이름에서 자동 추출.
+  const [durationMonths, setDurationMonths] = useState(
+    initial?.duration_months != null ? String(initial.duration_months) : "",
+  );
   // 회원권·수강권 전용 — 락커·운동복 무료 제공 토글.
   // 수강권 신규 등록 시 락커·운동복은 기본 무료 제공으로 켜둠 (PT 회원에게 무료 지급이 관행).
   // 기존 패스 수정 시엔 저장된 값(false 포함) 그대로 사용.
@@ -62,12 +67,26 @@ export function PassFormDialog({
       errs.cash = "현금가를 정확히 입력해 주세요.";
     if (card === "" || Number.isNaN(Number(card)) || Number(card) < 0)
       errs.card = "카드가를 정확히 입력해 주세요.";
+    // 이용 기간(개월) — PT 는 헬스권 40일 고정이라 항상 null. 그 외는 비어있으면 null,
+    // 있으면 1~120 정수.
+    if (type !== "pt" && durationMonths !== "") {
+      const n = Number(durationMonths);
+      if (!Number.isInteger(n) || n < 1 || n > 120) {
+        errs.duration = "이용 기간은 1~120 개월 정수로 입력해 주세요.";
+      }
+    }
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     const payload: PassInput = {
       name: name.trim(),
       cash_price: Number(cash),
       card_price: Number(card),
+      duration_months:
+        type === "pt"
+          ? null
+          : durationMonths === ""
+            ? null
+            : Number(durationMonths),
     };
     // 회원권·수강권에만 provides_* 포함 — 락커·운동복엔 서버 스키마에 없는 필드라 누락시켜야 함
     if (showProvides) {
@@ -122,6 +141,29 @@ export function PassFormDialog({
               onChange={(next) => setCard(next)}
               error={errors.card}
             />
+            {/* PT 수강권은 헬스권 40일 고정 — 폼에서 받지 않음 */}
+            {type === "pt" ? (
+              <div>
+                <p className="text-sm/6 font-medium text-gray-900">이용 기간</p>
+                <div className="mt-2 rounded-md bg-gray-100 px-3 py-2.5 text-base text-gray-600">
+                  40일 (고정)
+                </div>
+                <p className="mt-1.5 text-sm text-gray-500">
+                  PT 수강권은 헬스권 40일이 자동 제공돼요.
+                </p>
+              </div>
+            ) : (
+              <NumberField
+                id="pass-duration"
+                label="이용 기간"
+                unit="개월"
+                placeholder="예: 3"
+                value={durationMonths}
+                onChange={(next) => setDurationMonths(next)}
+                error={errors.duration}
+                hint="비워두면 신청서가 상품명에서 자동 추출해요 (예: '7일권', 'VIP 1년권')."
+              />
+            )}
             {showProvides && (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                 <p className="text-sm font-semibold text-gray-900">

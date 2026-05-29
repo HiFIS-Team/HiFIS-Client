@@ -212,7 +212,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
   // 선택된 회원권의 이용 기간 (이름에서 추출, 없으면 null) — months 또는 days
   const durationOf = (passId: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === passId);
-    return p ? passDuration(p.name) : null;
+    return p ? passDuration(p.name, p.duration_months) : null;
   };
   // 선택된 회원권 — 락커·운동복 무료 제공 여부 판단용
   const selectedMembership = membershipPasses.find(
