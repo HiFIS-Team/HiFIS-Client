@@ -36,12 +36,15 @@ export function PassFormDialog({
   const [card, setCard] = useState(
     initial ? String(initial.card_price) : "",
   );
-  // 회원권·수강권 전용 — 락커·운동복 무료 제공 토글
+  // 회원권·수강권 전용 — 락커·운동복 무료 제공 토글.
+  // 수강권 신규 등록 시 락커·운동복은 기본 무료 제공으로 켜둠 (PT 회원에게 무료 지급이 관행).
+  // 기존 패스 수정 시엔 저장된 값(false 포함) 그대로 사용.
+  const ptDefault = type === "pt";
   const [providesLocker, setProvidesLocker] = useState(
-    initial?.provides_locker ?? false,
+    initial?.provides_locker ?? ptDefault,
   );
   const [providesClothes, setProvidesClothes] = useState(
-    initial?.provides_clothes ?? false,
+    initial?.provides_clothes ?? ptDefault,
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEscapeKey(onCancel, open);
