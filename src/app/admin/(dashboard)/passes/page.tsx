@@ -1,15 +1,13 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState, type ComponentType } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import {
   BanknotesIcon,
   BoltIcon,
   BuildingOffice2Icon,
-  CheckCircleIcon,
   CreditCardIcon,
   LockClosedIcon,
-  MinusCircleIcon,
   ShoppingBagIcon,
   TicketIcon,
 } from "@heroicons/react/24/outline";
@@ -52,20 +50,22 @@ const TABS: {
   { type: "clothes", label: "운동복", icon: ShoppingBagIcon },
 ];
 
-// 회원권·수강권 카드 하단의 무료 제공 칩 — on 이면 보라 배경 + 체크,
-// off 면 옅은 회색으로 한눈에 대비. 카드 내 가운데 정렬로 배치.
-function ProvidesRow({ label, on }: { label: string; on: boolean }) {
-  const Icon = on ? CheckCircleIcon : MinusCircleIcon;
+// 카드 하단 정보 칩 — 이용자 수·기간·락커/운동복 제공 모두 같은 디자인.
+// accent 면 보라(활성 옵션), 아니면 회색(메타).
+function Chip({
+  children,
+  accent = false,
+}: {
+  children: ReactNode;
+  accent?: boolean;
+}) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
-        on
-          ? "bg-violet-50 font-semibold text-primary"
-          : "bg-gray-50 text-gray-400"
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+        accent ? "bg-violet-50 text-primary" : "bg-gray-50 text-gray-600"
       }`}
     >
-      <Icon className="size-4" />
-      {label}
+      {children}
     </span>
   );
 }
@@ -301,26 +301,19 @@ export default function AdminPassesPage() {
                     </p>
                   </div>
                 </div>
-                {/* 이용자 수 + (회원권·수강권 한정) 락커·운동복 무료 제공 칩
-                    한 줄에 — 좌측 이용자 수, 우측에 무료 제공 칩 두 개 */}
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm text-gray-500">
-                    이용자{" "}
-                    <span className="font-semibold text-gray-900">
-                      {userCountFor(p.id)}명
-                    </span>
-                  </p>
-                  {(activeType === "membership" || activeType === "pt") && (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <ProvidesRow
-                        label="락커 무료 제공"
-                        on={!!p.provides_locker}
-                      />
-                      <ProvidesRow
-                        label="운동복 무료 제공"
-                        on={!!p.provides_clothes}
-                      />
-                    </div>
+                {/* 카드 하단 정보 칩 — 같은 디자인의 chip 들을 가운데 정렬로 한 줄에.
+                    이용자 N명 · N개월 · 락커 제공 · 운동복 제공.
+                    개월은 안 받은 패스(null)도 표시상 "0개월" — 신청서 계산엔 무관
+                    (passDuration 헬퍼가 null 이면 이름에서 추출하던 fallback 그대로).
+                    제공 칩은 off 면 회색, 자기 자신 종류(락커 카드의 "락커 제공") 는 숨김. */}
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+                  <Chip>이용자 {userCountFor(p.id)}명</Chip>
+                  <Chip>{p.duration_months ?? 0}개월</Chip>
+                  {activeType !== "locker" && (
+                    <Chip accent={!!p.provides_locker}>락커 제공</Chip>
+                  )}
+                  {activeType !== "clothes" && (
+                    <Chip accent={!!p.provides_clothes}>운동복 제공</Chip>
                   )}
                 </div>
               </article>
