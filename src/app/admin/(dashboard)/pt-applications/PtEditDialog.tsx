@@ -25,11 +25,18 @@ function todayStr(): string {
 function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
+// 둘 다 무료 제공이면 "락커, 운동복 무료 제공" 한 덩어리로 — 라벨이 길어서 잘리는 거 방지
 function passOpts(arr: Pass[]): SelectOption[] {
-  return arr.map((p) => ({
-    value: p.id,
-    label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
-  }));
+  return arr.map((p) => {
+    const items: string[] = [];
+    if (p.provides_locker) items.push("락커");
+    if (p.provides_clothes) items.push("운동복");
+    const tail = items.length > 0 ? ` · ${items.join(", ")} 무료 제공` : "";
+    return {
+      value: p.id,
+      label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원${tail}`,
+    };
+  });
 }
 
 // PT 신청 정보 수정 모달. 부모가 app 이 있을 때만 key={app.id} 로 렌더.
