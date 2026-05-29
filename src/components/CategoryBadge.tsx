@@ -6,6 +6,13 @@ export const CATEGORY_META: Record<string, { label: string; cls: string }> = {
   EXISTING: { label: "기존", cls: "bg-blue-100 text-blue-700" },
 };
 
+// 회원·PT 조회의 구분 필터 옵션 (전체 + 신규/기존)
+export const CATEGORY_FILTERS: { value: string; label: string }[] = [
+  { value: "", label: "전체 구분" },
+  { value: "NEW", label: "신규" },
+  { value: "EXISTING", label: "기존" },
+];
+
 export function CategoryBadge({ category }: { category: string }) {
   const meta = CATEGORY_META[category] ?? {
     label: category,
