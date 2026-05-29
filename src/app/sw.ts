@@ -34,15 +34,21 @@ interface PushPayload {
   source_id?: string;
 }
 
-// source_type → 어드민 경로 (notifications.ts 의 notificationLink 와 동일 매핑)
-function pathForSource(sourceType?: string): string {
+// source_type → 어드민 경로 (notifications.ts 의 notificationLink 와 동일 매핑).
+// 회원·PT 알림은 source_id 까지 받아 ?detail= 쿼리로 list 페이지가 상세 다이얼로그를
+// 자동으로 열게 한다. (예약·FC가입은 상세 다이얼로그 없음 → list 만)
+function pathForSource(sourceType?: string, sourceId?: string): string {
   switch (sourceType) {
     case "RESERVATION":
       return "/admin/reservations";
     case "MEMBER":
-      return "/admin/members";
+      return sourceId
+        ? `/admin/members?detail=${encodeURIComponent(sourceId)}`
+        : "/admin/members";
     case "PT_APPLICATION":
-      return "/admin/pt-applications";
+      return sourceId
+        ? `/admin/pt-applications?detail=${encodeURIComponent(sourceId)}`
+        : "/admin/pt-applications";
     case "FC_SIGNUP":
       return "/admin/admins";
     default:
@@ -59,7 +65,7 @@ self.addEventListener("push", (event) => {
     // 비-JSON 페이로드는 무시 (예방적)
     return;
   }
-  const url = pathForSource(payload.source_type);
+  const url = pathForSource(payload.source_type, payload.source_id);
   event.waitUntil(
     (async () => {
       await self.registration.showNotification(payload.title, {

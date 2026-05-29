@@ -124,7 +124,14 @@ export function NotificationBell() {
     setOpen(false);
     if (!n.is_read) markReadMutation.mutate(n.id);
     const link = notificationLink(n.source_type);
-    if (link) router.push(link);
+    if (!link) return;
+    // 회원·PT 는 상세 다이얼로그가 있어 ?detail=<id> 로 자동 오픈 (sw.ts 와 동일 규칙)
+    const withDetail =
+      n.source_id &&
+      (n.source_type === "MEMBER" || n.source_type === "PT_APPLICATION")
+        ? `${link}?detail=${encodeURIComponent(n.source_id)}`
+        : link;
+    router.push(withDetail);
   }
 
   // 외부 클릭 감지 — fixed 백드롭은 부모(Sidebar)의 transform 때문에 viewport 밖

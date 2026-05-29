@@ -2,6 +2,7 @@
 
 import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BuildingOffice2Icon,
   FunnelIcon,
@@ -16,7 +17,7 @@ import {
 } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
-import { deleteMember, getAdminMembers } from "@/lib/api/members";
+import { deleteMember, getAdminMember, getAdminMembers } from "@/lib/api/members";
 import { cancelHold } from "@/lib/api/holds";
 import { getMembershipPasses } from "@/lib/api/passes";
 import { getErrorMessage } from "@/lib/api/client";
@@ -39,11 +40,43 @@ import { MemberEditDialog } from "./MemberEditDialog";
 export default function AdminMembersPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // 푸시 알림 클릭 → /admin/members?detail=<id> 로 진입한 경우 단건 fetch → 상세 다이얼로그 자동 오픈
+  const detailId = searchParams.get("detail");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
   const [editTarget, setEditTarget] = useState<Member | null>(null);
   const [viewTarget, setViewTarget] = useState<Member | null>(null);
   const [holdTarget, setHoldTarget] = useState<Member | null>(null);
   const [cancelHoldTarget, setCancelHoldTarget] = useState<Member | null>(null);
+
+  const detailQuery = useQuery({
+    queryKey: ["admin", "members", "detail", detailId],
+    queryFn: () => getAdminMember(detailId!),
+    enabled: !!detailId,
+    retry: false,
+  });
+  // detail fetch 성공 → viewTarget 으로 다이얼로그 자동 오픈
+  useEffect(() => {
+    if (detailQuery.data && detailQuery.data.id === detailId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setViewTarget(detailQuery.data);
+    }
+  }, [detailQuery.data, detailId]);
+  // 실패 (404·권한 등) → 안내 + URL 정리
+  useEffect(() => {
+    if (detailQuery.isError && detailId) {
+      toast.error("해당 회원을 찾을 수 없습니다.");
+      router.replace(pathname);
+    }
+  }, [detailQuery.isError, detailId, toast, router, pathname]);
+
+  // 상세 다이얼로그 닫기 — URL 의 ?detail 도 함께 제거해야 effect 재진입 방지
+  function closeView() {
+    setViewTarget(null);
+    if (detailId) router.replace(pathname);
+  }
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -345,7 +378,7 @@ export default function AdminMembersPage() {
         <MemberDetailDialog
           key={viewTarget.id}
           member={viewTarget}
-          onClose={() => setViewTarget(null)}
+          onClose={closeView}
         />
       )}
 

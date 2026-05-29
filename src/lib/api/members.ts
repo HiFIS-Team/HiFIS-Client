@@ -29,6 +29,11 @@ export function getAdminMembers(opts: {
   });
 }
 
+// GET /admin/members/{id} — 회원 1건 조회 (알림 클릭으로 상세 다이얼로그 자동 오픈에 사용)
+export function getAdminMember(id: string): Promise<Member> {
+  return apiFetch<Member>(`/admin/members/${id}`, { auth: true });
+}
+
 // DELETE /admin/members/{id} — 회원 삭제 (관리자)
 export function deleteMember(id: string): Promise<void> {
   return apiFetch<void>(`/admin/members/${id}`, {

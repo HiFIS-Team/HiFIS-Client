@@ -38,6 +38,13 @@ export function getAdminPtApplications(opts: {
   );
 }
 
+// GET /admin/pt-applications/{id} — PT 신청 1건 조회 (알림 클릭 자동 상세 오픈)
+export function getAdminPtApplication(id: string): Promise<PTApplication> {
+  return apiFetch<PTApplication>(`/admin/pt-applications/${id}`, {
+    auth: true,
+  });
+}
+
 // DELETE /admin/pt-applications/{id} — PT 신청 삭제 (관리자)
 export function deletePtApplication(id: string): Promise<void> {
   return apiFetch<void>(`/admin/pt-applications/${id}`, {
