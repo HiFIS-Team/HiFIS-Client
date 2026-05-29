@@ -33,6 +33,7 @@ import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
+import { passDuration, type PassDuration } from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
@@ -40,21 +41,7 @@ function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
 
-// 회원권 이름에서 이용 기간 추출.
-// "3개월권"→{months:3}, "1년권"→{months:12}, "7일권"→{days:7}, "일권"→{days:1}.
-// 백엔드 Pass 에 기간 필드가 없어 이름으로 추정 — 추후 duration 필드가 생기면 그걸 사용할 것.
-type PassDuration = { months: number } | { days: number };
-function passDuration(name: string): PassDuration | null {
-  const year = name.match(/(\d+)\s*년/);
-  if (year) return { months: Number(year[1]) * 12 };
-  const month = name.match(/(\d+)\s*개월/);
-  if (month) return { months: Number(month[1]) };
-  const day = name.match(/(\d+)\s*일/);
-  if (day) return { days: Number(day[1]) };
-  // 숫자 없이 "일권"만 있으면 1일로 본다.
-  if (/일\s*권/.test(name)) return { days: 1 };
-  return null;
-}
+// passDuration / PassDuration 은 @/lib/passDuration 공용 모듈에서 import (admin 상품관리와 공유).
 
 // YYYY-MM-DD 에 개월 수를 더한다 (말일 초과 시 해당 월 말일로 보정).
 function addMonths(dateStr: string, months: number): string {

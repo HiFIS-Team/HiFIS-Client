@@ -38,6 +38,7 @@ import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
 import { formatWon, josaEulReul, josaIGa } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
+import { passDurationDays } from "@/lib/passDuration";
 import { PassFormDialog } from "./PassFormDialog";
 
 const TABS: {
@@ -159,7 +160,26 @@ export default function AdminPassesPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
-  const passes = passesQuery.data ?? [];
+  // 표시 정렬:
+  //  - 회원권·수강권: 이용 기간 오름차순 (이름에서 추출), 같은 기간이면 현금가 오름차순
+  //  - 락커·운동복:   현금가 오름차순, 동가면 이름순
+  // (백엔드는 created_at 순으로 내려 등록 시점이 섞이면 보기 어려움)
+  const passes = (() => {
+    const raw = passesQuery.data ?? [];
+    if (activeType === "membership" || activeType === "pt") {
+      return raw.slice().sort((a, b) => {
+        const da = passDurationDays(a.name);
+        const db = passDurationDays(b.name);
+        if (da !== db) return da - db;
+        if (a.cash_price !== b.cash_price) return a.cash_price - b.cash_price;
+        return a.name.localeCompare(b.name);
+      });
+    }
+    return raw.slice().sort((a, b) => {
+      if (a.cash_price !== b.cash_price) return a.cash_price - b.cash_price;
+      return a.name.localeCompare(b.name);
+    });
+  })();
   const editing = formTarget && formTarget !== "new" ? formTarget : null;
 
   // 현재 활성 탭의 상품을 회원/PT 신청 중 몇 건이 선택했는지 — summary 에서 직접 조회
