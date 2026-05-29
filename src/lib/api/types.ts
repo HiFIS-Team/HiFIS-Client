@@ -121,6 +121,26 @@ export interface Member {
   created_at: string;
 }
 
+// POST /members/re-register — 재등록 (공개).
+// branch_id+name+phone 으로 기존 회원을 식별하고 새 회원권·결제 정보로 갱신한다.
+// 기본 개인정보(성별/생일/주소/유입경로/방문목적)는 그대로 유지 → 폼에서 받지 않음.
+// agreed_marketing 은 null 이면 기존 값 유지, true/false 면 갱신.
+export interface MemberReRegister {
+  branch_id: string;
+  name: string;
+  phone: string;
+  membership_pass_id: string;
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
+  payment_method: string;
+  // 이번 결제 금액 — 서버 측에서 기존 final_price 에 누적됨
+  final_price: number;
+  start_date: string;
+  end_date: string;
+  // null = 기존 값 유지, true/false = 새로 설정
+  agreed_marketing: boolean | null;
+}
+
 // PATCH /admin/members/{id} 요청 (수정 — 폼에서 전체 필드 전송)
 export interface MemberUpdate {
   membership_pass_id: string;

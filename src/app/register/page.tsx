@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowPathIcon,
   BoltIcon,
   ExclamationTriangleIcon,
   MapPinIcon,
@@ -74,6 +75,12 @@ function RegisterEntry() {
           icon={BoltIcon}
           title="PT 신청서"
           desc="개인 레슨(PT) 등록"
+        />
+        <Choice
+          href={`/register/renewal?branch_id=${branchId}`}
+          icon={ArrowPathIcon}
+          title="재등록 신청서"
+          desc="기존 회원의 회원권 재등록"
         />
       </div>
     </main>
