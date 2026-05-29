@@ -37,6 +37,7 @@ import { TermsDialog } from "@/components/TermsDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
+import { sortPassesForUI } from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
@@ -60,10 +61,10 @@ function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
 
-// 상품 목록 → Select 옵션.
-// label = 상품명 (메인), description = 가격 (옵션 list 안에서 작은 글씨), meta = 무료 제공 태그 (우측 회색).
+// 상품 목록 → Select 옵션. 카테고리(일반·학생·제휴 등) → 기간 → 가격 순으로 정렬.
+// label = 상품명, description = 가격, meta = 무료 제공 태그.
 function passOpts(arr: Pass[]): SelectOption[] {
-  return arr.map((p) => {
+  return sortPassesForUI(arr).map((p) => {
     const items: string[] = [];
     if (p.provides_locker) items.push("락커");
     if (p.provides_clothes) items.push("운동복");

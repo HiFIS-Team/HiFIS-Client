@@ -38,7 +38,7 @@ import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
 import { formatWon, josaEulReul, josaIGa } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
-import { passDurationDays } from "@/lib/passDuration";
+import { sortPassesForUI } from "@/lib/passDuration";
 import { PassFormDialog } from "./PassFormDialog";
 
 const TABS: {
@@ -161,19 +161,13 @@ export default function AdminPassesPage() {
   });
 
   // 표시 정렬:
-  //  - 회원권·수강권: 이용 기간 오름차순 (이름에서 추출), 같은 기간이면 현금가 오름차순
+  //  - 회원권·수강권: 카테고리(일반·학생·제휴 등) → 기간 → 가격 → 이름 (sortPassesForUI)
+  //    같은 카테고리(예: "학생")끼리 묶이고, 그 안에서 기간 오름차순으로 보임
   //  - 락커·운동복:   현금가 오름차순, 동가면 이름순
-  // (백엔드는 created_at 순으로 내려 등록 시점이 섞이면 보기 어려움)
   const passes = (() => {
     const raw = passesQuery.data ?? [];
     if (activeType === "membership" || activeType === "pt") {
-      return raw.slice().sort((a, b) => {
-        const da = passDurationDays(a.name);
-        const db = passDurationDays(b.name);
-        if (da !== db) return da - db;
-        if (a.cash_price !== b.cash_price) return a.cash_price - b.cash_price;
-        return a.name.localeCompare(b.name);
-      });
+      return sortPassesForUI(raw);
     }
     return raw.slice().sort((a, b) => {
       if (a.cash_price !== b.cash_price) return a.cash_price - b.cash_price;

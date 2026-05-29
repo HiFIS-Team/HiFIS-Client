@@ -16,6 +16,7 @@ import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
 import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
+import { sortPassesForUI } from "@/lib/passDuration";
 import { Textarea } from "@/components/Textarea";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -26,9 +27,10 @@ function todayStr(): string {
 function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
-// label = 상품명, description = 가격 (옵션 list 안에서만 노출), meta = 무료 제공 태그 (우측 회색).
+// 카테고리(일반·학생·제휴 등) → 기간 → 가격 순으로 정렬.
+// label = 상품명, description = 가격, meta = 무료 제공 태그.
 function passOpts(arr: Pass[]): SelectOption[] {
-  return arr.map((p) => {
+  return sortPassesForUI(arr).map((p) => {
     const items: string[] = [];
     if (p.provides_locker) items.push("락커");
     if (p.provides_clothes) items.push("운동복");
