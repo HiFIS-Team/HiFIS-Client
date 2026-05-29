@@ -169,7 +169,7 @@ export default function AdminPassesPage() {
               value: b.id,
               label: b.name,
             }))}
-            value={selectedBranch}
+            value={branchId}
             onChange={(e) => setSelectedBranch(e.target.value)}
           />
         </div>

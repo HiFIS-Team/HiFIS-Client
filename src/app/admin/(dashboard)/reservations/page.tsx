@@ -20,7 +20,7 @@ import { Select } from "@/components/Select";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { Pagination } from "@/components/Pagination";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 40;
 import { formatDate, formatPhone } from "@/lib/format";
 import type { Reservation } from "@/lib/api/types";
 

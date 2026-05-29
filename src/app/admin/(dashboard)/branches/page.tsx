@@ -117,10 +117,12 @@ export default function AdminBranchesPage() {
   });
 
   // 전체 요약 (상단 배지용) + 지점별 요약 (카드용) — 모두 /admin/dashboard/summary 사용
+  // staleTime 0: 신청 등 변동 즉시 반영
   const overallSummaryQuery = useQuery({
     queryKey: ["admin", "dashboard-summary", "all"],
     queryFn: () => getDashboardSummary(),
     enabled: isSuper,
+    staleTime: 0,
   });
   const branches = branchesQuery.data ?? [];
   // 지점별 summary — useQueries 로 병렬 호출
@@ -129,6 +131,7 @@ export default function AdminBranchesPage() {
       queryKey: ["admin", "dashboard-summary", b.id],
       queryFn: () => getDashboardSummary(b.id),
       enabled: isSuper,
+      staleTime: 0,
     })),
   });
 

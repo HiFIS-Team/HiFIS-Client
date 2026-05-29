@@ -18,7 +18,7 @@ import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { Pagination } from "@/components/Pagination";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 40;
 import { formatDateTime, formatPhone } from "@/lib/format";
 import type { Message } from "@/lib/api/types";
 import { MessageDetailDialog } from "./MessageDetailDialog";

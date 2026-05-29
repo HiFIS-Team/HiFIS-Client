@@ -31,7 +31,7 @@ import { Pagination } from "@/components/Pagination";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { Member } from "@/lib/api/types";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 40;
 import { HoldDialog } from "../HoldDialog";
 import { MemberDetailDialog } from "./MemberDetailDialog";
 import { MemberEditDialog } from "./MemberEditDialog";
