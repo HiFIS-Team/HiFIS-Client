@@ -28,6 +28,7 @@ import type { EnumOption, Pass } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
+import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
@@ -482,16 +483,13 @@ export function PtForm({ branchId }: { branchId: string }) {
             onChange={(e) => setWithPrice({ payment_method: e.target.value })}
             error={errors.payment_method}
           />
-          <TextField
+          <NumberField
             id="final-price"
-            label="최종 결제 금액 (원)"
+            label="최종 결제 금액"
             required
-            type="number"
-            inputMode="numeric"
-            min={0}
             placeholder="0"
             value={form.final_price}
-            onChange={(e) => set({ final_price: e.target.value })}
+            onChange={(next) => set({ final_price: next })}
             error={errors.final_price}
             hint="수강권·결제수단을 선택하면 자동 계산돼요. 할인이 있으면 직접 수정하세요."
           />

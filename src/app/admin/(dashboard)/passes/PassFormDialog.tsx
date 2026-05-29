@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { TextField } from "@/components/TextField";
+import { NumberField } from "@/components/NumberField";
 import { Checkbox } from "@/components/Checkbox";
 import type { PassInput, PassType } from "@/lib/api/passes";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -105,26 +106,20 @@ export function PassFormDialog({
               onChange={(e) => setName(e.target.value)}
               error={errors.name}
             />
-            <TextField
+            <NumberField
               id="pass-cash"
-              label="현금가 (원)"
+              label="현금가"
               required
-              type="number"
-              inputMode="numeric"
-              min={0}
               value={cash}
-              onChange={(e) => setCash(e.target.value)}
+              onChange={(next) => setCash(next)}
               error={errors.cash}
             />
-            <TextField
+            <NumberField
               id="pass-card"
-              label="카드가 (원)"
+              label="카드가"
               required
-              type="number"
-              inputMode="numeric"
-              min={0}
               value={card}
-              onChange={(e) => setCard(e.target.value)}
+              onChange={(next) => setCard(next)}
               error={errors.card}
             />
             {showProvides && (

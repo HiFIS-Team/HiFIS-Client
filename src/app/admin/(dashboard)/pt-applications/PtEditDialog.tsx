@@ -14,6 +14,7 @@ import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
+import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
@@ -398,15 +399,12 @@ export function PtEditDialog({
                 onChange={(e) => set({ payment_method: e.target.value })}
                 error={errors.payment_method}
               />
-              <TextField
+              <NumberField
                 id="pe-price"
-                label="최종 결제 금액 (원)"
+                label="최종 결제 금액"
                 required
-                type="number"
-                inputMode="numeric"
-                min={0}
                 value={form.final_price}
-                onChange={(e) => set({ final_price: e.target.value })}
+                onChange={(next) => set({ final_price: next })}
                 error={errors.final_price}
               />
               <Select
