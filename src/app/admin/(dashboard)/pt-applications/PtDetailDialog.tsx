@@ -10,6 +10,7 @@ import {
   getPtPasses,
 } from "@/lib/api/passes";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CategoryBadge } from "@/components/CategoryBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -127,6 +128,9 @@ export function PtDetailDialog({
             </Row>
             <Row label="상태">
               <StatusBadge status={app.status} />
+            </Row>
+            <Row label="구분">
+              <CategoryBadge category={app.category} />
             </Row>
             <Row label="신청일">{formatDate(app.created_at)}</Row>
           </dl>

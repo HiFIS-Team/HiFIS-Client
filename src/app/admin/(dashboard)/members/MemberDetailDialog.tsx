@@ -10,6 +10,7 @@ import {
   getMembershipPasses,
 } from "@/lib/api/passes";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CategoryBadge } from "@/components/CategoryBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -127,6 +128,9 @@ export function MemberDetailDialog({
             </Row>
             <Row label="상태">
               <StatusBadge status={member.status} />
+            </Row>
+            <Row label="구분">
+              <CategoryBadge category={member.category} />
             </Row>
             <Row label="신청일">{formatDate(member.created_at)}</Row>
           </dl>

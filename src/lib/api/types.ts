@@ -98,6 +98,10 @@ export interface MemberCreate {
   // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
   agreed_marketing: boolean;
 }
+// NEW = 회원가입/PT 신청서로 처음 등록, EXISTING = 재등록 endpoint 거친 사람.
+// 어드민 상세 다이얼로그에서 신규/기존 배지로 노출.
+export type RegistrationCategory = "NEW" | "EXISTING";
+
 export interface Member {
   id: string;
   branch_id: string;
@@ -118,6 +122,7 @@ export interface Member {
   motivation: string;
   agreed_marketing: boolean;
   status: string;
+  category: RegistrationCategory;
   created_at: string;
 }
 
@@ -234,6 +239,7 @@ export interface PTApplication {
   notes: string | null;
   agreed_marketing: boolean;
   status: string;
+  category: RegistrationCategory;
   created_at: string;
 }
 
