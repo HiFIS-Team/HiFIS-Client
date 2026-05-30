@@ -24,7 +24,19 @@ export interface Branch {
     name: string;
     position: string;
   } | null;
+  // 지점별 알림톡 발송 토글. 전역 마스터(SystemConfig.messaging_enabled)와 AND 동작.
+  // 기본 false — 사장님이 명시적으로 켜야 발송.
+  messaging_enabled: boolean;
   created_at: string;
+}
+
+// 전역 알림톡 마스터 — GET/PATCH /admin/system-config (SUPER_ADMIN 전용)
+export interface SystemConfig {
+  messaging_enabled: boolean;
+  updated_at: string;
+}
+export interface SystemConfigUpdate {
+  messaging_enabled: boolean;
 }
 
 // --- enum 옵션 (GET /enums) ---

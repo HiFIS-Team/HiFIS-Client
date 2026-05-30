@@ -14,6 +14,8 @@ export interface BranchInput {
   naver_place_url: string | null;
   // 알림톡 발송자 admin id (선택) — null 이면 미설정
   messenger_admin_id?: string | null;
+  // 알림톡 발송 토글 (선택) — 카드에서 빠르게 끄고 켜기 위해 PATCH 전용으로도 사용
+  messaging_enabled?: boolean;
 }
 
 // GET /admin/branches — 지점 목록 (SUPER_ADMIN)
