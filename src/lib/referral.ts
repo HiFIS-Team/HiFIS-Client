@@ -8,13 +8,10 @@ import type { EnumOption } from "./api/types";
 import type { StatDetailItem } from "./api/stats";
 
 // "기타" 옵션 라벨 보강 — 신청서/수정 다이얼로그 공용.
-// 백엔드 enum 응답의 "기타" 를 "기타 (소정의 상품이 제공됩니다.)" 로 표시용 변환.
+// 백엔드 enum 응답의 "기타" 를 표시용으로 변환하는 자리.
+// (이전: "기타 (소정의 상품이 제공됩니다.)" — 실제 사은품 정책 확정 전까지 잠시 끔)
 export function referralOptions(options: EnumOption[]): EnumOption[] {
-  return options.map((o) =>
-    o.code === "OTHER"
-      ? { ...o, label: "기타 (소정의 상품이 제공됩니다.)" }
-      : o,
-  );
+  return options;
 }
 
 // 자유 입력 텍스트가 기존 enum 라벨과 매치되는지.

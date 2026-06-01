@@ -252,7 +252,12 @@ export default function AdminAdminsPage() {
                           거부
                         </RowActionButton>
                       </>
-                    ) : a.role === "FC" && a.status === "ACTIVE" ? (
+                    ) : a.role === "FC" &&
+                      (a.status === "ACTIVE" ||
+                        a.status === "PENDING_EMAIL") ? (
+                      // ACTIVE 는 정상 FC 계정 정리용,
+                      // PENDING_EMAIL 은 이메일 인증 안 끝낸 채 방치된 row 청소용
+                      // (같은 사람이 재가입하면 두 row 가 같이 떠 보임)
                       <RowActionButton
                         variant="danger"
                         onClick={() =>
