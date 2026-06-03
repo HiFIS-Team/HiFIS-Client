@@ -387,9 +387,11 @@ export default function AdminDashboardPage() {
   const isSuper = meQuery.data?.role === "SUPER_ADMIN";
 
   // 모든 집계 데이터를 한 번에 — 회원 1000건+ 운영 환경에서도 정확한 카운트.
+  // staleTime 0: 데이터 변동(신청 등) 즉시 반영하려고 페이지 진입 시 항상 새로.
   const summaryQuery = useQuery({
     queryKey: ["admin", "dashboard-summary", "all"],
     queryFn: () => getDashboardSummary(),
+    staleTime: 0,
   });
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],

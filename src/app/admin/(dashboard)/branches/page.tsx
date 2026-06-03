@@ -12,6 +12,7 @@ import {
   BoltIcon,
   BuildingOffice2Icon,
   CalendarIcon,
+  ChatBubbleLeftRightIcon,
   MapPinIcon,
   PhoneIcon,
   UsersIcon,
@@ -25,8 +26,13 @@ import {
 } from "@/lib/api/branches";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getErrorMessage } from "@/lib/api/client";
+import {
+  getSystemConfig,
+  updateSystemConfig,
+} from "@/lib/api/systemConfig";
 import { useToast } from "@/providers/ToastProvider";
 import { RowActionButton } from "@/components/RowActionButton";
+import { Switch } from "@/components/Switch";
 import { TableMessage } from "@/components/Table";
 import type { Branch } from "@/lib/api/types";
 import { BranchFormDialog } from "./BranchFormDialog";
@@ -117,10 +123,12 @@ export default function AdminBranchesPage() {
   });
 
   // 전체 요약 (상단 배지용) + 지점별 요약 (카드용) — 모두 /admin/dashboard/summary 사용
+  // staleTime 0: 신청 등 변동 즉시 반영
   const overallSummaryQuery = useQuery({
     queryKey: ["admin", "dashboard-summary", "all"],
     queryFn: () => getDashboardSummary(),
     enabled: isSuper,
+    staleTime: 0,
   });
   const branches = branchesQuery.data ?? [];
   // 지점별 summary — useQueries 로 병렬 호출
@@ -129,6 +137,7 @@ export default function AdminBranchesPage() {
       queryKey: ["admin", "dashboard-summary", b.id],
       queryFn: () => getDashboardSummary(b.id),
       enabled: isSuper,
+      staleTime: 0,
     })),
   });
 
@@ -158,6 +167,74 @@ export default function AdminBranchesPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
+  // 전역 알림톡 마스터 — 비상 정지용. 지점 토글과 AND, 끄면 모든 지점 발송 중단.
+  const systemConfigQuery = useQuery({
+    queryKey: ["admin", "system-config"],
+    queryFn: getSystemConfig,
+    enabled: isSuper,
+  });
+  const systemConfigMutation = useMutation({
+    mutationFn: (next: boolean) =>
+      updateSystemConfig({ messaging_enabled: next }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin", "system-config"], data);
+      if (data.messaging_enabled) {
+        toast.success(
+          "전역 알림톡 발송이 켜졌어요. 지점별 토글도 켜야 발송돼요.",
+        );
+        return;
+      }
+      // 전역 OFF — 켜져 있던 지점들도 자동으로 OFF (cascade).
+      // 캐시는 즉시 false 로 반영해 UI 가 안 깜빡이게, 백엔드는 병렬 PATCH.
+      const list =
+        queryClient.getQueryData<Branch[]>(["admin", "branches"]) ?? [];
+      const enabled = list.filter((b) => b.messaging_enabled);
+      queryClient.setQueryData<Branch[]>(["admin", "branches"], (old) =>
+        old?.map((b) => ({ ...b, messaging_enabled: false })),
+      );
+      if (enabled.length > 0) {
+        Promise.all(
+          enabled.map((b) =>
+            updateBranch(b.id, { messaging_enabled: false } as BranchInput)
+              // 부분 실패는 무시 — 다음 새로고침 때 서버 상태로 동기화
+              .catch(() => null),
+          ),
+        ).finally(() => {
+          queryClient.invalidateQueries({ queryKey: ["admin", "branches"] });
+        });
+      }
+      toast.success(
+        enabled.length > 0
+          ? `전역 알림톡 발송이 꺼졌어요. 켜진 지점 ${enabled.length}곳도 함께 꺼졌어요.`
+          : "전역 알림톡 발송이 꺼졌어요.",
+      );
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+
+  // 지점 카드 토글 — 한 번 클릭으로 즉시 PATCH (낙관적 업데이트는 생략, 짧은 요청이라 OK).
+  // 대상 id 를 같이 보관해서 mutation 진행 중인 지점만 비활성화.
+  const [togglingBranchId, setTogglingBranchId] = useState<string | null>(null);
+  const branchToggleMutation = useMutation({
+    mutationFn: (args: { id: string; next: boolean }) =>
+      updateBranch(args.id, { messaging_enabled: args.next } as BranchInput),
+    onSuccess: (updated) => {
+      toast.success(
+        updated.messaging_enabled
+          ? `${updated.name} 알림톡 발송이 켜졌어요.`
+          : `${updated.name} 알림톡 발송이 꺼졌어요.`,
+      );
+      // 캐시 즉시 갱신 → 폴링 안 기다리고 토글 반영
+      queryClient.setQueryData<Branch[]>(
+        ["admin", "branches"],
+        (old) =>
+          old?.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)),
+      );
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+    onSettled: () => setTogglingBranchId(null),
+  });
+
   // 권한 가드 — FC는 접근 불가
   if (meQuery.data && !isSuper) {
     return (
@@ -175,6 +252,8 @@ export default function AdminBranchesPage() {
   const totalMembers = overall?.members.total ?? 0;
   const totalPts = overall?.pt_applications.total ?? 0;
   const totalReservations = overall?.reservations.total ?? 0;
+  // 전역 마스터 ON 여부 — 지점 토글 활성/비활성 판정에 사용
+  const masterOn = !!systemConfigQuery.data?.messaging_enabled;
 
   // 지점별 카운트 — branches.map index 와 같은 순서로 들어옴
   function countsFor(idx: number): {
@@ -201,6 +280,44 @@ export default function AdminBranchesPage() {
       <p className="mt-1 text-sm text-gray-500">
         피트니스스타 지점을 등록·수정합니다.
       </p>
+
+      {/* 전역 알림톡 마스터 — 비상 정지. 끄면 모든 지점 발송이 즉시 차단됨.
+          지점별 토글과 AND 동작이라 켜져 있어도 지점 토글이 꺼지면 그 지점은 발송 X. */}
+      <section className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-5 py-4">
+        <div className="flex items-start gap-3">
+          <ChatBubbleLeftRightIcon className="size-5 shrink-0 text-primary" />
+          <div>
+            <p className="text-sm font-semibold text-gray-900">
+              전역 알림톡 발송{" "}
+              <span
+                className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
+                  systemConfigQuery.data?.messaging_enabled
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {systemConfigQuery.isLoading
+                  ? "…"
+                  : systemConfigQuery.data?.messaging_enabled
+                    ? "ON"
+                    : "OFF"}
+              </span>
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              끄면 모든 지점의 알림톡 발송이 즉시 차단돼요. (지점별 토글과 함께
+              켜져 있어야 발송)
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={!!systemConfigQuery.data?.messaging_enabled}
+          disabled={
+            systemConfigQuery.isLoading || systemConfigMutation.isPending
+          }
+          ariaLabel="전역 알림톡 발송 토글"
+          onChange={(next) => systemConfigMutation.mutate(next)}
+        />
+      </section>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -289,6 +406,31 @@ export default function AdminBranchesPage() {
                   <LinkRow label="카카오 채널" url={b.kakao_url} />
                   <LinkRow label="네이버 플레이스" url={b.naver_place_url} />
                   <MessengerRow messenger={b.messenger} />
+                  {/* 지점 알림톡 토글 — 한 번 클릭으로 PATCH.
+                      전역이 꺼져 있으면 지점 토글도 켤 수 없음 (disabled). */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">
+                      알림톡 발송
+                      {!masterOn && (
+                        <span className="ml-1.5 text-xs text-gray-400">
+                          (전역 OFF)
+                        </span>
+                      )}
+                    </span>
+                    <Switch
+                      checked={b.messaging_enabled}
+                      disabled={
+                        !masterOn ||
+                        (branchToggleMutation.isPending &&
+                          togglingBranchId === b.id)
+                      }
+                      ariaLabel={`${b.name} 알림톡 발송 토글`}
+                      onChange={(next) => {
+                        setTogglingBranchId(b.id);
+                        branchToggleMutation.mutate({ id: b.id, next });
+                      }}
+                    />
+                  </div>
                 </div>
               </article>
               );

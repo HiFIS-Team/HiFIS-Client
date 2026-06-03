@@ -28,6 +28,7 @@ import type { EnumOption, Pass } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
+import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
@@ -36,6 +37,7 @@ import { TermsDialog } from "@/components/TermsDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
+import { sortPassesForUI } from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
@@ -59,12 +61,20 @@ function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
 
-// 상품 목록 → Select 옵션 (가격을 라벨에 함께 표시)
+// 상품 목록 → Select 옵션. 카테고리(일반·학생·제휴 등) → 기간 → 가격 순으로 정렬.
+// label = 상품명, description = 가격, meta = 무료 제공 태그.
 function passOpts(arr: Pass[]): SelectOption[] {
-  return arr.map((p) => ({
-    value: p.id,
-    label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
-  }));
+  return sortPassesForUI(arr).map((p) => {
+    const items: string[] = [];
+    if (p.provides_locker) items.push("락커");
+    if (p.provides_clothes) items.push("운동복");
+    return {
+      value: p.id,
+      label: p.name,
+      description: `현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
+      meta: items.length > 0 ? `${items.join(", ")} 무료 제공` : undefined,
+    };
+  });
 }
 
 const INITIAL = {
@@ -89,6 +99,10 @@ const INITIAL = {
   agreed_notice: false,
   // 마케팅 정보 수신 동의 (선택)
   agreed_marketing: false,
+  // 수강권이 락커·운동복을 무료 제공할 때 사용자가 "선택 안 함" 으로 바꾼 경우 (UI 표시용).
+  // 제출 시점엔 어차피 null.
+  locker_opt_out: false,
+  clothes_opt_out: false,
 };
 
 type FormState = typeof INITIAL;
@@ -166,12 +180,34 @@ export function PtForm({ branchId }: { branchId: string }) {
     if (!p) return 0;
     return next.payment_method === "CARD" ? p.card_price : p.cash_price;
   }
+  // 수강권 변경 — 가격 재계산 + 무료 제공 수강권이면 별도 락커·운동복 선택과 opt-out 리셋
+  // → 기본값 "포함 (무료 제공)" 으로 자연 노출
+  const onPtPassChange = (id: string) => {
+    const next = ptPasses.find((x) => x.id === id);
+    setForm((f) => {
+      const base: FormState = { ...f, pt_pass_id: id };
+      if (next?.provides_locker) {
+        base.locker_pass_id = "";
+        base.locker_opt_out = false;
+      }
+      if (next?.provides_clothes) {
+        base.clothes_pass_id = "";
+        base.clothes_opt_out = false;
+      }
+      return { ...base, final_price: String(totalFor(base)) };
+    });
+  };
   const setWithPrice = (patch: Partial<FormState>) => {
     setForm((f) => {
       const next = { ...f, ...patch };
       return { ...next, final_price: String(totalFor(next)) };
     });
   };
+
+  // 선택된 수강권 — 락커·운동복 무료 제공 여부 판단용
+  const selectedPtPass = ptPasses.find((x) => x.id === form.pt_pass_id);
+  const lockerProvided = !!selectedPtPass?.provides_locker;
+  const clothesProvided = !!selectedPtPass?.provides_clothes;
 
   // 이용 시작일 변경 — 종료일은 항상 시작일 + 40일 (PT 헬스권 기간 고정)
   const onStartDateChange = (value: string) => {
@@ -239,8 +275,9 @@ export function PtForm({ branchId }: { branchId: string }) {
     mutation.mutate({
       branch_id: branchId,
       pt_pass_id: form.pt_pass_id,
-      locker_pass_id: form.locker_pass_id || null,
-      clothes_pass_id: form.clothes_pass_id || null,
+      // 수강권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
       name: form.name.trim(),
       gender: form.gender,
       birth_date: form.birth_date,
@@ -345,45 +382,74 @@ export function PtForm({ branchId }: { branchId: string }) {
             placeholder="선택해 주세요"
             options={passOpts(ptPasses)}
             value={form.pt_pass_id}
-            onChange={(e) => setWithPrice({ pt_pass_id: e.target.value })}
+            onChange={(e) => onPtPassChange(e.target.value)}
             error={errors.pt_pass_id}
           />
-          {/* 락커·운동복은 PT 회원에게 무료 제공 — 신청 여부만 yes/no.
-              내부적으로는 첫 번째 무료(0원) 패스 UUID 를 전달.
-              무료 패스가 등록 안 된 지점은 필드 자체를 숨김. */}
-          {lockerPasses[0] && (
+          {/* 락커·운동복 — 수강권이 무료 제공이면 "포함(기본)" / "선택 안 함" 두 옵션 (잠금 X),
+              아니면 기존 yes/no 토글 (지점에 0원 무료 패스가 등록된 경우만 노출). */}
+          {lockerProvided ? (
             <Select
               id="locker-pass"
-              label="락커 (무료 제공)"
+              label="락커 (선택)"
               options={[
-                { value: "NO", label: "신청 안 함" },
-                { value: "YES", label: "신청 (무료 제공)" },
+                { value: "PROVIDED", label: "수강권에 포함 (무료 제공)" },
+                { value: "OPT_OUT", label: "선택 안 함" },
               ]}
-              value={form.locker_pass_id ? "YES" : "NO"}
+              value={form.locker_opt_out ? "OPT_OUT" : "PROVIDED"}
               onChange={(e) =>
-                set({
-                  locker_pass_id:
-                    e.target.value === "YES" ? lockerPasses[0].id : "",
-                })
+                set({ locker_opt_out: e.target.value === "OPT_OUT" })
               }
             />
+          ) : (
+            lockerPasses[0] && (
+              <Select
+                id="locker-pass"
+                label="락커 (무료 제공)"
+                options={[
+                  { value: "NO", label: "신청 안 함" },
+                  { value: "YES", label: "신청 (무료 제공)" },
+                ]}
+                value={form.locker_pass_id ? "YES" : "NO"}
+                onChange={(e) =>
+                  set({
+                    locker_pass_id:
+                      e.target.value === "YES" ? lockerPasses[0].id : "",
+                  })
+                }
+              />
+            )
           )}
-          {clothesPasses[0] && (
+          {clothesProvided ? (
             <Select
               id="clothes-pass"
-              label="운동복 (무료 제공)"
+              label="운동복 (선택)"
               options={[
-                { value: "NO", label: "신청 안 함" },
-                { value: "YES", label: "신청 (무료 제공)" },
+                { value: "PROVIDED", label: "수강권에 포함 (무료 제공)" },
+                { value: "OPT_OUT", label: "선택 안 함" },
               ]}
-              value={form.clothes_pass_id ? "YES" : "NO"}
+              value={form.clothes_opt_out ? "OPT_OUT" : "PROVIDED"}
               onChange={(e) =>
-                set({
-                  clothes_pass_id:
-                    e.target.value === "YES" ? clothesPasses[0].id : "",
-                })
+                set({ clothes_opt_out: e.target.value === "OPT_OUT" })
               }
             />
+          ) : (
+            clothesPasses[0] && (
+              <Select
+                id="clothes-pass"
+                label="운동복 (무료 제공)"
+                options={[
+                  { value: "NO", label: "신청 안 함" },
+                  { value: "YES", label: "신청 (무료 제공)" },
+                ]}
+                value={form.clothes_pass_id ? "YES" : "NO"}
+                onChange={(e) =>
+                  set({
+                    clothes_pass_id:
+                      e.target.value === "YES" ? clothesPasses[0].id : "",
+                  })
+                }
+              />
+            )
           )}
           <DateField
             id="start-date"
@@ -418,16 +484,13 @@ export function PtForm({ branchId }: { branchId: string }) {
             onChange={(e) => setWithPrice({ payment_method: e.target.value })}
             error={errors.payment_method}
           />
-          <TextField
+          <NumberField
             id="final-price"
-            label="최종 결제 금액 (원)"
+            label="최종 결제 금액"
             required
-            type="number"
-            inputMode="numeric"
-            min={0}
             placeholder="0"
             value={form.final_price}
-            onChange={(e) => set({ final_price: e.target.value })}
+            onChange={(next) => set({ final_price: next })}
             error={errors.final_price}
             hint="수강권·결제수단을 선택하면 자동 계산돼요. 할인이 있으면 직접 수정하세요."
           />

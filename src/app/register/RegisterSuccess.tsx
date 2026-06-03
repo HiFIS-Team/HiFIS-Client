@@ -2,7 +2,7 @@
 
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
-// 신청 접수 완료 화면 — 회원가입 / PT 공통.
+// 신청 접수 완료 화면 — 회원가입 / PT / 재등록 공통.
 // (이전 키오스크 흐름의 자동 리다이렉트 제거 — 폰에선 본인이 직접 닫음)
 export function RegisterSuccess({
   title,
@@ -13,14 +13,6 @@ export function RegisterSuccess({
 }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6 py-10 text-center">
-      {/* 브랜드 마크 (성공 피드백은 아래 CheckCircle 이 담당) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/icons/logo.png"
-        alt=""
-        aria-hidden="true"
-        className="mb-6 size-10"
-      />
       <div className="flex size-24 items-center justify-center rounded-full bg-violet-50 text-primary">
         <CheckCircleIcon className="size-14" />
       </div>

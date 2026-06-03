@@ -37,6 +37,11 @@ export interface PassInput {
   name: string;
   cash_price: number;
   card_price: number;
+  // 이용 기간(개월). 1~120 정수 또는 null. 일권·2주권 같은 예외는 null 로 두고 이름에서 추출.
+  duration_months?: number | null;
+  // 회원권·수강권에만 사용 — 락커·운동복 등록·수정 시엔 payload 에 포함하지 말 것.
+  provides_locker?: boolean;
+  provides_clothes?: boolean;
 }
 
 // GET /admin/{type}-passes?branch_id= — 지점별 상품 목록 (관리자)

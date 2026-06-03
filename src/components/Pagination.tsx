@@ -19,6 +19,14 @@ export function Pagination({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   if (totalPages <= 1) return null;
 
+  function change(next: number) {
+    onPageChange(next);
+    // 페이지 이동 시 맨 위로 — 새 데이터 보러 다시 스크롤 안 올리도록
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   const canPrev = page > 1;
   const canNext = page < totalPages;
   const fromIdx = (page - 1) * pageSize + 1;
@@ -39,7 +47,7 @@ export function Pagination({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          onClick={() => onPageChange(page - 1)}
+          onClick={() => change(page - 1)}
           disabled={!canPrev}
           aria-label="이전 페이지"
           className="flex size-9 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
@@ -53,7 +61,7 @@ export function Pagination({
         </span>
         <button
           type="button"
-          onClick={() => onPageChange(page + 1)}
+          onClick={() => change(page + 1)}
           disabled={!canNext}
           aria-label="다음 페이지"
           className="flex size-9 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"

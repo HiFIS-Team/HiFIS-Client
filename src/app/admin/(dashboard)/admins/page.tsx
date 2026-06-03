@@ -18,8 +18,15 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
-import { adminRoleLabel, formatDate } from "@/lib/format";
+import { adminRoleLabel, formatDate, timeAgo } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
+
+// 대표(SUPER_ADMIN) 표시 순서 — 운영진 우선순위. 목록에 없는 이름은 뒤로.
+const SUPER_ADMIN_ORDER = ["이준경", "이준승", "문명진", "김은후"];
+function superAdminRank(name: string): number {
+  const idx = SUPER_ADMIN_ORDER.indexOf(name);
+  return idx === -1 ? SUPER_ADMIN_ORDER.length : idx;
+}
 
 // 관리자 계정 상태 배지
 function AdminStatusBadge({ status }: { status: string }) {
@@ -118,7 +125,11 @@ export default function AdminAdminsPage() {
     id ? (branchesQuery.data?.find((b) => b.id === id)?.name ?? "-") : "-";
   const admins = adminsQuery.data ?? [];
   // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
-  // 정렬 — 대표는 항상 맨 위, FC 는 가입(created_at) 오름차순
+  // 정렬 규칙:
+  //   1) 대표(SUPER_ADMIN) 가 항상 맨 위
+  //   2) 대표끼리는 운영진 우선순위 (이준경 → 이준승 → 문명진 → 김은후),
+  //      목록에 없는 대표는 그 뒤에 created_at 순으로
+  //   3) FC 는 가입(created_at) 오름차순
   const visibleAdmins = admins
     .filter(
       (a) =>
@@ -130,7 +141,11 @@ export default function AdminAdminsPage() {
     .sort((a, b) => {
       if (a.role === "SUPER_ADMIN" && b.role !== "SUPER_ADMIN") return -1;
       if (a.role !== "SUPER_ADMIN" && b.role === "SUPER_ADMIN") return 1;
-      // 같은 role 안에서는 가입순(created_at 오름차순)
+      if (a.role === "SUPER_ADMIN" && b.role === "SUPER_ADMIN") {
+        const ra = superAdminRank(a.name);
+        const rb = superAdminRank(b.name);
+        if (ra !== rb) return ra - rb;
+      }
       return a.created_at.localeCompare(b.created_at);
     });
 
@@ -174,8 +189,35 @@ export default function AdminAdminsPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-lg font-bold text-gray-900">
+                    <h2 className="flex items-center gap-2 truncate text-lg font-bold text-gray-900">
                       {a.name}
+                      {/* 활성 계정 한정 — online 이면 녹색 "접속중", offline 이면
+                          회색으로 마지막 접속 시각 (예: "방금 전", "5분 전").
+                          last_seen_at 이 아예 없으면 칩 자체를 안 보임 (신규/대기 계정) */}
+                      {a.status === "ACTIVE" && (a.is_online || a.last_seen_at) && (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            a.is_online
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                          title={
+                            a.is_online
+                              ? "최근 5분 안에 접속 신호가 있었어요"
+                              : a.last_seen_at
+                                ? `마지막 접속: ${a.last_seen_at}`
+                                : undefined
+                          }
+                        >
+                          <span
+                            className={`size-1.5 rounded-full ${
+                              a.is_online ? "bg-green-500" : "bg-gray-400"
+                            }`}
+                            aria-hidden="true"
+                          />
+                          {a.is_online ? "접속중" : timeAgo(a.last_seen_at!)}
+                        </span>
+                      )}
                     </h2>
                     <p className="mt-0.5 text-sm text-gray-500">
                       {adminRoleLabel(a)}
@@ -210,7 +252,12 @@ export default function AdminAdminsPage() {
                           거부
                         </RowActionButton>
                       </>
-                    ) : a.role === "FC" && a.status === "ACTIVE" ? (
+                    ) : a.role === "FC" &&
+                      (a.status === "ACTIVE" ||
+                        a.status === "PENDING_EMAIL") ? (
+                      // ACTIVE 는 정상 FC 계정 정리용,
+                      // PENDING_EMAIL 은 이메일 인증 안 끝낸 채 방치된 row 청소용
+                      // (같은 사람이 재가입하면 두 row 가 같이 떠 보임)
                       <RowActionButton
                         variant="danger"
                         onClick={() =>

@@ -34,15 +34,21 @@ interface PushPayload {
   source_id?: string;
 }
 
-// source_type → 어드민 경로 (notifications.ts 의 notificationLink 와 동일 매핑)
-function pathForSource(sourceType?: string): string {
+// source_type → 어드민 경로 (notifications.ts 의 notificationLink 와 동일 매핑).
+// 회원·PT 알림은 source_id 까지 받아 ?detail= 쿼리로 list 페이지가 상세 다이얼로그를
+// 자동으로 열게 한다. (예약·FC가입은 상세 다이얼로그 없음 → list 만)
+function pathForSource(sourceType?: string, sourceId?: string): string {
   switch (sourceType) {
     case "RESERVATION":
       return "/admin/reservations";
     case "MEMBER":
-      return "/admin/members";
+      return sourceId
+        ? `/admin/members?detail=${encodeURIComponent(sourceId)}`
+        : "/admin/members";
     case "PT_APPLICATION":
-      return "/admin/pt-applications";
+      return sourceId
+        ? `/admin/pt-applications?detail=${encodeURIComponent(sourceId)}`
+        : "/admin/pt-applications";
     case "FC_SIGNUP":
       return "/admin/admins";
     default:
@@ -59,7 +65,7 @@ self.addEventListener("push", (event) => {
     // 비-JSON 페이로드는 무시 (예방적)
     return;
   }
-  const url = pathForSource(payload.source_type);
+  const url = pathForSource(payload.source_type, payload.source_id);
   event.waitUntil(
     (async () => {
       await self.registration.showNotification(payload.title, {
@@ -85,21 +91,24 @@ self.addEventListener("push", (event) => {
 });
 
 // 알림 클릭 — 해당 어드민 페이지로 이동.
-// 이미 같은 도메인 탭이 열려있으면 그 탭에 focus + 라우팅, 없으면 새 탭.
+// 이미 어드민 탭이 열려 있으면 그 탭으로 focus + postMessage 로 url 을 넘긴다.
+// (WindowClient.navigate 는 같은 path 에 query 만 다른 경우 SPA 라우팅을 보장 못 해
+//  ?detail=<id> 같은 query 변화로 다이얼로그 자동 오픈이 안 떴음. 클라이언트에서
+//  next/navigation router.push 로 라우팅하면 useSearchParams 가 정확히 감지)
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data as { url?: string } | null)?.url ?? "/admin";
+  const url =
+    (event.notification.data as { url?: string } | null)?.url ?? "/admin";
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({
         type: "window",
         includeUncontrolled: true,
       });
-      // 어드민 탭 우선 (있으면 focus 후 url 로 navigate)
       const adminClient = all.find((c) => c.url.includes("/admin"));
-      if (adminClient && "navigate" in adminClient) {
+      if (adminClient) {
         await adminClient.focus();
-        await (adminClient as WindowClient).navigate(url);
+        adminClient.postMessage({ type: "notification-click", url });
         return;
       }
       await self.clients.openWindow(url);

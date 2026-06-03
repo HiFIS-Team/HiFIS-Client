@@ -2,6 +2,7 @@
 
 import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BuildingOffice2Icon,
   FunnelIcon,
@@ -18,6 +19,7 @@ import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
   deletePtApplication,
+  getAdminPtApplication,
   getAdminPtApplications,
 } from "@/lib/api/ptApplications";
 import { getPtPasses } from "@/lib/api/passes";
@@ -27,12 +29,13 @@ import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
+import { CATEGORY_FILTERS } from "@/components/CategoryBadge";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { Pagination } from "@/components/Pagination";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 40;
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { PTApplication } from "@/lib/api/types";
 import { HoldDialog } from "../HoldDialog";
@@ -42,6 +45,11 @@ import { PtEditDialog } from "./PtEditDialog";
 export default function AdminPtApplicationsPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // 푸시 알림 클릭 → /admin/pt-applications?detail=<id> 진입 시 단건 fetch → 상세 자동 오픈
+  const detailId = searchParams.get("detail");
   const [deleteTarget, setDeleteTarget] = useState<PTApplication | null>(null);
   const [editTarget, setEditTarget] = useState<PTApplication | null>(null);
   const [viewTarget, setViewTarget] = useState<PTApplication | null>(null);
@@ -49,6 +57,31 @@ export default function AdminPtApplicationsPage() {
   const [cancelHoldTarget, setCancelHoldTarget] = useState<PTApplication | null>(
     null,
   );
+
+  const detailQuery = useQuery({
+    queryKey: ["admin", "pt-applications", "detail", detailId],
+    queryFn: () => getAdminPtApplication(detailId!),
+    enabled: !!detailId,
+    retry: false,
+  });
+  useEffect(() => {
+    if (detailQuery.data && detailQuery.data.id === detailId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setViewTarget(detailQuery.data);
+    }
+  }, [detailQuery.data, detailId]);
+  useEffect(() => {
+    if (detailQuery.isError && detailId) {
+      toast.error("해당 PT 신청을 찾을 수 없습니다.");
+      router.replace(pathname);
+    }
+  }, [detailQuery.isError, detailId, toast, router, pathname]);
+
+  // 상세 다이얼로그 닫기 — URL 의 ?detail 도 함께 제거해야 effect 재진입 방지
+  function closeView() {
+    setViewTarget(null);
+    if (detailId) router.replace(pathname);
+  }
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -81,6 +114,8 @@ export default function AdminPtApplicationsPage() {
   const branchId = isSuper ? branchFilter || undefined : undefined;
   // 상태 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
   const [statusFilter, setStatusFilter] = useState("");
+  // 구분 필터 — NEW(신규)/EXISTING(기존) 또는 "" (전체). 상태 필터와 동일 client-side.
+  const [categoryFilter, setCategoryFilter] = useState("");
   // 검색 — 입력이 숫자(전화번호)면 phone=, 이름이면 name= 으로 백엔드 검색 (디바운스 300ms)
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -163,9 +198,11 @@ export default function AdminPtApplicationsPage() {
 
   const ptPage = ptQuery.data;
   const applications = ptPage?.items ?? [];
-  const visibleApplications = statusFilter
-    ? applications.filter((a) => a.status === statusFilter)
-    : applications;
+  const visibleApplications = applications.filter(
+    (a) =>
+      (!statusFilter || a.status === statusFilter) &&
+      (!categoryFilter || a.category === categoryFilter),
+  );
 
   return (
     <div>
@@ -174,7 +211,11 @@ export default function AdminPtApplicationsPage() {
         키오스크 PT 신청서로 접수된 개인 레슨 신청입니다.
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+      <div
+        className={`mt-5 grid gap-3 sm:grid-cols-2 ${
+          isSuper ? "lg:max-w-5xl lg:grid-cols-4" : "lg:max-w-4xl lg:grid-cols-3"
+        }`}
+      >
         {isSuper && (
           <Select
             id="branch-filter"
@@ -198,6 +239,14 @@ export default function AdminPtApplicationsPage() {
           options={STATUS_FILTERS}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
+        />
+        <Select
+          id="category-filter"
+          label="구분"
+          icon={FunnelIcon}
+          options={CATEGORY_FILTERS}
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
         />
         <TextField
           id="search"
@@ -348,7 +397,7 @@ export default function AdminPtApplicationsPage() {
         <PtDetailDialog
           key={viewTarget.id}
           app={viewTarget}
-          onClose={() => setViewTarget(null)}
+          onClose={closeView}
         />
       )}
 

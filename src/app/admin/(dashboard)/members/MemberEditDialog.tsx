@@ -14,7 +14,9 @@ import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { useToast } from "@/providers/ToastProvider";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
+import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
+import { sortPassesForUI } from "@/lib/passDuration";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
@@ -24,11 +26,20 @@ function todayStr(): string {
 function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
+// 카테고리(일반·학생·제휴 등) → 기간 → 가격 순으로 정렬.
+// label = 상품명, description = 가격, meta = 무료 제공 태그.
 function passOpts(arr: Pass[]): SelectOption[] {
-  return arr.map((p) => ({
-    value: p.id,
-    label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
-  }));
+  return sortPassesForUI(arr).map((p) => {
+    const items: string[] = [];
+    if (p.provides_locker) items.push("락커");
+    if (p.provides_clothes) items.push("운동복");
+    return {
+      value: p.id,
+      label: p.name,
+      description: `현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
+      meta: items.length > 0 ? `${items.join(", ")} 무료 제공` : undefined,
+    };
+  });
 }
 
 // 회원 정보 수정 모달. 부모가 member 가 있을 때만, key={member.id} 로 렌더한다.
@@ -75,6 +86,9 @@ export function MemberEditDialog({
     clothes_pass_id: member.clothes_pass_id ?? "",
     motivation: member.motivation,
     agreed_marketing: member.agreed_marketing,
+    // 무료 제공 회원권에서 "선택 안 함" 으로 바꾼 경우의 UI 표시용 (백엔드엔 어차피 null)
+    locker_opt_out: false,
+    clothes_opt_out: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
@@ -87,6 +101,21 @@ export function MemberEditDialog({
         form.referral_detail,
         enumsQuery.data!.referral,
       );
+      // 무료 제공 잠금 — 회원권/락커/운동복 어느 쪽이든 끼워주면 별도 선택은 null.
+      // (회원권 provides_locker 는 백엔드가 400 으로도 막아주지만 클라이언트도 안전하게.)
+      const sm = (membershipQuery.data ?? []).find(
+        (p) => p.id === form.membership_pass_id,
+      );
+      const sl = (lockerQuery.data ?? []).find(
+        (p) => p.id === form.locker_pass_id,
+      );
+      const sc = (clothesQuery.data ?? []).find(
+        (p) => p.id === form.clothes_pass_id,
+      );
+      const lockerLocked =
+        !!sm?.provides_locker || !!sc?.provides_locker;
+      const clothesLocked =
+        !!sm?.provides_clothes || !!sl?.provides_clothes;
       return updateMember(member.id, {
         membership_pass_id: form.membership_pass_id,
         name: form.name.trim(),
@@ -100,8 +129,8 @@ export function MemberEditDialog({
         final_price: Number(form.final_price),
         start_date: form.start_date,
         end_date: form.end_date,
-        locker_pass_id: form.locker_pass_id || null,
-        clothes_pass_id: form.clothes_pass_id || null,
+        locker_pass_id: lockerLocked ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesLocked ? null : form.clothes_pass_id || null,
         motivation: form.motivation,
         agreed_marketing: form.agreed_marketing,
       });
@@ -250,23 +279,126 @@ export function MemberEditDialog({
                 placeholder="선택"
                 options={passOpts(membershipQuery.data ?? [])}
                 value={form.membership_pass_id}
-                onChange={(e) => set({ membership_pass_id: e.target.value })}
+                onChange={(e) => {
+                  const next = (membershipQuery.data ?? []).find(
+                    (p) => p.id === e.target.value,
+                  );
+                  // 무료 제공 회원권으로 바꾸면 별도 선택 자동 비움 + opt-out 리셋 (기본 포함)
+                  set({
+                    membership_pass_id: e.target.value,
+                    ...(next?.provides_locker
+                      ? { locker_pass_id: "", locker_opt_out: false }
+                      : {}),
+                    ...(next?.provides_clothes
+                      ? { clothes_pass_id: "", clothes_opt_out: false }
+                      : {}),
+                  });
+                }}
                 error={errors.membership_pass_id}
               />
-              <Select
-                id="e-locker"
-                label="락커 (선택)"
-                options={optional(passOpts(lockerQuery.data ?? []))}
-                value={form.locker_pass_id}
-                onChange={(e) => set({ locker_pass_id: e.target.value })}
-              />
-              <Select
-                id="e-clothes"
-                label="운동복 (선택)"
-                options={optional(passOpts(clothesQuery.data ?? []))}
-                value={form.clothes_pass_id}
-                onChange={(e) => set({ clothes_pass_id: e.target.value })}
-              />
+              {(() => {
+                const sm = (membershipQuery.data ?? []).find(
+                  (p) => p.id === form.membership_pass_id,
+                );
+                const sl = (lockerQuery.data ?? []).find(
+                  (p) => p.id === form.locker_pass_id,
+                );
+                const sc = (clothesQuery.data ?? []).find(
+                  (p) => p.id === form.clothes_pass_id,
+                );
+                // 락커 잠금 — 회원권이 락커 무료 제공이거나, 선택한 운동복이 락커 무료 제공
+                // 운동복 잠금 — 그 대칭
+                const lockerProvided =
+                  !!sm?.provides_locker || !!sc?.provides_locker;
+                const clothesProvided =
+                  !!sm?.provides_clothes || !!sl?.provides_clothes;
+                const lockerProvidedLabel = sm?.provides_locker
+                  ? "회원권에 포함 (무료 제공)"
+                  : sc?.provides_locker
+                    ? "운동복에 포함 (무료 제공)"
+                    : "포함 (무료 제공)";
+                const clothesProvidedLabel = sm?.provides_clothes
+                  ? "회원권에 포함 (무료 제공)"
+                  : sl?.provides_clothes
+                    ? "락커에 포함 (무료 제공)"
+                    : "포함 (무료 제공)";
+                return (
+                  <>
+                    {/* "포함(기본)" / "선택 안 함" 두 옵션. 잠금 출처에 따라 라벨이 달라짐 */}
+                    <Select
+                      id="e-locker"
+                      label="락커 (선택)"
+                      options={
+                        lockerProvided
+                          ? [
+                              { value: "PROVIDED", label: lockerProvidedLabel },
+                              { value: "OPT_OUT", label: "선택 안 함" },
+                            ]
+                          : optional(passOpts(lockerQuery.data ?? []))
+                      }
+                      value={
+                        lockerProvided
+                          ? form.locker_opt_out
+                            ? "OPT_OUT"
+                            : "PROVIDED"
+                          : form.locker_pass_id
+                      }
+                      onChange={(e) => {
+                        if (lockerProvided) {
+                          set({ locker_opt_out: e.target.value === "OPT_OUT" });
+                        } else {
+                          // 새로 선택한 락커가 운동복을 무료 제공하면 운동복 별도 선택 비움
+                          const next = (lockerQuery.data ?? []).find(
+                            (p) => p.id === e.target.value,
+                          );
+                          set({
+                            locker_pass_id: e.target.value,
+                            ...(next?.provides_clothes
+                              ? { clothes_pass_id: "", clothes_opt_out: false }
+                              : {}),
+                          });
+                        }
+                      }}
+                    />
+                    <Select
+                      id="e-clothes"
+                      label="운동복 (선택)"
+                      options={
+                        clothesProvided
+                          ? [
+                              { value: "PROVIDED", label: clothesProvidedLabel },
+                              { value: "OPT_OUT", label: "선택 안 함" },
+                            ]
+                          : optional(passOpts(clothesQuery.data ?? []))
+                      }
+                      value={
+                        clothesProvided
+                          ? form.clothes_opt_out
+                            ? "OPT_OUT"
+                            : "PROVIDED"
+                          : form.clothes_pass_id
+                      }
+                      onChange={(e) => {
+                        if (clothesProvided) {
+                          set({
+                            clothes_opt_out: e.target.value === "OPT_OUT",
+                          });
+                        } else {
+                          const next = (clothesQuery.data ?? []).find(
+                            (p) => p.id === e.target.value,
+                          );
+                          set({
+                            clothes_pass_id: e.target.value,
+                            ...(next?.provides_locker
+                              ? { locker_pass_id: "", locker_opt_out: false }
+                              : {}),
+                          });
+                        }
+                      }}
+                    />
+                  </>
+                );
+              })()}
               <DateField
                 id="e-start"
                 label="이용 시작일"
@@ -294,15 +426,12 @@ export function MemberEditDialog({
                 onChange={(e) => set({ payment_method: e.target.value })}
                 error={errors.payment_method}
               />
-              <TextField
+              <NumberField
                 id="e-price"
-                label="최종 결제 금액 (원)"
+                label="최종 결제 금액"
                 required
-                type="number"
-                inputMode="numeric"
-                min={0}
                 value={form.final_price}
-                onChange={(e) => set({ final_price: e.target.value })}
+                onChange={(next) => set({ final_price: next })}
                 error={errors.final_price}
               />
               <Select

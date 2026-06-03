@@ -24,7 +24,19 @@ export interface Branch {
     name: string;
     position: string;
   } | null;
+  // 지점별 알림톡 발송 토글. 전역 마스터(SystemConfig.messaging_enabled)와 AND 동작.
+  // 기본 false — 사장님이 명시적으로 켜야 발송.
+  messaging_enabled: boolean;
   created_at: string;
+}
+
+// 전역 알림톡 마스터 — GET/PATCH /admin/system-config (SUPER_ADMIN 전용)
+export interface SystemConfig {
+  messaging_enabled: boolean;
+  updated_at: string;
+}
+export interface SystemConfigUpdate {
+  messaging_enabled: boolean;
 }
 
 // --- enum 옵션 (GET /enums) ---
@@ -46,12 +58,18 @@ export interface Enums {
 }
 
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---
+// provides_locker / provides_clothes 는 회원권·수강권에만 존재 (락커·운동복 패스 응답엔 없음).
+// true 이면 신청 시 별도 락커/운동복 선택을 차단하고 자동 포함 — 백엔드가 검증 (400).
+// duration_months: 1~120 개월 정수 (선택). 일권·2주권 같은 예외는 null → 프론트가 이름에서 추출.
 export interface Pass {
   id: string;
   branch_id: string;
   name: string;
   cash_price: number;
   card_price: number;
+  duration_months: number | null;
+  provides_locker?: boolean;
+  provides_clothes?: boolean;
   created_at: string;
 }
 
@@ -94,6 +112,10 @@ export interface MemberCreate {
   // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
   agreed_marketing: boolean;
 }
+// NEW = 회원가입/PT 신청서로 처음 등록, EXISTING = 재등록 endpoint 거친 사람.
+// 어드민 상세 다이얼로그에서 신규/기존 배지로 노출.
+export type RegistrationCategory = "NEW" | "EXISTING";
+
 export interface Member {
   id: string;
   branch_id: string;
@@ -106,7 +128,10 @@ export interface Member {
   referral: string;
   referral_detail: string | null;
   payment_method: string;
+  // 이번(마지막) 결제 금액. 재등록 시 새 값으로 덮어씀.
   final_price: number;
+  // 누적 결제 금액 (신규=final_price 동일, 재등록 시 += 이번 결제).
+  total_paid: number | null;
   start_date: string;
   end_date: string;
   locker_pass_id: string | null;
@@ -114,7 +139,58 @@ export interface Member {
   motivation: string;
   agreed_marketing: boolean;
   status: string;
+  category: RegistrationCategory;
   created_at: string;
+}
+
+// GET /registrations/lookup — 재등록 사전 조회 (공개).
+// branch_id+name+phone 으로 기존 회원/PT 신청 lookup. kinds 가 빈 배열이면 못 찾음.
+export type RegistrationKind = "MEMBER" | "PT";
+export type RenewalStatus = "REGISTERED" | "HELD" | "EXPIRED";
+// 공통 prefill 정보 — 회원(membership_pass_id) vs PT(pt_pass_id) 만 다르고 나머지 동일
+interface RenewalLookupCommon {
+  id: string;
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
+  payment_method: string | null;
+  final_price: number | null;
+  // 누적 결제 금액 — 안내 banner 등에 노출 가능
+  total_paid: number | null;
+  start_date: string;
+  end_date: string;
+  status: RenewalStatus;
+  agreed_marketing: boolean;
+}
+export interface MemberLookup extends RenewalLookupCommon {
+  membership_pass_id: string;
+}
+export interface PTLookup extends RenewalLookupCommon {
+  pt_pass_id: string;
+}
+export interface RegistrationLookupResponse {
+  kinds: RegistrationKind[];
+  member: MemberLookup | null;
+  pt: PTLookup | null;
+}
+
+// POST /members/re-register — 재등록 (공개).
+// branch_id+name+phone 으로 기존 회원을 식별하고 새 회원권·결제 정보로 갱신한다.
+// 기본 개인정보(성별/생일/주소/유입경로/방문목적)는 그대로 유지 → 폼에서 받지 않음.
+// agreed_marketing 은 null 이면 기존 값 유지, true/false 면 갱신.
+export interface MemberReRegister {
+  branch_id: string;
+  name: string;
+  phone: string;
+  membership_pass_id: string;
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
+  payment_method: string;
+  // 이번 결제 금액 — 서버 측에서 기존 final_price 에 누적됨
+  final_price: number;
+  start_date: string;
+  end_date: string;
+  // null = 기존 값 유지, true/false = 새로 설정
+  agreed_marketing: boolean | null;
 }
 
 // PATCH /admin/members/{id} 요청 (수정 — 폼에서 전체 필드 전송)
@@ -176,13 +252,33 @@ export interface PTApplication {
   referral_detail: string | null;
   motivation: string;
   payment_method: string;
+  // 이번(마지막) 결제 금액 / 누적 결제 금액 — Member 와 동일 규칙
   final_price: number;
+  total_paid: number | null;
   start_date: string;
   end_date: string;
   notes: string | null;
   agreed_marketing: boolean;
   status: string;
+  category: RegistrationCategory;
   created_at: string;
+}
+
+// POST /pt-applications/re-register — PT 재등록 (공개).
+// 회원 재등록과 동일한 식별 규칙(branch+name+phone). PT는 40일 고정 — 시작일은
+// 활성이면 기존 end_date + 1일, 만료면 오늘. 프론트에서 계산해 start/end 전송.
+export interface PTApplicationReRegister {
+  branch_id: string;
+  name: string;
+  phone: string;
+  pt_pass_id: string;
+  locker_pass_id: string | null;
+  clothes_pass_id: string | null;
+  payment_method: string;
+  final_price: number;
+  start_date: string;
+  end_date: string;
+  agreed_marketing: boolean | null;
 }
 
 // PATCH /admin/pt-applications/{id} 요청 (수정)
@@ -220,6 +316,11 @@ export interface Admin {
   status: AdminStatus;
   branch_id: string | null;
   created_at: string;
+  // 마지막 heartbeat 시각 (없으면 한 번도 접속한 적 없음).
+  // 프론트가 /admin/me/heartbeat 를 60초마다 ping → 백엔드가 갱신.
+  last_seen_at: string | null;
+  // 5분 이내 heartbeat 가 있으면 true — 백엔드 계산값 (서버 시계 기준).
+  is_online: boolean;
 }
 
 // POST /admin/login·/refresh 응답

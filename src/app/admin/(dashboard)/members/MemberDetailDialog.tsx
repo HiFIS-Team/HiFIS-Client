@@ -10,6 +10,7 @@ import {
   getMembershipPasses,
 } from "@/lib/api/passes";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CategoryBadge } from "@/components/CategoryBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -111,6 +112,9 @@ export function MemberDetailDialog({
               {enumLabel(enums?.payment_method, member.payment_method)}
             </Row>
             <Row label="결제 금액">{formatWon(member.final_price)}</Row>
+            <Row label="누적 결제">
+              {member.total_paid != null ? formatWon(member.total_paid) : "-"}
+            </Row>
             <Row label="유입 경로">
               {enumLabel(enums?.referral, member.referral)}
               {member.referral_detail && (
@@ -127,6 +131,9 @@ export function MemberDetailDialog({
             </Row>
             <Row label="상태">
               <StatusBadge status={member.status} />
+            </Row>
+            <Row label="구분">
+              <CategoryBadge category={member.category} />
             </Row>
             <Row label="신청일">{formatDate(member.created_at)}</Row>
           </dl>

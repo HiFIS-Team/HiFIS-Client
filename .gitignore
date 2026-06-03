@@ -46,3 +46,6 @@ public/swe-worker*.js.map
 
 # 디자인 미리보기 스크린샷 (로컬 전용)
 /preview/
+
+# v1.1+ 보류 작업 메모 (로컬 전용 — 재개 시점에 참고)
+/docs/

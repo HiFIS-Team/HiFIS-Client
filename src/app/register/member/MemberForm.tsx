@@ -27,12 +27,18 @@ import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
+import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
+import {
+  passDuration,
+  sortPassesForUI,
+  type PassDuration,
+} from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
@@ -40,21 +46,7 @@ function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
 
-// 회원권 이름에서 이용 기간 추출.
-// "3개월권"→{months:3}, "1년권"→{months:12}, "7일권"→{days:7}, "일권"→{days:1}.
-// 백엔드 Pass 에 기간 필드가 없어 이름으로 추정 — 추후 duration 필드가 생기면 그걸 사용할 것.
-type PassDuration = { months: number } | { days: number };
-function passDuration(name: string): PassDuration | null {
-  const year = name.match(/(\d+)\s*년/);
-  if (year) return { months: Number(year[1]) * 12 };
-  const month = name.match(/(\d+)\s*개월/);
-  if (month) return { months: Number(month[1]) };
-  const day = name.match(/(\d+)\s*일/);
-  if (day) return { days: Number(day[1]) };
-  // 숫자 없이 "일권"만 있으면 1일로 본다.
-  if (/일\s*권/.test(name)) return { days: 1 };
-  return null;
-}
+// passDuration / PassDuration 은 @/lib/passDuration 공용 모듈에서 import (admin 상품관리와 공유).
 
 // YYYY-MM-DD 에 개월 수를 더한다 (말일 초과 시 해당 월 말일로 보정).
 function addMonths(dateStr: string, months: number): string {
@@ -92,12 +84,20 @@ function enumOpts(arr: EnumOption[]): SelectOption[] {
   return arr.map((o) => ({ value: o.code, label: o.label }));
 }
 
-// 상품 목록 → Select 옵션 (가격을 라벨에 함께 표시)
+// 상품 목록 → Select 옵션. 카테고리(일반·학생·제휴 등) → 기간 → 가격 순으로 정렬.
+// label = 상품명, description = 가격, meta = 무료 제공 태그.
 function passOpts(arr: Pass[]): SelectOption[] {
-  return arr.map((p) => ({
-    value: p.id,
-    label: `${p.name} · 현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
-  }));
+  return sortPassesForUI(arr).map((p) => {
+    const items: string[] = [];
+    if (p.provides_locker) items.push("락커");
+    if (p.provides_clothes) items.push("운동복");
+    return {
+      value: p.id,
+      label: p.name,
+      description: `현금 ${p.cash_price.toLocaleString()}원 / 카드 ${p.card_price.toLocaleString()}원`,
+      meta: items.length > 0 ? `${items.join(", ")} 무료 제공` : undefined,
+    };
+  });
 }
 
 const INITIAL = {
@@ -120,6 +120,10 @@ const INITIAL = {
   agreed_terms: false,
   // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
   agreed_marketing: false,
+  // 회원권이 락커·운동복을 무료 제공할 때 사용자가 "선택 안 함" 으로 바꾼 경우 (UI 표시용).
+  // 백엔드 제출 시점엔 어차피 null 이라 별도 전송 필드는 아님.
+  locker_opt_out: false,
+  clothes_opt_out: false,
 };
 
 type FormState = typeof INITIAL;
@@ -183,7 +187,8 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const branchName =
     branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
 
-  // 선택한 상품 가격 합계 — 결제수단이 카드면 카드가, 그 외엔 현금가 적용
+  // 선택한 상품 가격 합계 — 결제수단이 카드면 카드가, 그 외엔 현금가 적용.
+  // 회원권/락커/운동복 중 하나가 다른 종류를 무료 제공하면 그 가격은 합산에서 제외.
   function priceOf(passes: Pass[], id: string, useCard: boolean): number {
     const p = passes.find((x) => x.id === id);
     if (!p) return 0;
@@ -191,10 +196,19 @@ export function MemberForm({ branchId }: { branchId: string }) {
   }
   function totalFor(next: FormState): number {
     const useCard = next.payment_method === "CARD";
+    const sm = membershipPasses.find((x) => x.id === next.membership_pass_id);
+    const sl = lockerPasses.find((x) => x.id === next.locker_pass_id);
+    const sc = clothesPasses.find((x) => x.id === next.clothes_pass_id);
+    const lockerLockedNext = !!sm?.provides_locker || !!sc?.provides_locker;
+    const clothesLockedNext = !!sm?.provides_clothes || !!sl?.provides_clothes;
     return (
       priceOf(membershipPasses, next.membership_pass_id, useCard) +
-      priceOf(lockerPasses, next.locker_pass_id, useCard) +
-      priceOf(clothesPasses, next.clothes_pass_id, useCard)
+      (lockerLockedNext
+        ? 0
+        : priceOf(lockerPasses, next.locker_pass_id, useCard)) +
+      (clothesLockedNext
+        ? 0
+        : priceOf(clothesPasses, next.clothes_pass_id, useCard))
     );
   }
   // 상품·결제수단 변경 시 최종 금액을 자동 재계산
@@ -208,18 +222,82 @@ export function MemberForm({ branchId }: { branchId: string }) {
   // 선택된 회원권의 이용 기간 (이름에서 추출, 없으면 null) — months 또는 days
   const durationOf = (passId: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === passId);
-    return p ? passDuration(p.name) : null;
+    return p ? passDuration(p.name, p.duration_months) : null;
   };
+  // 선택된 회원권·락커·운동복 — 교차 무료 제공 판단용
+  const selectedMembership = membershipPasses.find(
+    (x) => x.id === form.membership_pass_id,
+  );
+  const selectedLocker = lockerPasses.find(
+    (x) => x.id === form.locker_pass_id,
+  );
+  const selectedClothes = clothesPasses.find(
+    (x) => x.id === form.clothes_pass_id,
+  );
+  // 락커 잠금 — 회원권이 락커 무료 제공이거나, 선택한 운동복이 락커 무료 제공.
+  // 운동복 잠금 — 회원권이 운동복 무료 제공이거나, 선택한 락커가 운동복 무료 제공.
+  const lockerProvided =
+    !!selectedMembership?.provides_locker ||
+    !!selectedClothes?.provides_locker;
+  const clothesProvided =
+    !!selectedMembership?.provides_clothes ||
+    !!selectedLocker?.provides_clothes;
+  // 잠금 출처 표시용 — 회원권/운동복/락커 중 어느 게 끼워주는지에 따라 라벨 다름
+  const lockerProvidedLabel = selectedMembership?.provides_locker
+    ? "회원권에 포함 (무료 제공)"
+    : selectedClothes?.provides_locker
+      ? "운동복에 포함 (무료 제공)"
+      : "포함 (무료 제공)";
+  const clothesProvidedLabel = selectedMembership?.provides_clothes
+    ? "회원권에 포함 (무료 제공)"
+    : selectedLocker?.provides_clothes
+      ? "락커에 포함 (무료 제공)"
+      : "포함 (무료 제공)";
   // 회원권 선택 — 가격 + 이용 기간 자동 설정
   // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
+  // 새 회원권이 락커·운동복을 무료 제공하면 기존 별도 선택을 비우고 opt-out 상태도 리셋
+  // → 기본값은 "포함 (무료 제공)" 으로 자연 노출
   const onMembershipChange = (id: string) => {
+    const next = membershipPasses.find((x) => x.id === id);
     setForm((f) => {
       const base: FormState = { ...f, membership_pass_id: id };
+      if (next?.provides_locker) {
+        base.locker_pass_id = "";
+        base.locker_opt_out = false;
+      }
+      if (next?.provides_clothes) {
+        base.clothes_pass_id = "";
+        base.clothes_opt_out = false;
+      }
       base.final_price = String(totalFor(base));
       const d = durationOf(id);
       if (d == null) return base;
       const start = base.start_date || today;
       return { ...base, start_date: start, end_date: applyDuration(start, d) };
+    });
+  };
+  // 락커 변경 — 그 락커가 운동복을 무료 제공하면 운동복 선택은 비움 (opt-out 도 리셋)
+  const onLockerChange = (id: string) => {
+    const next = lockerPasses.find((x) => x.id === id);
+    setForm((f) => {
+      const base: FormState = { ...f, locker_pass_id: id };
+      if (next?.provides_clothes) {
+        base.clothes_pass_id = "";
+        base.clothes_opt_out = false;
+      }
+      return { ...base, final_price: String(totalFor(base)) };
+    });
+  };
+  // 운동복 변경 — 그 운동복이 락커를 무료 제공하면 락커 선택은 비움
+  const onClothesChange = (id: string) => {
+    const next = clothesPasses.find((x) => x.id === id);
+    setForm((f) => {
+      const base: FormState = { ...f, clothes_pass_id: id };
+      if (next?.provides_locker) {
+        base.locker_pass_id = "";
+        base.locker_opt_out = false;
+      }
+      return { ...base, final_price: String(totalFor(base)) };
     });
   };
   // 이용 시작일 변경 — 회원권 기간에 맞춰 종료일 재계산
@@ -304,8 +382,9 @@ export function MemberForm({ branchId }: { branchId: string }) {
       final_price: Number(form.final_price),
       start_date: form.start_date,
       end_date: form.end_date,
-      locker_pass_id: form.locker_pass_id || null,
-      clothes_pass_id: form.clothes_pass_id || null,
+      // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
       motivation: form.motivation,
       agreed_terms: form.agreed_terms,
       agreed_marketing: form.agreed_marketing,
@@ -410,19 +489,55 @@ export function MemberForm({ branchId }: { branchId: string }) {
             onChange={(e) => onMembershipChange(e.target.value)}
             error={errors.membership_pass_id}
           />
+          {/* 무료 제공이면 "포함(기본)" / "선택 안 함" 두 옵션. 잠금 출처는
+              회원권/운동복/락커 중 어느 게 끼워주는지에 따라 라벨이 달라짐. */}
           <Select
             id="locker-pass"
             label="락커 (선택)"
-            options={optional(passOpts(lockerPasses))}
-            value={form.locker_pass_id}
-            onChange={(e) => setWithPrice({ locker_pass_id: e.target.value })}
+            options={
+              lockerProvided
+                ? [
+                    { value: "PROVIDED", label: lockerProvidedLabel },
+                    { value: "OPT_OUT", label: "선택 안 함" },
+                  ]
+                : optional(passOpts(lockerPasses))
+            }
+            value={
+              lockerProvided
+                ? form.locker_opt_out
+                  ? "OPT_OUT"
+                  : "PROVIDED"
+                : form.locker_pass_id
+            }
+            onChange={(e) =>
+              lockerProvided
+                ? set({ locker_opt_out: e.target.value === "OPT_OUT" })
+                : onLockerChange(e.target.value)
+            }
           />
           <Select
             id="clothes-pass"
             label="운동복 (선택)"
-            options={optional(passOpts(clothesPasses))}
-            value={form.clothes_pass_id}
-            onChange={(e) => setWithPrice({ clothes_pass_id: e.target.value })}
+            options={
+              clothesProvided
+                ? [
+                    { value: "PROVIDED", label: clothesProvidedLabel },
+                    { value: "OPT_OUT", label: "선택 안 함" },
+                  ]
+                : optional(passOpts(clothesPasses))
+            }
+            value={
+              clothesProvided
+                ? form.clothes_opt_out
+                  ? "OPT_OUT"
+                  : "PROVIDED"
+                : form.clothes_pass_id
+            }
+            onChange={(e) =>
+              clothesProvided
+                ? set({ clothes_opt_out: e.target.value === "OPT_OUT" })
+                : onClothesChange(e.target.value)
+            }
           />
           <DateField
             id="start-date"
@@ -456,16 +571,13 @@ export function MemberForm({ branchId }: { branchId: string }) {
             onChange={(e) => setWithPrice({ payment_method: e.target.value })}
             error={errors.payment_method}
           />
-          <TextField
+          <NumberField
             id="final-price"
-            label="최종 결제 금액 (원)"
+            label="최종 결제 금액"
             required
-            type="number"
-            inputMode="numeric"
-            min={0}
             placeholder="0"
             value={form.final_price}
-            onChange={(e) => set({ final_price: e.target.value })}
+            onChange={(next) => set({ final_price: next })}
             error={errors.final_price}
             hint="회원권·락커·운동복·결제수단을 선택하면 자동 계산돼요. 할인이 있으면 직접 수정하세요."
           />

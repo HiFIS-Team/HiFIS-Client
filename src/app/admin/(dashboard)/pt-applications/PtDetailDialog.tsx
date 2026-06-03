@@ -10,6 +10,7 @@ import {
   getPtPasses,
 } from "@/lib/api/passes";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CategoryBadge } from "@/components/CategoryBadge";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Pass, PTApplication } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -110,6 +111,9 @@ export function PtDetailDialog({
               {enumLabel(enums?.payment_method, app.payment_method)}
             </Row>
             <Row label="결제 금액">{formatWon(app.final_price)}</Row>
+            <Row label="누적 결제">
+              {app.total_paid != null ? formatWon(app.total_paid) : "-"}
+            </Row>
             <Row label="유입 경로">
               {enumLabel(enums?.referral, app.referral)}
               {app.referral_detail && (
@@ -127,6 +131,9 @@ export function PtDetailDialog({
             </Row>
             <Row label="상태">
               <StatusBadge status={app.status} />
+            </Row>
+            <Row label="구분">
+              <CategoryBadge category={app.category} />
             </Row>
             <Row label="신청일">{formatDate(app.created_at)}</Row>
           </dl>

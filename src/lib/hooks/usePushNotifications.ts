@@ -72,7 +72,10 @@ export function usePushNotifications(): PushNotificationsState {
   const [subscribed, setSubscribed] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
 
-  // 기존 구독 여부 — async 라 effect 에서 외부 시스템(SW) 와 동기화
+  // 기존 구독 여부 — async 라 effect 에서 외부 시스템(SW) 와 동기화.
+  // 추가로 "브라우저엔 구독 있는데 백엔드엔 없음" 케이스 대비:
+  //   도메인 cutover, endpoint 만료 자동 정리, PWA 재설치 등으로 발생.
+  //   idempotent POST 로 자동 재등록 (백엔드가 같은 endpoint 면 갱신만).
   useEffect(() => {
     if (!supported) return;
     let cancelled = false;
@@ -80,7 +83,22 @@ export function usePushNotifications(): PushNotificationsState {
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
-        if (!cancelled) setSubscribed(!!sub);
+        if (cancelled) return;
+        setSubscribed(!!sub);
+        if (sub) {
+          try {
+            const { id } = await registerPushSubscription({
+              endpoint: sub.endpoint,
+              p256dh: arrayBufferToBase64(sub.getKey("p256dh")),
+              auth: arrayBufferToBase64(sub.getKey("auth")),
+              user_agent:
+                typeof navigator !== "undefined" ? navigator.userAgent : null,
+            });
+            localStorage.setItem(SUBSCRIPTION_ID_KEY, id);
+          } catch {
+            // 로그인 전 (401) 또는 일시 오류 — 다음 마운트에 재시도
+          }
+        }
       } catch {
         // 서비스워커가 아직 등록 안 됐을 수 있음 — 정상 (subscribed false)
       }

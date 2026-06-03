@@ -12,6 +12,11 @@ import { CheckIcon, ChevronDownIcon } from "@heroicons/react/16/solid";
 export interface SelectOption {
   value: string;
   label: string;
+  // 라벨 아래 회색 작은 글씨로 표시되는 보조 라벨 (예: "현금 720,000원 / 카드 720,000원").
+  // 옵션 list 에서만 노출 — button (선택된 값 표시) 은 깔끔하게 한 줄 유지.
+  description?: string;
+  // 라벨 우측에 회색으로 작게 표시되는 부가 정보 (예: "락커, 운동복 무료 제공")
+  meta?: string;
 }
 
 // 외부 API — 기존 <select> 시절과 호환되도록 onChange 는 {target:{value}} 형태로 호출.
@@ -76,12 +81,20 @@ export function Select({
                 : "outline-gray-300 focus:outline-primary"
             } ${className}`}
           >
+            {/* button 은 항상 한 줄: label + (있으면) meta 우측. description 은 옵션 list 에서만. */}
             <span
-              className={`block truncate ${
+              className={`flex min-w-0 items-center gap-2 ${
                 empty ? "text-gray-400" : "text-gray-900"
               }`}
             >
-              {selected ? selected.label : placeholder ?? " "}
+              <span className="min-w-0 flex-1 truncate">
+                {selected ? selected.label : placeholder ?? " "}
+              </span>
+              {selected?.meta && (
+                <span className="shrink-0 text-xs text-gray-500">
+                  {selected.meta}
+                </span>
+              )}
             </span>
             <ChevronDownIcon
               aria-hidden="true"
@@ -101,14 +114,27 @@ export function Select({
               <ListboxOption
                 key={o.value}
                 value={o.value}
-                className="group relative flex cursor-default items-center gap-2 py-2.5 pr-9 pl-3 text-base text-gray-900 select-none data-[focus]:bg-primary data-[focus]:text-white"
+                className="group relative flex cursor-default items-start gap-2 py-2.5 pr-9 pl-3 text-base text-gray-900 select-none data-[focus]:bg-primary data-[focus]:text-white"
               >
-                <span className="block truncate group-data-[selected]:font-semibold">
-                  {o.label}
+                {/* label 메인 + description 작은 글씨로 아래 (있을 때) + meta 우측 회색 */}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate group-data-[selected]:font-semibold">
+                    {o.label}
+                  </span>
+                  {o.description && (
+                    <span className="block truncate text-xs text-gray-500 group-data-[focus]:text-white/80">
+                      {o.description}
+                    </span>
+                  )}
                 </span>
+                {o.meta && (
+                  <span className="mt-0.5 shrink-0 text-xs text-gray-500 group-data-[focus]:text-white/80">
+                    {o.meta}
+                  </span>
+                )}
                 <CheckIcon
                   aria-hidden="true"
-                  className="invisible absolute right-3 size-5 text-primary group-data-[selected]:visible group-data-[focus]:text-white"
+                  className="invisible absolute right-3 top-3 size-5 text-primary group-data-[selected]:visible group-data-[focus]:text-white"
                 />
               </ListboxOption>
             ))}

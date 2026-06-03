@@ -1,9 +1,24 @@
 import { apiFetch } from "./client";
-import type { Member, MemberCreate, MemberUpdate, Page } from "./types";
+import type {
+  Member,
+  MemberCreate,
+  MemberReRegister,
+  MemberUpdate,
+  Page,
+} from "./types";
 
 // POST /members — 회원가입 신청 (공개)
 export function createMember(payload: MemberCreate): Promise<Member> {
   return apiFetch<Member>("/members", { method: "POST", body: payload });
+}
+
+// POST /members/re-register — 재등록 (공개).
+// branch_id+name+phone 으로 기존 회원 식별 → 404 면 본인 확인 실패 안내.
+export function reRegisterMember(payload: MemberReRegister): Promise<Member> {
+  return apiFetch<Member>("/members/re-register", {
+    method: "POST",
+    body: payload,
+  });
 }
 
 // GET /admin/members — 회원 목록 조회 (관리자, 페이지네이션)
@@ -27,6 +42,11 @@ export function getAdminMembers(opts: {
   return apiFetch<Page<Member>>(`/admin/members${qs ? `?${qs}` : ""}`, {
     auth: true,
   });
+}
+
+// GET /admin/members/{id} — 회원 1건 조회 (알림 클릭으로 상세 다이얼로그 자동 오픈에 사용)
+export function getAdminMember(id: string): Promise<Member> {
+  return apiFetch<Member>(`/admin/members/${id}`, { auth: true });
 }
 
 // DELETE /admin/members/{id} — 회원 삭제 (관리자)

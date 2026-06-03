@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState, type ComponentType } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import {
   BanknotesIcon,
   BoltIcon,
@@ -36,6 +36,7 @@ import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
 import { formatWon, josaEulReul, josaIGa } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
+import { sortPassesForUI } from "@/lib/passDuration";
 import { PassFormDialog } from "./PassFormDialog";
 
 const TABS: {
@@ -48,6 +49,26 @@ const TABS: {
   { type: "locker", label: "락커", icon: LockClosedIcon },
   { type: "clothes", label: "운동복", icon: ShoppingBagIcon },
 ];
+
+// 카드 하단 정보 칩 — 이용자 수·기간·락커/운동복 제공 모두 같은 디자인.
+// accent 면 보라(활성 옵션), 아니면 회색(메타).
+function Chip({
+  children,
+  accent = false,
+}: {
+  children: ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+        accent ? "bg-violet-50 text-primary" : "bg-gray-50 text-gray-600"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
 
 export default function AdminPassesPage() {
   const toast = useToast();
@@ -114,9 +135,16 @@ export default function AdminPassesPage() {
   const updateMutation = useMutation({
     mutationFn: (args: { id: string; values: PassInput }) =>
       updatePass(activeType, args.id, args.values),
-    onSuccess: () => {
+    onSuccess: (updated) => {
       toast.success(`${typeLabel}${josaIGa(typeLabel)} 수정되었습니다.`);
       setFormTarget(null);
+      // invalidate 의 refetch 가 끝나기 전 사용자가 같은 카드 "수정" 을 다시
+      // 누를 수 있으므로, 서버 응답으로 캐시를 동기 갱신해 stale 값이 모달에
+      // 다시 뜨는 것을 막는다 (특히 provides_locker / provides_clothes 토글)
+      queryClient.setQueryData<Pass[]>(
+        ["admin", "passes", activeType, branchId],
+        (old) => old?.map((p) => (p.id === updated.id ? updated : p)),
+      );
       invalidate();
     },
     onError: (e) => toast.error(getErrorMessage(e)),
@@ -132,7 +160,10 @@ export default function AdminPassesPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
-  const passes = passesQuery.data ?? [];
+  // 표시 정렬 — 4종 모두 신청서 Select 와 동일 (sortPassesForUI):
+  // 카테고리(일반·학생·제휴 등) → 기간 → 가격 → 이름. "락커 3개월" 같이 이름에 기간이
+  // 들어있는 락커·운동복도 자연스럽게 기간 오름차순으로 정렬됨.
+  const passes = sortPassesForUI(passesQuery.data ?? []);
   const editing = formTarget && formTarget !== "new" ? formTarget : null;
 
   // 현재 활성 탭의 상품을 회원/PT 신청 중 몇 건이 선택했는지 — summary 에서 직접 조회
@@ -169,7 +200,7 @@ export default function AdminPassesPage() {
               value: b.id,
               label: b.name,
             }))}
-            value={selectedBranch}
+            value={branchId}
             onChange={(e) => setSelectedBranch(e.target.value)}
           />
         </div>
@@ -270,12 +301,21 @@ export default function AdminPassesPage() {
                     </p>
                   </div>
                 </div>
-                <p className="mt-4 text-sm text-gray-500">
-                  이용자{" "}
-                  <span className="font-semibold text-gray-900">
-                    {userCountFor(p.id)}명
-                  </span>
-                </p>
+                {/* 카드 하단 정보 칩 — 같은 디자인의 chip 들을 가운데 정렬로 한 줄에.
+                    이용자 N명 · N개월 · 락커 제공 · 운동복 제공.
+                    개월은 안 받은 패스(null)도 표시상 "0개월" — 신청서 계산엔 무관
+                    (passDuration 헬퍼가 null 이면 이름에서 추출하던 fallback 그대로).
+                    제공 칩은 off 면 회색, 자기 자신 종류(락커 카드의 "락커 제공") 는 숨김. */}
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+                  <Chip>이용자 {userCountFor(p.id)}명</Chip>
+                  <Chip>{p.duration_months ?? 0}개월</Chip>
+                  {activeType !== "locker" && (
+                    <Chip accent={!!p.provides_locker}>락커 제공</Chip>
+                  )}
+                  {activeType !== "clothes" && (
+                    <Chip accent={!!p.provides_clothes}>운동복 제공</Chip>
+                  )}
+                </div>
               </article>
             ))}
           </div>
@@ -285,6 +325,7 @@ export default function AdminPassesPage() {
       <PassFormDialog
         key={typeof formTarget === "string" ? "new" : (formTarget?.id ?? "closed")}
         open={formTarget !== null}
+        type={activeType}
         title={editing ? `${typeLabel} 수정` : `${typeLabel} 등록`}
         initial={editing}
         loading={createMutation.isPending || updateMutation.isPending}

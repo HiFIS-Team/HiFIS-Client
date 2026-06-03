@@ -2,6 +2,7 @@
 
 import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BuildingOffice2Icon,
   FunnelIcon,
@@ -16,7 +17,7 @@ import {
 } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
-import { deleteMember, getAdminMembers } from "@/lib/api/members";
+import { deleteMember, getAdminMember, getAdminMembers } from "@/lib/api/members";
 import { cancelHold } from "@/lib/api/holds";
 import { getMembershipPasses } from "@/lib/api/passes";
 import { getErrorMessage } from "@/lib/api/client";
@@ -24,6 +25,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
+import { CATEGORY_FILTERS } from "@/components/CategoryBadge";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
@@ -31,7 +33,7 @@ import { Pagination } from "@/components/Pagination";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { Member } from "@/lib/api/types";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 40;
 import { HoldDialog } from "../HoldDialog";
 import { MemberDetailDialog } from "./MemberDetailDialog";
 import { MemberEditDialog } from "./MemberEditDialog";
@@ -39,11 +41,43 @@ import { MemberEditDialog } from "./MemberEditDialog";
 export default function AdminMembersPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // 푸시 알림 클릭 → /admin/members?detail=<id> 로 진입한 경우 단건 fetch → 상세 다이얼로그 자동 오픈
+  const detailId = searchParams.get("detail");
   const [deleteTarget, setDeleteTarget] = useState<Member | null>(null);
   const [editTarget, setEditTarget] = useState<Member | null>(null);
   const [viewTarget, setViewTarget] = useState<Member | null>(null);
   const [holdTarget, setHoldTarget] = useState<Member | null>(null);
   const [cancelHoldTarget, setCancelHoldTarget] = useState<Member | null>(null);
+
+  const detailQuery = useQuery({
+    queryKey: ["admin", "members", "detail", detailId],
+    queryFn: () => getAdminMember(detailId!),
+    enabled: !!detailId,
+    retry: false,
+  });
+  // detail fetch 성공 → viewTarget 으로 다이얼로그 자동 오픈
+  useEffect(() => {
+    if (detailQuery.data && detailQuery.data.id === detailId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setViewTarget(detailQuery.data);
+    }
+  }, [detailQuery.data, detailId]);
+  // 실패 (404·권한 등) → 안내 + URL 정리
+  useEffect(() => {
+    if (detailQuery.isError && detailId) {
+      toast.error("해당 회원을 찾을 수 없습니다.");
+      router.replace(pathname);
+    }
+  }, [detailQuery.isError, detailId, toast, router, pathname]);
+
+  // 상세 다이얼로그 닫기 — URL 의 ?detail 도 함께 제거해야 effect 재진입 방지
+  function closeView() {
+    setViewTarget(null);
+    if (detailId) router.replace(pathname);
+  }
 
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -77,6 +111,8 @@ export default function AdminMembersPage() {
   // 상태 필터 ("" = 전체) — 현재 페이지 내에서만 client-side로 거름 (간단·MVP).
   // 정확한 상태별 카운트는 대시보드 summary 참조.
   const [statusFilter, setStatusFilter] = useState("");
+  // 구분 필터 — NEW(신규)/EXISTING(기존) 또는 "" (전체). 상태 필터와 동일하게 client-side.
+  const [categoryFilter, setCategoryFilter] = useState("");
   // 검색 — 입력이 숫자(전화번호)면 phone=, 이름이면 name= 으로 백엔드 검색 (디바운스 300ms)
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -159,10 +195,12 @@ export default function AdminMembersPage() {
 
   const membersPage = membersQuery.data;
   const members = membersPage?.items ?? [];
-  // 상태 필터는 현재 페이지 안에서만 적용 (페이지네이션 + 상태 분류 동시 적용은 백엔드 필터 필요 — 우선 client-side)
-  const visibleMembers = statusFilter
-    ? members.filter((m) => m.status === statusFilter)
-    : members;
+  // 상태·구분 필터는 현재 페이지 안에서만 적용 (페이지네이션과 동시 적용은 백엔드 필터 필요 — 우선 client-side)
+  const visibleMembers = members.filter(
+    (m) =>
+      (!statusFilter || m.status === statusFilter) &&
+      (!categoryFilter || m.category === categoryFilter),
+  );
 
   return (
     <div>
@@ -171,7 +209,11 @@ export default function AdminMembersPage() {
         키오스크 회원가입 신청서로 접수된 회원입니다.
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+      <div
+        className={`mt-5 grid gap-3 sm:grid-cols-2 ${
+          isSuper ? "lg:max-w-5xl lg:grid-cols-4" : "lg:max-w-4xl lg:grid-cols-3"
+        }`}
+      >
         {isSuper && (
           <Select
             id="branch-filter"
@@ -195,6 +237,14 @@ export default function AdminMembersPage() {
           options={STATUS_FILTERS}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
+        />
+        <Select
+          id="category-filter"
+          label="구분"
+          icon={FunnelIcon}
+          options={CATEGORY_FILTERS}
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
         />
         <TextField
           id="search"
@@ -345,7 +395,7 @@ export default function AdminMembersPage() {
         <MemberDetailDialog
           key={viewTarget.id}
           member={viewTarget}
-          onClose={() => setViewTarget(null)}
+          onClose={closeView}
         />
       )}
 
