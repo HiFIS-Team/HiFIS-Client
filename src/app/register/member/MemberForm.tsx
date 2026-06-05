@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type FormEvent,
@@ -32,6 +34,7 @@ import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
+import { SignatureDialog } from "@/components/SignatureDialog";
 import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { DAJIM_MEMBER_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
@@ -121,6 +124,8 @@ const INITIAL = {
   // "기타" 선택 시 사용자 자유 입력 — 제출 직전 enum 자동 매핑 + 백엔드에 detail 로 전송
   referral_detail: "",
   motivation: "",
+  // 일반 지점: 체크박스로 동의 받음.
+  // 다짐 지점(첨단·동광주): 체크박스 대신 전자서명 받음 → 제출 시 자동 true.
   agreed_terms: false,
   // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
   agreed_marketing: false,
@@ -155,6 +160,18 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [termsOpen, setTermsOpen] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  // 전자서명 PNG Blob — 동의의 근거 (체크박스 대체).
+  // 미리보기 URL 은 Blob 에서 derive + cleanup-only effect 로 revoke (React 19 권장).
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
   const mutation = useMutation({ mutationFn: createMember });
 
   const set = (patch: Partial<FormState>) =>
@@ -195,9 +212,6 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const terms = isDajim ? DAJIM_MEMBER_TERMS : OPERATING_RULES;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "운영 회칙 전문 보기";
-  const termsAgreeError = isDajim
-    ? "이용약관에 동의해 주세요."
-    : "운영 회칙에 동의해 주세요.";
 
   // 선택한 상품 가격 합계 — 결제수단이 카드면 카드가, 그 외엔 현금가 적용.
   // 회원권/락커/운동복 중 하나가 다른 종류를 무료 제공하면 그 가격은 합산에서 제외.
@@ -365,7 +379,12 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
-    if (!form.agreed_terms) e.agreed_terms = termsAgreeError;
+    // 동의 — 다짐 지점: 전자서명 / 그 외: 체크박스
+    if (isDajim) {
+      if (!signature) e.signature = "전자서명을 입력해 주세요.";
+    } else {
+      if (!form.agreed_terms) e.agreed_terms = "운영 회칙에 동의해 주세요.";
+    }
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -381,25 +400,30 @@ export function MemberForm({ branchId }: { branchId: string }) {
       enums.referral,
     );
     mutation.mutate({
-      branch_id: branchId,
-      membership_pass_id: form.membership_pass_id,
-      name: form.name.trim(),
-      gender: form.gender,
-      birth_date: form.birth_date,
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      referral,
-      referral_detail,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: form.end_date,
-      // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      motivation: form.motivation,
-      agreed_terms: form.agreed_terms,
-      agreed_marketing: form.agreed_marketing,
+      payload: {
+        branch_id: branchId,
+        membership_pass_id: form.membership_pass_id,
+        name: form.name.trim(),
+        gender: form.gender,
+        birth_date: form.birth_date,
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        referral,
+        referral_detail,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        motivation: form.motivation,
+        // 다짐 지점은 서명이 곧 동의 → true. 일반 지점은 체크박스 값.
+        agreed_terms: isDajim ? true : form.agreed_terms,
+        agreed_marketing: form.agreed_marketing,
+      },
+      // signature 는 다짐 지점에서만 전달 (래퍼가 없으면 JSON 으로 보냄)
+      signature: isDajim ? signature : undefined,
     });
   }
 
@@ -643,20 +667,60 @@ export function MemberForm({ branchId }: { branchId: string }) {
             >
               {termsButtonLabel}
             </button>
-            <div className="mt-4 space-y-3">
-              <Checkbox
-                id="agreed-terms"
-                label="위 내용에 동의합니다. (필수)"
-                checked={form.agreed_terms}
-                onChange={(e) => set({ agreed_terms: e.target.checked })}
-                error={errors.agreed_terms}
-              />
-              <Checkbox
-                id="agreed-marketing"
-                label="마케팅 정보 수신에 동의합니다. (선택)"
-                checked={form.agreed_marketing}
-                onChange={(e) => set({ agreed_marketing: e.target.checked })}
-              />
+            <div className="mt-4">
+              {isDajim ? (
+                /* 다짐 지점(첨단·동광주): 전자서명으로 동의 받음 */
+                signaturePreview ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={signaturePreview}
+                      alt="입력한 서명 미리보기"
+                      className="h-16 max-w-full flex-1 rounded bg-white object-contain"
+                    />
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <p className="text-sm font-semibold text-green-700">
+                        ✓ 서명 완료
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSignatureOpen(true)}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        다시 서명
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSignatureOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-4 text-base font-medium text-gray-600 hover:border-primary hover:bg-violet-50/40"
+                  >
+                    ✍️ 전자서명
+                  </button>
+                )
+              ) : (
+                /* 일반 지점(화순 등): 체크박스로 동의 받음 — 기존 흐름 그대로 */
+                <Checkbox
+                  id="agreed-terms"
+                  label="위 내용에 동의합니다. (필수)"
+                  checked={form.agreed_terms}
+                  onChange={(e) => set({ agreed_terms: e.target.checked })}
+                  error={errors.agreed_terms}
+                />
+              )}
+              {isDajim && errors.signature && (
+                <p className="mt-2 text-sm text-red-600">{errors.signature}</p>
+              )}
+              <div className="mt-4">
+                <Checkbox
+                  id="agreed-marketing"
+                  label="마케팅 정보 수신에 동의합니다. (선택)"
+                  checked={form.agreed_marketing}
+                  onChange={(e) => set({ agreed_marketing: e.target.checked })}
+                />
+              </div>
             </div>
           </div>
         </Section>
@@ -678,13 +742,30 @@ export function MemberForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_terms}
+            disabled={isDajim ? !signature : !form.agreed_terms}
           >
             신청서 제출
           </Button>
         </div>
       </form>
 
+      <SignatureDialog
+        open={signatureOpen}
+        name={form.name.trim() || undefined}
+        pledge={pledge}
+        onConfirm={(blob) => {
+          setSignature(blob);
+          setSignatureOpen(false);
+          // 서명이 들어오면 이전 에러는 자연스럽게 사라지게
+          setErrors((prev) => {
+            if (!prev.signature) return prev;
+            const next = { ...prev };
+            delete next.signature;
+            return next;
+          });
+        }}
+        onClose={() => setSignatureOpen(false)}
+      />
       {termsOpen && (
         <TermsDialog
           content={terms}

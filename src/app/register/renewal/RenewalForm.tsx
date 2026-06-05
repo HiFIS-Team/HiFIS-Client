@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type FormEvent,
@@ -41,6 +43,7 @@ import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
+import { SignatureDialog } from "@/components/SignatureDialog";
 import {
   passDuration,
   ptDurationDays,
@@ -132,8 +135,10 @@ export function RenewalForm({ branchId }: { branchId: string }) {
     queryKey: ["branches"],
     queryFn: getBranches,
   });
-  const branchName =
-    branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
+  const branch = branchesQuery.data?.find((b) => b.id === branchId);
+  const branchName = branch?.name ?? "";
+  // 다짐 지점(첨단·동광주)만 재등록 시에도 새 약관에 전자서명 받음.
+  const isDajim = !!branch?.dajim_enabled;
   const [stage, setStage] = useState<Stage>({ kind: "identify" });
 
   return (
@@ -176,6 +181,7 @@ export function RenewalForm({ branchId }: { branchId: string }) {
       {stage.kind === "form-member" && (
         <MemberRenewalForm
           branchId={branchId}
+          isDajim={isDajim}
           member={stage.member}
           name={stage.name}
           phone={stage.phone}
@@ -185,6 +191,7 @@ export function RenewalForm({ branchId }: { branchId: string }) {
       {stage.kind === "form-pt" && (
         <PtRenewalForm
           branchId={branchId}
+          isDajim={isDajim}
           pt={stage.pt}
           name={stage.name}
           phone={stage.phone}
@@ -412,12 +419,14 @@ function statusLabel(s: string): string {
 // ═══════════════════════════════════════════
 function MemberRenewalForm({
   branchId,
+  isDajim,
   member,
   name,
   phone,
   onBack,
 }: {
   branchId: string;
+  isDajim: boolean;
   member: MemberLookup;
   name: string;
   phone: string;
@@ -456,6 +465,17 @@ function MemberRenewalForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
     setForm((f) => ({ ...f, ...patch }));
+  // 전자서명 — 재등록도 새 약관에 동의 받음 (회원·PT 공통 패턴).
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
 
   const isLoading =
     enumsQuery.isLoading ||
@@ -623,18 +643,23 @@ function MemberRenewalForm({
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
+    // 다짐만 서명 필요. 일반 지점은 서명 없이 JSON 으로 제출 (기존 동작).
+    if (isDajim && !signature) return;
     mutation.mutate({
-      branch_id: branchId,
-      name,
-      phone,
-      membership_pass_id: form.membership_pass_id,
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: form.end_date,
-      agreed_marketing: form.agreed_marketing ? true : null,
+      payload: {
+        branch_id: branchId,
+        name,
+        phone,
+        membership_pass_id: form.membership_pass_id,
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        agreed_marketing: form.agreed_marketing ? true : null,
+      },
+      signature: isDajim ? signature : undefined,
     });
   }
 
@@ -645,6 +670,7 @@ function MemberRenewalForm({
   ];
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
       <PrefilledBanner
         name={name}
@@ -762,6 +788,14 @@ function MemberRenewalForm({
         />
       </Section>
 
+      {isDajim && (
+        <SignatureAgreement
+          signaturePreview={signaturePreview}
+          onOpen={() => setSignatureOpen(true)}
+          error={errors.signature}
+        />
+      )}
+
       <MarketingAgreement
         checked={form.agreed_marketing}
         onChange={(v) => set({ agreed_marketing: v })}
@@ -777,8 +811,28 @@ function MemberRenewalForm({
         loading={mutation.isPending}
         onCancel={onBack}
         label="재등록 신청"
+        disabled={isDajim && !signature}
       />
     </form>
+    {isDajim && (
+      <SignatureDialog
+        open={signatureOpen}
+        name={name}
+        pledge="새 약관에 동의하신다는 확인으로 서명해 주세요."
+        onConfirm={(blob) => {
+          setSignature(blob);
+          setSignatureOpen(false);
+          setErrors((prev) => {
+            if (!prev.signature) return prev;
+            const next = { ...prev };
+            delete next.signature;
+            return next;
+          });
+        }}
+        onClose={() => setSignatureOpen(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -787,12 +841,14 @@ function MemberRenewalForm({
 // ═══════════════════════════════════════════
 function PtRenewalForm({
   branchId,
+  isDajim,
   pt,
   name,
   phone,
   onBack,
 }: {
   branchId: string;
+  isDajim: boolean;
   pt: PTLookup;
   name: string;
   phone: string;
@@ -830,6 +886,17 @@ function PtRenewalForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
     setForm((f) => ({ ...f, ...patch }));
+  // 전자서명 — 재등록도 새 약관에 동의 받음 (회원·PT 공통 패턴).
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
 
   const isLoading =
     enumsQuery.isLoading ||
@@ -919,24 +986,29 @@ function PtRenewalForm({
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
+    if (isDajim && !signature) return;
     mutation.mutate({
-      branch_id: branchId,
-      name,
-      phone,
-      pt_pass_id: form.pt_pass_id,
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: endDate,
-      agreed_marketing: form.agreed_marketing ? true : null,
+      payload: {
+        branch_id: branchId,
+        name,
+        phone,
+        pt_pass_id: form.pt_pass_id,
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: endDate,
+        agreed_marketing: form.agreed_marketing ? true : null,
+      },
+      signature: isDajim ? signature : undefined,
     });
   }
 
   const submitError = errorMessage(mutation);
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
       <PrefilledBanner
         name={name}
@@ -1073,6 +1145,14 @@ function PtRenewalForm({
         />
       </Section>
 
+      {isDajim && (
+        <SignatureAgreement
+          signaturePreview={signaturePreview}
+          onOpen={() => setSignatureOpen(true)}
+          error={errors.signature}
+        />
+      )}
+
       <MarketingAgreement
         checked={form.agreed_marketing}
         onChange={(v) => set({ agreed_marketing: v })}
@@ -1088,8 +1168,28 @@ function PtRenewalForm({
         loading={mutation.isPending}
         onCancel={onBack}
         label="재등록 신청"
+        disabled={isDajim && !signature}
       />
     </form>
+    {isDajim && (
+      <SignatureDialog
+        open={signatureOpen}
+        name={name}
+        pledge="새 약관에 동의하신다는 확인으로 서명해 주세요."
+        onConfirm={(blob) => {
+          setSignature(blob);
+          setSignatureOpen(false);
+          setErrors((prev) => {
+            if (!prev.signature) return prev;
+            const next = { ...prev };
+            delete next.signature;
+            return next;
+          });
+        }}
+        onClose={() => setSignatureOpen(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -1158,10 +1258,12 @@ function SubmitRow({
   loading,
   onCancel,
   label,
+  disabled,
 }: {
   loading: boolean;
   onCancel: () => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex gap-3">
@@ -1172,10 +1274,59 @@ function SubmitRow({
       >
         취소
       </button>
-      <Button type="submit" className="flex-1" loading={loading}>
+      <Button type="submit" className="flex-1" loading={loading} disabled={disabled}>
         {label}
       </Button>
     </div>
+  );
+}
+
+// 재등록 폼의 전자서명 섹션 — 회원·PT 공통.
+// 서명 후 제출 가능. 미리보기 + 다시 서명. 에러는 부모에서 errors.signature 로 전달.
+function SignatureAgreement({
+  signaturePreview,
+  onOpen,
+  error,
+}: {
+  signaturePreview: string | null;
+  onOpen: () => void;
+  error?: string;
+}) {
+  return (
+    <Section title="전자서명" icon={ArrowPathIcon}>
+      <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm/6 text-gray-700">
+        새 약관에 동의하신다는 확인으로 전자서명을 입력해 주세요.
+      </p>
+      {signaturePreview ? (
+        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={signaturePreview}
+            alt="입력한 서명 미리보기"
+            className="h-16 max-w-full flex-1 rounded bg-white object-contain"
+          />
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <p className="text-sm font-semibold text-green-700">✓ 서명 완료</p>
+            <button
+              type="button"
+              onClick={onOpen}
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              다시 서명
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-4 text-base font-medium text-gray-600 hover:border-primary hover:bg-violet-50/40"
+        >
+          ✍️ 전자서명
+        </button>
+      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+    </Section>
   );
 }
 

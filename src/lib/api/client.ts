@@ -35,7 +35,7 @@ export function getErrorMessage(error: unknown): string {
 }
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
-  // JSON 본문 — 객체를 넘기면 자동 직렬화된다
+  // 본문 — 객체는 JSON 직렬화, FormData 는 그대로 전송 (multipart boundary 자동).
   body?: unknown;
   // true면 Authorization 헤더에 access token 첨부 (관리자 API)
   auth?: boolean;
@@ -97,11 +97,15 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { body, auth = false, headers, ...rest } = options;
 
+  // FormData 면 fetch 가 알아서 multipart Content-Type(+ boundary) 을 박음 —
+  // 우리가 Content-Type 헤더를 직접 박으면 boundary 가 빠져 400 이 나니 분기 필요.
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
   const buildHeaders = (): Record<string, string> => {
     const h: Record<string, string> = {
       ...(headers as Record<string, string> | undefined),
     };
-    if (body !== undefined) h["Content-Type"] = "application/json";
+    if (body !== undefined && !isFormData) h["Content-Type"] = "application/json";
     if (auth) {
       const token = getAccessToken();
       if (token) h["Authorization"] = `Bearer ${token}`;
@@ -109,11 +113,18 @@ export async function apiFetch<T>(
     return h;
   };
 
+  const serializedBody: BodyInit | undefined =
+    body === undefined
+      ? undefined
+      : isFormData
+        ? (body as FormData)
+        : JSON.stringify(body);
+
   const doFetch = () =>
     fetch(`${BASE_URL}${path}`, {
       ...rest,
       headers: buildHeaders(),
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: serializedBody,
     });
 
   let res = await doFetch();

@@ -7,24 +7,44 @@ import type {
   PTApplicationUpdate,
 } from "./types";
 
-// POST /pt-applications — PT 신청 (공개)
-export function createPtApplication(
-  payload: PTApplicationCreate,
-): Promise<PTApplication> {
+// POST /pt-applications — PT 신청 (공개).
+// signature 가 있으면 multipart, 없으면 JSON (지점별 분기는 폼에서).
+export function createPtApplication(args: {
+  payload: PTApplicationCreate;
+  signature?: Blob | null;
+}): Promise<PTApplication> {
+  if (args.signature) {
+    const fd = new FormData();
+    fd.append("payload", JSON.stringify(args.payload));
+    fd.append("signature", args.signature, "signature.png");
+    return apiFetch<PTApplication>("/pt-applications", {
+      method: "POST",
+      body: fd,
+    });
+  }
   return apiFetch<PTApplication>("/pt-applications", {
     method: "POST",
-    body: payload,
+    body: args.payload,
   });
 }
 
-// POST /pt-applications/re-register — PT 재등록 (공개).
-// branch+name+phone 으로 기존 PT 신청 식별 → 404 면 본인 확인 실패.
-export function reRegisterPtApplication(
-  payload: PTApplicationReRegister,
-): Promise<PTApplication> {
+// POST /pt-applications/re-register — PT 재등록 (공개), 신규와 동일한 분기.
+export function reRegisterPtApplication(args: {
+  payload: PTApplicationReRegister;
+  signature?: Blob | null;
+}): Promise<PTApplication> {
+  if (args.signature) {
+    const fd = new FormData();
+    fd.append("payload", JSON.stringify(args.payload));
+    fd.append("signature", args.signature, "signature.png");
+    return apiFetch<PTApplication>("/pt-applications/re-register", {
+      method: "POST",
+      body: fd,
+    });
+  }
   return apiFetch<PTApplication>("/pt-applications/re-register", {
     method: "POST",
-    body: payload,
+    body: args.payload,
   });
 }
 

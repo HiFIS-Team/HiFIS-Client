@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type FormEvent,
@@ -34,6 +36,7 @@ import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
+import { SignatureDialog } from "@/components/SignatureDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { DAJIM_PT_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
@@ -94,6 +97,7 @@ const INITIAL = {
   referral_detail: "",
   motivation: "",
   notes: "",
+  // 일반 지점: 체크박스 / 다짐 지점(첨단·동광주): 전자서명 → 제출 시 자동 true.
   agreed_notice: false,
   // 마케팅 정보 수신 동의 (선택)
   agreed_marketing: false,
@@ -131,6 +135,17 @@ export function PtForm({ branchId }: { branchId: string }) {
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  // 전자서명 PNG Blob — 동의의 근거 (체크박스 대체). 미리보기는 derive + cleanup-only effect.
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
   const mutation = useMutation({ mutationFn: createPtApplication });
 
   const set = (patch: Partial<FormState>) =>
@@ -174,9 +189,6 @@ export function PtForm({ branchId }: { branchId: string }) {
   const terms = isDajim ? DAJIM_PT_TERMS : PT_NOTICE;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "서명 전 유의사항 보기";
-  const termsAgreeError = isDajim
-    ? "이용약관에 동의해 주세요."
-    : "유의사항을 확인해 주세요.";
 
   // 락커·운동복은 무료라 결제 금액에 영향 없음 — totalFor 는 수강권만 반영
 
@@ -279,7 +291,12 @@ export function PtForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
-    if (!form.agreed_notice) e.agreed_notice = termsAgreeError;
+    // 동의 — 다짐 지점: 전자서명 / 그 외: 체크박스
+    if (isDajim) {
+      if (!signature) e.signature = "전자서명을 입력해 주세요.";
+    } else {
+      if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
+    }
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -294,26 +311,30 @@ export function PtForm({ branchId }: { branchId: string }) {
       enums.referral,
     );
     mutation.mutate({
-      branch_id: branchId,
-      pt_pass_id: form.pt_pass_id,
-      // 수강권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      name: form.name.trim(),
-      gender: form.gender,
-      birth_date: form.birth_date,
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      referral,
-      referral_detail,
-      motivation: form.motivation,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: form.end_date,
-      notes: form.notes.trim() || null,
-      agreed_notice: form.agreed_notice,
-      agreed_marketing: form.agreed_marketing,
+      payload: {
+        branch_id: branchId,
+        pt_pass_id: form.pt_pass_id,
+        // 수강권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        name: form.name.trim(),
+        gender: form.gender,
+        birth_date: form.birth_date,
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        referral,
+        referral_detail,
+        motivation: form.motivation,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        notes: form.notes.trim() || null,
+        // 다짐은 서명이 곧 동의 → true. 일반은 체크박스 값.
+        agreed_notice: isDajim ? true : form.agreed_notice,
+        agreed_marketing: form.agreed_marketing,
+      },
+      signature: isDajim ? signature : undefined,
     });
   }
 
@@ -574,20 +595,60 @@ export function PtForm({ branchId }: { branchId: string }) {
             >
               {termsButtonLabel}
             </button>
-            <div className="mt-4 space-y-3">
-              <Checkbox
-                id="agreed-notice"
-                label="위 내용에 동의합니다. (필수)"
-                checked={form.agreed_notice}
-                onChange={(e) => set({ agreed_notice: e.target.checked })}
-                error={errors.agreed_notice}
-              />
-              <Checkbox
-                id="agreed-marketing"
-                label="마케팅 정보 수신에 동의합니다. (선택)"
-                checked={form.agreed_marketing}
-                onChange={(e) => set({ agreed_marketing: e.target.checked })}
-              />
+            <div className="mt-4">
+              {isDajim ? (
+                /* 다짐 지점(첨단·동광주): 전자서명 */
+                signaturePreview ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={signaturePreview}
+                      alt="입력한 서명 미리보기"
+                      className="h-16 max-w-full flex-1 rounded bg-white object-contain"
+                    />
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <p className="text-sm font-semibold text-green-700">
+                        ✓ 서명 완료
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSignatureOpen(true)}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        다시 서명
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSignatureOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-4 text-base font-medium text-gray-600 hover:border-primary hover:bg-violet-50/40"
+                  >
+                    ✍️ 전자서명
+                  </button>
+                )
+              ) : (
+                /* 일반 지점: 체크박스 — 기존 흐름 그대로 */
+                <Checkbox
+                  id="agreed-notice"
+                  label="위 내용에 동의합니다. (필수)"
+                  checked={form.agreed_notice}
+                  onChange={(e) => set({ agreed_notice: e.target.checked })}
+                  error={errors.agreed_notice}
+                />
+              )}
+              {isDajim && errors.signature && (
+                <p className="mt-2 text-sm text-red-600">{errors.signature}</p>
+              )}
+              <div className="mt-4">
+                <Checkbox
+                  id="agreed-marketing"
+                  label="마케팅 정보 수신에 동의합니다. (선택)"
+                  checked={form.agreed_marketing}
+                  onChange={(e) => set({ agreed_marketing: e.target.checked })}
+                />
+              </div>
             </div>
           </div>
         </Section>
@@ -609,13 +670,29 @@ export function PtForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_notice}
+            disabled={isDajim ? !signature : !form.agreed_notice}
           >
             신청서 제출
           </Button>
         </div>
       </form>
 
+      <SignatureDialog
+        open={signatureOpen}
+        name={form.name.trim() || undefined}
+        pledge={pledge}
+        onConfirm={(blob) => {
+          setSignature(blob);
+          setSignatureOpen(false);
+          setErrors((prev) => {
+            if (!prev.signature) return prev;
+            const next = { ...prev };
+            delete next.signature;
+            return next;
+          });
+        }}
+        onClose={() => setSignatureOpen(false)}
+      />
       {noticeOpen && (
         <TermsDialog content={terms} onClose={() => setNoticeOpen(false)} />
       )}

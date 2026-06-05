@@ -141,6 +141,8 @@ export interface Member {
   clothes_pass_id: string | null;
   motivation: string;
   agreed_marketing: boolean;
+  // 전자서명 이미지 URL — 백엔드가 정적 파일로 보존 (어드민 상세에서 노출용).
+  signature_url: string | null;
   status: string;
   category: RegistrationCategory;
   created_at: string;
@@ -262,6 +264,8 @@ export interface PTApplication {
   end_date: string;
   notes: string | null;
   agreed_marketing: boolean;
+  // 전자서명 이미지 URL — Member 와 동일.
+  signature_url: string | null;
   status: string;
   category: RegistrationCategory;
   created_at: string;
