@@ -31,17 +31,22 @@ export function passDuration(
 }
 
 // 정렬 비교용 — 일 단위 환산. 개월은 30일로 단순 환산.
+// 시간 토큰이 없는 수강권("N회") 은 회수를 정렬 키로 사용 — 실제 일수 아님,
+// 어차피 같은 카테고리("1:1 PT" 등) 안에서만 비교되므로 단위 혼동 없음.
 export function passDurationDays(
   name: string,
   durationMonths?: number | null,
 ): number {
   const d = passDuration(name, durationMonths);
-  if (!d) return Number.POSITIVE_INFINITY;
-  return "months" in d ? d.months * 30 : d.days;
+  if (d) return "months" in d ? d.months * 30 : d.days;
+  const sessions = name.match(/(\d+)\s*회/);
+  if (sessions) return Number(sessions[1]);
+  return Number.POSITIVE_INFINITY;
 }
 
-// 카테고리(종류) 추출 — 이름에서 기간 키워드를 빼고 남은 토큰.
-// 예: "1개월권" → 일반(빈), "학생 1개월권" → "학생", "제휴 1년권" → "제휴".
+// 카테고리(종류) 추출 — 이름에서 기간/회수 키워드를 빼고 남은 토큰.
+// 예: "1개월권" → 일반(빈), "학생 1개월권" → "학생", "제휴 1년권" → "제휴",
+//     "1:1 PT 10회" → "1:1 PT", "2:1 PT 5회" → "2:1 PT".
 // 일반(빈) 은 sort=0 으로 항상 맨 앞, 나머지는 가나다 순.
 export function passCategoryKey(name: string): { sort: number; label: string } {
   const cleaned = name
@@ -49,6 +54,7 @@ export function passCategoryKey(name: string): { sort: number; label: string } {
     .replace(/\d+\s*개월/g, "")
     .replace(/\d+\s*주/g, "")
     .replace(/\d+\s*일/g, "")
+    .replace(/\d+\s*회/g, "")
     .replace(/일\s*권/g, "")
     .replace(/권/g, "")
     .trim()
