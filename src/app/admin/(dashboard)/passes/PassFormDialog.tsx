@@ -65,6 +65,12 @@ export function PassFormDialog({
   const showLockerCheckbox = type !== "locker";
   const showClothesCheckbox = type !== "clothes";
   const showProvides = showLockerCheckbox || showClothesCheckbox;
+  const isPt = type === "pt";
+  const durationUnit = isPt ? "일" : "개월";
+  const durationPlaceholder = isPt ? "예: 40" : "예: 3";
+  const durationHint = isPt
+    ? "비워두면 상품명의 회수 × 4일로 자동 계산돼요. (예: 1:1 PT 20회 → 80일)"
+    : "비워두면 신청서가 상품명에서 자동 추출해요. (예: '7일권', 'VIP 1년권')";
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -74,12 +80,14 @@ export function PassFormDialog({
       errs.cash = "현금가를 정확히 입력해 주세요.";
     if (card === "" || Number.isNaN(Number(card)) || Number(card) < 0)
       errs.card = "카드가를 정확히 입력해 주세요.";
-    // 이용 기간(개월) — PT 는 헬스권 40일 고정이라 항상 null. 그 외는 비어있으면 null,
-    // 있으면 1~120 정수.
-    if (type !== "pt" && durationMonths !== "") {
+    // 이용 기간 — 비어있으면 null, 있으면 1~120 정수.
+    // PT 는 일 단위로 해석 (백엔드 schema 의 1~120 범위 그대로 — duration_months 컬럼 재사용),
+    // 그 외는 개월 단위. 라벨·검증 문구만 분기.
+    if (durationMonths !== "") {
       const n = Number(durationMonths);
+      const unit = type === "pt" ? "일" : "개월";
       if (!Number.isInteger(n) || n < 1 || n > 120) {
-        errs.duration = "이용 기간은 1~120 개월 정수로 입력해 주세요.";
+        errs.duration = `이용 기간은 1~120 ${unit} 정수로 입력해 주세요.`;
       }
     }
     setErrors(errs);
@@ -88,12 +96,7 @@ export function PassFormDialog({
       name: name.trim(),
       cash_price: Number(cash),
       card_price: Number(card),
-      duration_months:
-        type === "pt"
-          ? null
-          : durationMonths === ""
-            ? null
-            : Number(durationMonths),
+      duration_months: durationMonths === "" ? null : Number(durationMonths),
     };
     // 자기 자신 종류는 백엔드 스키마에 필드가 없으므로 누락시킴.
     if (showLockerCheckbox) payload.provides_locker = providesLocker;
@@ -146,29 +149,16 @@ export function PassFormDialog({
               onChange={(next) => setCard(next)}
               error={errors.card}
             />
-            {/* PT 수강권은 헬스권 40일 고정 — 폼에서 받지 않음 */}
-            {type === "pt" ? (
-              <div>
-                <p className="text-sm/6 font-medium text-gray-900">이용 기간</p>
-                <div className="mt-2 rounded-md bg-gray-100 px-3 py-2.5 text-base text-gray-600">
-                  40일 (고정)
-                </div>
-                <p className="mt-1.5 text-sm text-gray-500">
-                  PT 수강권은 헬스권 40일이 자동 제공돼요.
-                </p>
-              </div>
-            ) : (
-              <NumberField
-                id="pass-duration"
-                label="이용 기간"
-                unit="개월"
-                placeholder="예: 3"
-                value={durationMonths}
-                onChange={(next) => setDurationMonths(next)}
-                error={errors.duration}
-                hint="비워두면 신청서가 상품명에서 자동 추출해요 (예: '7일권', 'VIP 1년권')."
-              />
-            )}
+            <NumberField
+              id="pass-duration"
+              label="이용 기간"
+              unit={durationUnit}
+              placeholder={durationPlaceholder}
+              value={durationMonths}
+              onChange={(next) => setDurationMonths(next)}
+              error={errors.duration}
+              hint={durationHint}
+            />
             {showProvides && (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                 <p className="text-sm font-semibold text-gray-900">

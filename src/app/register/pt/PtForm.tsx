@@ -37,16 +37,13 @@ import { TermsDialog } from "@/components/TermsDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
-import { sortPassesForUI } from "@/lib/passDuration";
+import { ptDurationDays, sortPassesForUI } from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
-
-// PT 회원에게 제공되는 헬스권 이용 기간 (일) — 고정값
-const PT_DURATION_DAYS = 40;
 
 // YYYY-MM-DD 에 일수를 더한다
 function addDays(dateStr: string, days: number): string {
@@ -126,11 +123,11 @@ export function PtForm({ branchId }: { branchId: string }) {
     queryFn: () => getClothesPasses(branchId),
   });
 
-  // 시작일은 등록일(오늘), 종료일은 +40일로 시작 — PT 헬스권 기간은 40일 고정
-  const [form, setForm] = useState<FormState>(() => {
-    const t = todayStr();
-    return { ...INITIAL, start_date: t, end_date: addDays(t, PT_DURATION_DAYS) };
-  });
+  // 시작일은 등록일(오늘). 종료일은 PT 수강권을 골라야 결정됨 (회수 × 4일).
+  const [form, setForm] = useState<FormState>(() => ({
+    ...INITIAL,
+    start_date: todayStr(),
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [noticeOpen, setNoticeOpen] = useState(false);
   const mutation = useMutation({ mutationFn: createPtApplication });
@@ -180,7 +177,8 @@ export function PtForm({ branchId }: { branchId: string }) {
     if (!p) return 0;
     return next.payment_method === "CARD" ? p.card_price : p.cash_price;
   }
-  // 수강권 변경 — 가격 재계산 + 무료 제공 수강권이면 별도 락커·운동복 선택과 opt-out 리셋
+  // 수강권 변경 — 가격 재계산 + 종료일(시작일 + 회수×4일) 재계산 +
+  // 무료 제공 수강권이면 별도 락커·운동복 선택과 opt-out 리셋
   // → 기본값 "포함 (무료 제공)" 으로 자연 노출
   const onPtPassChange = (id: string) => {
     const next = ptPasses.find((x) => x.id === id);
@@ -193,6 +191,12 @@ export function PtForm({ branchId }: { branchId: string }) {
       if (next?.provides_clothes) {
         base.clothes_pass_id = "";
         base.clothes_opt_out = false;
+      }
+      if (next && base.start_date) {
+        base.end_date = addDays(
+          base.start_date,
+          ptDurationDays(next.name, next.duration_months),
+        );
       }
       return { ...base, final_price: String(totalFor(base)) };
     });
@@ -209,13 +213,20 @@ export function PtForm({ branchId }: { branchId: string }) {
   const lockerProvided = !!selectedPtPass?.provides_locker;
   const clothesProvided = !!selectedPtPass?.provides_clothes;
 
-  // 이용 시작일 변경 — 종료일은 항상 시작일 + 40일 (PT 헬스권 기간 고정)
+  // 이용 시작일 변경 — 종료일 = 시작일 + (선택 수강권 회수 × 4일).
+  // 수강권 미선택이면 종료일은 비움 — 수강권 선택 시 onPtPassChange 가 채움.
   const onStartDateChange = (value: string) => {
-    setForm((f) => ({
-      ...f,
-      start_date: value,
-      end_date: value ? addDays(value, PT_DURATION_DAYS) : "",
-    }));
+    setForm((f) => {
+      const pass = ptPasses.find((x) => x.id === f.pt_pass_id);
+      return {
+        ...f,
+        start_date: value,
+        end_date:
+          value && pass
+            ? addDays(value, ptDurationDays(pass.name, pass.duration_months))
+            : "",
+      };
+    });
   };
 
   // 제출 성공 — 완료 화면 (5초 후 키오스크 진입 화면으로 자동 복귀)
@@ -468,7 +479,9 @@ export function PtForm({ branchId }: { branchId: string }) {
               {form.end_date ? formatDate(form.end_date) : "—"}
             </div>
             <p className="mt-1.5 text-sm text-gray-500">
-              PT 회원은 헬스권 40일이 제공돼요. 시작일 기준 자동 설정됩니다.
+              {selectedPtPass
+                ? `PT 회원은 헬스권 ${ptDurationDays(selectedPtPass.name, selectedPtPass.duration_months)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
+                : "수강권을 선택하면 헬스권 이용 기간이 자동 설정돼요. (회수 × 4일)"}
             </p>
           </div>
         </Section>

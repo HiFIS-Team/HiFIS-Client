@@ -265,8 +265,9 @@ export interface PTApplication {
 }
 
 // POST /pt-applications/re-register — PT 재등록 (공개).
-// 회원 재등록과 동일한 식별 규칙(branch+name+phone). PT는 40일 고정 — 시작일은
-// 활성이면 기존 end_date + 1일, 만료면 오늘. 프론트에서 계산해 start/end 전송.
+// 회원 재등록과 동일한 식별 규칙(branch+name+phone). PT 이용 기간은 회수 × 4일
+// (10회당 40일 정책) — 시작일은 활성이면 기존 end_date + 1일, 만료면 오늘.
+// 프론트에서 계산해 start/end 전송.
 export interface PTApplicationReRegister {
   branch_id: string;
   name: string;

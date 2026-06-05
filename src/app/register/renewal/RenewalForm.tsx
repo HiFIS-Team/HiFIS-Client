@@ -43,6 +43,7 @@ import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import {
   passDuration,
+  ptDurationDays,
   sortPassesForUI,
   type PassDuration,
 } from "@/lib/passDuration";
@@ -85,8 +86,6 @@ function nextStartDate(prev: { status: string; end_date: string }): string {
   }
   return today;
 }
-
-const PT_DURATION_DAYS = 40;
 
 // ─────────── Select 옵션 헬퍼 ───────────
 function enumOpts(arr: EnumOption[]): SelectOption[] {
@@ -812,6 +811,8 @@ function PtRenewalForm({
   });
   const mutation = useMutation({ mutationFn: reRegisterPtApplication });
 
+  // PT 재등록 — end_date 는 시작일·선택 수강권에서 derive (회수 × 4일).
+  // 별도 state 로 갖지 않아 ptPasses 로딩과의 race·set-state-in-effect 회피.
   const initialStart = nextStartDate(pt);
   const [form, setForm] = useState({
     pt_pass_id: pt.pt_pass_id,
@@ -820,7 +821,6 @@ function PtRenewalForm({
     payment_method: pt.payment_method ?? "",
     final_price: pt.final_price != null ? String(pt.final_price) : "",
     start_date: initialStart,
-    end_date: addDays(initialStart, PT_DURATION_DAYS),
     agreed_marketing: false,
     locker_opt_out: false,
     clothes_opt_out: false,
@@ -874,16 +874,17 @@ function PtRenewalForm({
     });
   };
   const onStartDateChange = (value: string) => {
-    setForm((f) => ({
-      ...f,
-      start_date: value,
-      end_date: value ? addDays(value, PT_DURATION_DAYS) : "",
-    }));
+    setForm((f) => ({ ...f, start_date: value }));
   };
 
   const selected = ptPasses.find((x) => x.id === form.pt_pass_id);
   const lockerProvided = !!selected?.provides_locker;
   const clothesProvided = !!selected?.provides_clothes;
+  // 종료일 derive — 시작일·선택 수강권 둘 다 있어야 계산.
+  const endDate =
+    form.start_date && selected
+      ? addDays(form.start_date, ptDurationDays(selected.name, selected.duration_months))
+      : "";
 
   if (mutation.isSuccess) {
     return (
@@ -923,7 +924,7 @@ function PtRenewalForm({
       payment_method: form.payment_method,
       final_price: Number(form.final_price),
       start_date: form.start_date,
-      end_date: form.end_date,
+      end_date: endDate,
       agreed_marketing: form.agreed_marketing ? true : null,
     });
   }
@@ -1034,10 +1035,12 @@ function PtRenewalForm({
             이용 종료일
           </p>
           <div className="mt-2 rounded-md bg-gray-100 px-3 py-2.5 text-base text-gray-600">
-            {form.end_date ? formatDate(form.end_date) : "—"}
+            {endDate ? formatDate(endDate) : "—"}
           </div>
           <p className="mt-1.5 text-sm text-gray-500">
-            PT 회원은 헬스권 40일이 제공돼요. 시작일 기준 자동 설정됩니다.
+            {selected
+              ? `PT 회원은 헬스권 ${ptDurationDays(selected.name, selected.duration_months)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
+              : "수강권을 선택하면 헬스권 이용 기간이 자동 설정돼요. (회수 × 4일)"}
           </p>
         </div>
       </Section>

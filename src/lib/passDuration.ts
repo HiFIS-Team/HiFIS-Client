@@ -30,6 +30,22 @@ export function passDuration(
   return durationFromName(name);
 }
 
+// PT 수강권 이용 기간(일). 우선순위:
+//   1) duration_months 컬럼이 채워져 있으면 그 값을 "일" 로 사용
+//      (PT 한정으로 컬럼을 일 단위 저장소로 재사용 — 백엔드 schema 그대로)
+//   2) 비어있으면 이름에서 회수(N회) 추출 → N × 4 (10회당 40일 정책)
+//   3) 회수도 못 찾으면 40일 fallback
+export const PT_DAYS_PER_SESSION = 4;
+export const PT_DAYS_FALLBACK = 40;
+export function ptDurationDays(
+  passName: string,
+  durationMonths?: number | null,
+): number {
+  if (durationMonths != null && durationMonths > 0) return durationMonths;
+  const m = passName.match(/(\d+)\s*회/);
+  return m ? Number(m[1]) * PT_DAYS_PER_SESSION : PT_DAYS_FALLBACK;
+}
+
 // 정렬 비교용 — 일 단위 환산. 개월은 30일로 단순 환산.
 // 시간 토큰이 없는 수강권("N회") 은 회수를 정렬 키로 사용 — 실제 일수 아님,
 // 어차피 같은 카테고리("1:1 PT" 등) 안에서만 비교되므로 단위 혼동 없음.
