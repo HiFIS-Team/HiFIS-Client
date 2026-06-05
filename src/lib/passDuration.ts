@@ -4,7 +4,8 @@
 export type PassDuration = { months: number } | { days: number };
 
 // 이름에서 기간 토큰을 잡는다 — "3개월권" → {months:3}, "1년권" → {months:12},
-// "2주권" → {days:14}, "7일권" → {days:7}, "일권" → {days:1}.
+// "2주권" → {days:14}, "7일권" → {days:7}, "일권" → {days:1},
+// "3시간권" → {days:1} (시간 단위는 DB 에 못 담아서 당일 처리, 시간 제한은 지점 운영).
 function durationFromName(name: string): PassDuration | null {
   const year = name.match(/(\d+)\s*년/);
   if (year) return { months: Number(year[1]) * 12 };
@@ -14,6 +15,7 @@ function durationFromName(name: string): PassDuration | null {
   if (week) return { days: Number(week[1]) * 7 };
   const day = name.match(/(\d+)\s*일/);
   if (day) return { days: Number(day[1]) };
+  if (/\d+\s*시간/.test(name)) return { days: 1 };
   if (/일\s*권/.test(name)) return { days: 1 };
   return null;
 }
@@ -70,6 +72,7 @@ export function passCategoryKey(name: string): { sort: number; label: string } {
     .replace(/\d+\s*개월/g, "")
     .replace(/\d+\s*주/g, "")
     .replace(/\d+\s*일/g, "")
+    .replace(/\d+\s*시간/g, "")
     .replace(/\d+\s*회/g, "")
     .replace(/일\s*권/g, "")
     .replace(/권/g, "")
