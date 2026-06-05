@@ -193,9 +193,10 @@ export function PtForm({ branchId }: { branchId: string }) {
         base.clothes_opt_out = false;
       }
       if (next && base.start_date) {
+        // 종료일 = 마지막 유효일(포함) — N일권이면 start + (N-1)
         base.end_date = addDays(
           base.start_date,
-          ptDurationDays(next.name, next.duration_months),
+          ptDurationDays(next.name, next.duration_months) - 1,
         );
       }
       return { ...base, final_price: String(totalFor(base)) };
@@ -223,7 +224,7 @@ export function PtForm({ branchId }: { branchId: string }) {
         start_date: value,
         end_date:
           value && pass
-            ? addDays(value, ptDurationDays(pass.name, pass.duration_months))
+            ? addDays(value, ptDurationDays(pass.name, pass.duration_months) - 1)
             : "",
       };
     });

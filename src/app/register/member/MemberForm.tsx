@@ -73,10 +73,13 @@ function addDays(dateStr: string, days: number): string {
 }
 
 // 기간 객체를 적용해 종료일 계산.
+// 종료일은 "마지막 유효일"(포함) 의미 — 백엔드 만기 처리가 end_date < today 기준.
+// 일권/주권: 1일권 → end=start, 7일권 → start+6, 2주권 → start+13.
+// 개월권은 관례상 "같은 날짜 다음달" 그대로 (예: 1개월 6/5 → 7/5, 31일 유효).
 function applyDuration(startDate: string, duration: PassDuration): string {
   return "months" in duration
     ? addMonths(startDate, duration.months)
-    : addDays(startDate, duration.days);
+    : addDays(startDate, duration.days - 1);
 }
 
 // enum 옵션 → Select 옵션

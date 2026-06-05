@@ -73,10 +73,12 @@ function addDays(dateStr: string, days: number): string {
   const dd = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${mm}-${dd}`;
 }
+// 종료일은 "마지막 유효일"(포함) — 백엔드 만기 기준 end_date < today.
+// 일권/주권은 -1 적용 (1일권 → end=start). 개월권은 관례상 같은 날짜 다음달 유지.
 function applyDuration(startDate: string, duration: PassDuration): string {
   return "months" in duration
     ? addMonths(startDate, duration.months)
-    : addDays(startDate, duration.days);
+    : addDays(startDate, duration.days - 1);
 }
 // 활성 상태(현재 이용 중)이면 기존 종료일 다음 날부터, 만료면 오늘부터.
 function nextStartDate(prev: { status: string; end_date: string }): string {
@@ -883,7 +885,10 @@ function PtRenewalForm({
   // 종료일 derive — 시작일·선택 수강권 둘 다 있어야 계산.
   const endDate =
     form.start_date && selected
-      ? addDays(form.start_date, ptDurationDays(selected.name, selected.duration_months))
+      ? addDays(
+          form.start_date,
+          ptDurationDays(selected.name, selected.duration_months) - 1,
+        )
       : "";
 
   if (mutation.isSuccess) {
