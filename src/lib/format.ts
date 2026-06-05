@@ -64,12 +64,21 @@ const POSITION_LABEL_MAP: Record<string, string> = {
   TRAINER: "트레이너",
   FC: "FC",
 };
-// 관리자 표시 라벨 — SUPER_ADMIN 은 "대표", FC 는 직책(점장/팀장/트레이너/FC) 표시.
+// SUPER_ADMIN 이지만 직책이 "대표" 가 아닌 사람 — 이름으로 override.
+// (백엔드는 SUPER_ADMIN.position 을 항상 NULL 로 두므로 프론트에서 처리)
+const SUPER_ADMIN_LABEL_OVERRIDE: Record<string, string> = {
+  김은후: "관리자",
+  이건주: "관리자",
+};
+// 관리자 표시 라벨 — SUPER_ADMIN 은 "대표"(override 우선), FC 는 직책 표시.
 export function adminRoleLabel(admin: {
+  name: string;
   role: string;
   position: string | null;
 }): string {
-  if (admin.role === "SUPER_ADMIN") return "대표";
+  if (admin.role === "SUPER_ADMIN") {
+    return SUPER_ADMIN_LABEL_OVERRIDE[admin.name] ?? "대표";
+  }
   if (admin.position) return POSITION_LABEL_MAP[admin.position] ?? admin.position;
   return "FC";
 }
