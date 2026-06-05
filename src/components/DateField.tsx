@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { CalendarIcon } from "@heroicons/react/24/outline";
 
 interface DateFieldProps {
@@ -31,7 +31,10 @@ function mask(input: string): string {
 
 // 날짜 입력 — 키보드로 숫자 입력(자동 YYYY-MM-DD 포맷) + 우측 달력 아이콘으로 picker 호출.
 // 네이티브 <input type="date"> 가 탭만 해도 picker 가 떠 모바일에서 불편한 문제 해결.
-// picker 자체는 브라우저 기본 사용 (icon 명시 클릭 시에만 노출 — 의도된 동작).
+// picker 자체는 브라우저 기본 사용 (icon 영역 탭 시에만 노출 — 의도된 동작).
+//
+// 구현: 투명한 <input type="date"> 를 달력 아이콘 위에 겹쳐서 탭이 직접 input 으로
+// 들어가게 한다. (showPicker() 는 모바일에서 hidden input 일 때 작동 안 함 — iOS Safari·Chrome Android)
 export function DateField({
   label,
   value,
@@ -54,9 +57,6 @@ export function DateField({
     setText(value ?? "");
   }
 
-  // 숨겨진 date 인풋 — 달력 picker 호출용
-  const pickerRef = useRef<HTMLInputElement>(null);
-
   function handleTextChange(input: string) {
     const masked = mask(input);
     setText(masked);
@@ -65,22 +65,6 @@ export function DateField({
     if (masked === "" || COMPLETE.test(masked)) {
       onChange({ target: { value: masked } });
     }
-  }
-
-  function openPicker() {
-    const el = pickerRef.current;
-    if (!el) return;
-    // 최신 브라우저 (Chrome 99+ / Safari 16+ / Firefox 101+)
-    if (typeof el.showPicker === "function") {
-      try {
-        el.showPicker();
-        return;
-      } catch {
-        // user gesture 이슈 등 — 폴백
-      }
-    }
-    el.focus();
-    el.click();
   }
 
   return (
@@ -110,31 +94,31 @@ export function DateField({
               : "outline-gray-300 focus:outline-primary"
           }`}
         />
-        <button
-          type="button"
-          onClick={openPicker}
-          disabled={disabled}
-          aria-label="달력으로 선택"
-          className="absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <CalendarIcon className="size-5" />
-        </button>
-        {/* 달력 picker — 보이지 않지만 showPicker() 호출 대상.
-            offscreen 위치 + 인터랙션 차단으로 입력 흐름은 방해하지 않음. */}
-        <input
-          ref={pickerRef}
-          type="date"
-          tabIndex={-1}
-          aria-hidden="true"
-          min={min}
-          max={max}
-          value={COMPLETE.test(text) ? text : ""}
-          onChange={(e) => {
-            setText(e.target.value);
-            onChange({ target: { value: e.target.value } });
-          }}
-          className="pointer-events-none absolute right-2 bottom-0 size-0 opacity-0"
-        />
+        {/* 달력 아이콘 영역 — 우상단 28×28.
+            투명한 <input type="date"> 가 같은 영역에 겹쳐있어 탭하면 native picker 가 뜬다.
+            (PC·iOS Safari·Chrome Android 공통 — showPicker() 미사용) */}
+        <div className="group absolute top-1/2 right-2 size-7 -translate-y-1/2">
+          <input
+            type="date"
+            aria-label="달력으로 선택"
+            tabIndex={-1}
+            min={min}
+            max={max}
+            disabled={disabled}
+            value={COMPLETE.test(text) ? text : ""}
+            onChange={(e) => {
+              setText(e.target.value);
+              onChange({ target: { value: e.target.value } });
+            }}
+            className="absolute inset-0 cursor-pointer appearance-none bg-transparent opacity-0 disabled:cursor-not-allowed"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none flex size-7 items-center justify-center rounded text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-700 group-has-[input:disabled]:opacity-50"
+          >
+            <CalendarIcon className="size-5" />
+          </div>
+        </div>
       </div>
       {error ? (
         <p className="mt-1.5 text-sm text-red-600">{error}</p>
