@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { DAJIM_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import {
   passDuration,
@@ -187,8 +188,16 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const membershipPasses = membershipQuery.data ?? [];
   const lockerPasses = lockerQuery.data ?? [];
   const clothesPasses = clothesQuery.data ?? [];
-  const branchName =
-    branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
+  const branch = branchesQuery.data?.find((b) => b.id === branchId);
+  const branchName = branch?.name ?? "";
+  // 다짐 지점(첨단·동광주)은 별도 이용약관 — Branch.dajim_enabled 로 판정
+  const isDajim = !!branch?.dajim_enabled;
+  const terms = isDajim ? DAJIM_TERMS : OPERATING_RULES;
+  const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
+  const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "운영 회칙 전문 보기";
+  const termsAgreeError = isDajim
+    ? "이용약관에 동의해 주세요."
+    : "운영 회칙에 동의해 주세요.";
 
   // 선택한 상품 가격 합계 — 결제수단이 카드면 카드가, 그 외엔 현금가 적용.
   // 회원권/락커/운동복 중 하나가 다른 종류를 무료 제공하면 그 가격은 합산에서 제외.
@@ -356,7 +365,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
-    if (!form.agreed_terms) e.agreed_terms = "운영 회칙에 동의해 주세요.";
+    if (!form.agreed_terms) e.agreed_terms = termsAgreeError;
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -625,16 +634,14 @@ export function MemberForm({ branchId }: { branchId: string }) {
           <div>
             {/* 준수 서약문 — 동의 대상 */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
-              <p className="text-base/7 text-gray-700">
-                {MEMBERSHIP_PLEDGE}
-              </p>
+              <p className="text-base/7 text-gray-700">{pledge}</p>
             </div>
             <button
               type="button"
               onClick={() => setTermsOpen(true)}
               className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
             >
-              운영 회칙 전문 보기
+              {termsButtonLabel}
             </button>
             <div className="mt-4 space-y-3">
               <Checkbox
@@ -680,7 +687,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
       {termsOpen && (
         <TermsDialog
-          content={OPERATING_RULES}
+          content={terms}
           onClose={() => setTermsOpen(false)}
         />
       )}

@@ -36,6 +36,7 @@ import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { DAJIM_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { ptDurationDays, sortPassesForUI } from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
@@ -166,8 +167,16 @@ export function PtForm({ branchId }: { branchId: string }) {
   // 지점에 패스가 하나도 등록 안 돼 있으면 신청 토글 자체를 숨김.
   const lockerPasses = lockerPassQuery.data ?? [];
   const clothesPasses = clothesPassQuery.data ?? [];
-  const branchName =
-    branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
+  const branch = branchesQuery.data?.find((b) => b.id === branchId);
+  const branchName = branch?.name ?? "";
+  // 다짐 지점(첨단·동광주)은 PT 유의사항 대신 통합 이용약관 사용
+  const isDajim = !!branch?.dajim_enabled;
+  const terms = isDajim ? DAJIM_TERMS : PT_NOTICE;
+  const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
+  const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "서명 전 유의사항 보기";
+  const termsAgreeError = isDajim
+    ? "이용약관에 동의해 주세요."
+    : "유의사항을 확인해 주세요.";
 
   // 락커·운동복은 무료라 결제 금액에 영향 없음 — totalFor 는 수강권만 반영
 
@@ -270,7 +279,7 @@ export function PtForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
-    if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
+    if (!form.agreed_notice) e.agreed_notice = termsAgreeError;
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -556,14 +565,14 @@ export function PtForm({ branchId }: { branchId: string }) {
           <div>
             {/* 준수 서약문 — 동의 대상 */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
-              <p className="text-base/7 text-gray-700">{MEMBERSHIP_PLEDGE}</p>
+              <p className="text-base/7 text-gray-700">{pledge}</p>
             </div>
             <button
               type="button"
               onClick={() => setNoticeOpen(true)}
               className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
             >
-              서명 전 유의사항 보기
+              {termsButtonLabel}
             </button>
             <div className="mt-4 space-y-3">
               <Checkbox
@@ -608,7 +617,7 @@ export function PtForm({ branchId }: { branchId: string }) {
       </form>
 
       {noticeOpen && (
-        <TermsDialog content={PT_NOTICE} onClose={() => setNoticeOpen(false)} />
+        <TermsDialog content={terms} onClose={() => setNoticeOpen(false)} />
       )}
     </main>
   );

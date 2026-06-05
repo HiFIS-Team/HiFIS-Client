@@ -27,6 +27,9 @@ export interface Branch {
   // 지점별 알림톡 발송 토글. 전역 마스터(SystemConfig.messaging_enabled)와 AND 동작.
   // 기본 false — 사장님이 명시적으로 켜야 발송.
   messaging_enabled: boolean;
+  // 다짐(외부 SaaS) 자동 회원 등록 토글 — 첨단점·동광주점 만 ON.
+  // 프론트는 이 플래그로 신청서 이용약관 분기 (다짐매니저 위탁 고지가 포함된 약관 사용).
+  dajim_enabled: boolean;
   created_at: string;
 }
 
