@@ -103,12 +103,13 @@ export function Select({
           </ListboxButton>
 
           <ListboxOptions
-            // padding 32: viewport 끝에서 32px 안쪽 anchor 가능 → 끝 가까워도 flip 안 함
-            // 모바일 viewport 좁으니 패널 height 더 작게 (max-h-44 = 176px ≈ 4-5항목)
-            // sm+ 데스크탑에선 좀 더 여유롭게 (max-h-56 = 224px)
-            anchor={{ to: "bottom start", gap: 4, padding: 32 }}
+            // 항상 버튼 아래로 고정 — Headless UI 의 anchor(Floating UI flip) 을 끄고
+            // CSS absolute 로 위치 잡음. anchor 가 viewport 끝에서 위로 뒤집어 잡힌
+            // 채 사용자가 누르는 사이 다시 아래로 점프해 탭 미스나는 문제 해결.
+            // 패널 height: 모바일 max-h-44(176px ≈ 4-5항목), sm+ max-h-56(224px).
+            anchor={false}
             transition
-            className="z-[60] w-[var(--button-width)] max-h-44 sm:max-h-56 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in data-[closed]:opacity-0"
+            className="absolute top-full left-0 z-[60] mt-1 w-full max-h-44 sm:max-h-56 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in data-[closed]:opacity-0"
           >
             {options.map((o) => (
               <ListboxOption
