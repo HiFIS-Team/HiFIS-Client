@@ -33,7 +33,7 @@ import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
-import { DAJIM_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
+import { DAJIM_MEMBER_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import {
   passDuration,
@@ -192,7 +192,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const branchName = branch?.name ?? "";
   // 다짐 지점(첨단·동광주)은 별도 이용약관 — Branch.dajim_enabled 로 판정
   const isDajim = !!branch?.dajim_enabled;
-  const terms = isDajim ? DAJIM_TERMS : OPERATING_RULES;
+  const terms = isDajim ? DAJIM_MEMBER_TERMS : OPERATING_RULES;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "운영 회칙 전문 보기";
   const termsAgreeError = isDajim

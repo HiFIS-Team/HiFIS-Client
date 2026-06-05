@@ -36,7 +36,7 @@ import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
-import { DAJIM_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
+import { DAJIM_PT_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import { ptDurationDays, sortPassesForUI } from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
@@ -171,7 +171,7 @@ export function PtForm({ branchId }: { branchId: string }) {
   const branchName = branch?.name ?? "";
   // 다짐 지점(첨단·동광주)은 PT 유의사항 대신 통합 이용약관 사용
   const isDajim = !!branch?.dajim_enabled;
-  const terms = isDajim ? DAJIM_TERMS : PT_NOTICE;
+  const terms = isDajim ? DAJIM_PT_TERMS : PT_NOTICE;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "서명 전 유의사항 보기";
   const termsAgreeError = isDajim
