@@ -64,12 +64,15 @@ export default function AdminPtApplicationsPage() {
     enabled: !!detailId,
     retry: false,
   });
+  // 자동 오픈 후 ?detail 즉시 제거 — 다른 페이지 갔다 돌아왔을 때 자동 재오픈 방지.
+  // (회원 페이지와 동일 패턴. members/page.tsx 주석 참조)
   useEffect(() => {
     if (detailQuery.data && detailQuery.data.id === detailId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewTarget(detailQuery.data);
+      router.replace(pathname);
     }
-  }, [detailQuery.data, detailId]);
+  }, [detailQuery.data, detailId, router, pathname]);
   useEffect(() => {
     if (detailQuery.isError && detailId) {
       toast.error("해당 PT 신청을 찾을 수 없습니다.");

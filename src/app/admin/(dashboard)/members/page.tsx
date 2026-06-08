@@ -58,13 +58,17 @@ export default function AdminMembersPage() {
     enabled: !!detailId,
     retry: false,
   });
-  // detail fetch 성공 → viewTarget 으로 다이얼로그 자동 오픈
+  // detail fetch 성공 → viewTarget 으로 다이얼로그 자동 오픈.
+  // 그리고 ?detail 쿼리를 즉시 URL 에서 제거 — 안 그러면 사이드바로 다른 페이지
+  // 갔다 돌아왔을 때 ?detail 이 남아있거나 캐시가 살아있어 다이얼로그가 자동으로
+  // 다시 열림. 한 번 소비한 알림은 두 번 트리거되지 않게.
   useEffect(() => {
     if (detailQuery.data && detailQuery.data.id === detailId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewTarget(detailQuery.data);
+      router.replace(pathname);
     }
-  }, [detailQuery.data, detailId]);
+  }, [detailQuery.data, detailId, router, pathname]);
   // 실패 (404·권한 등) → 안내 + URL 정리
   useEffect(() => {
     if (detailQuery.isError && detailId) {
