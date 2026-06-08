@@ -130,7 +130,8 @@ export function ContractDialog({
     if (!el) return null;
     const canvas = await html2canvas(el, {
       backgroundColor: "#ffffff",
-      scale: 2, // 망점 없는 선명한 글자
+      // scale 1.5 — 종이가 길어서 2 로 잡으면 파일/픽셀 모두 부담. 1.5 도 글자 충분히 또렷.
+      scale: 1.5,
       useCORS: true,
       ignoreElements: (n) =>
         n instanceof HTMLElement && n.dataset.captureIgnore === "true",
@@ -193,14 +194,14 @@ export function ContractDialog({
           {/* 종이 — 흰 배경. 이 div 자체가 html2canvas 캡처 대상. */}
           <div
             ref={paperRef}
-            className="bg-white px-6 py-8 text-gray-900 sm:px-10 sm:py-10"
+            className="bg-white px-6 py-6 text-gray-900 sm:px-10 sm:py-8"
           >
             {/* 제목 — 종이 맨 위. 캡처 결과 신청서의 머리말이 됨. */}
             <h2 className="text-center text-lg font-bold sm:text-xl">
               {headerTitle}
             </h2>
 
-            <div className="mt-8">
+            <div className="mt-6">
               {/* 회원 정보 / 상품 결제 정보 — 폼이 build 해서 prop 으로 넘긴 라벨/값 */}
               {memberInfo && memberInfo.length > 0 && (
                 <InfoSection title="회원 정보" lines={memberInfo} />
@@ -214,27 +215,30 @@ export function ContractDialog({
               )}
 
               <h3
-                className={`text-center text-xl font-bold text-gray-900 ${
+                className={`text-center text-lg font-bold text-gray-900 ${
                   (memberInfo && memberInfo.length > 0) ||
                   (productInfo && productInfo.length > 0)
-                    ? "mt-10"
+                    ? "mt-8"
                     : ""
                 }`}
               >
                 이용약관
               </h3>
 
-              <div className="mt-6 space-y-6">
+              <div className="mt-4 space-y-4">
                 {terms.sections.map((s, si) => (
-                  <section key={si}>
+                  <section key={si} className="break-inside-avoid">
                     {s.heading && (
-                      <h4 className="text-base font-bold text-gray-900">
+                      <h4 className="text-[14px] font-bold text-gray-900">
                         {s.heading}
                       </h4>
                     )}
-                    <div className={`space-y-2 ${s.heading ? "mt-2" : ""}`}>
+                    <div className={`space-y-1 ${s.heading ? "mt-1.5" : ""}`}>
                       {s.body.map((p, i) => (
-                        <p key={i} className="text-[15px]/7 text-gray-800">
+                        <p
+                          key={i}
+                          className="text-[12.5px] leading-[1.55] text-gray-800"
+                        >
                           {p}
                         </p>
                       ))}
@@ -244,7 +248,7 @@ export function ContractDialog({
               </div>
 
               {/* 동의·날짜·서명 구역 — 종이 신청서 하단처럼 */}
-              <div className="mt-10 border-t border-gray-300 pt-8">
+              <div className="mt-8 border-t border-gray-300 pt-6">
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                   <Checkbox
                     id="contract-agree"
@@ -260,7 +264,7 @@ export function ContractDialog({
                   {todayLabel()}
                 </p>
 
-                <div className="mt-8">
+                <div className="mt-6">
                   <div className="flex items-baseline gap-3">
                     <span className="text-sm font-medium text-gray-600">
                       회원 이름
@@ -283,7 +287,7 @@ export function ContractDialog({
                   >
                     <SignaturePad
                       ref={padRef}
-                      className="h-40 w-full"
+                      className="h-32 w-full"
                       onStrokeEnd={() => setHasDrawn(true)}
                     />
                     {!hasDrawn && !isLocked && (
@@ -336,7 +340,7 @@ export function ContractDialog({
                 </div>
 
                 {/* 대표자 — 고정 문구 (양 지점 공통) */}
-                <div className="mt-10 border-t border-gray-200 pt-6 text-center">
+                <div className="mt-8 border-t border-gray-200 pt-5 text-center">
                   <p className="text-base font-medium text-gray-900">
                     피트니스스타{branchName ? ` ${branchName}` : ""} 헬스 PT
                   </p>
