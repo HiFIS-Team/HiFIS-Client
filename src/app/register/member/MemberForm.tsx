@@ -81,10 +81,11 @@ function addDays(dateStr: string, days: number): string {
 // 종료일은 "마지막 유효일"(포함) 의미 — 백엔드 만기 처리가 end_date < today 기준.
 // 일권/주권: 1일권 → end=start, 7일권 → start+6, 2주권 → start+13.
 // 개월권은 관례상 "같은 날짜 다음달" 그대로 (예: 1개월 6/5 → 7/5, 31일 유효).
+// 시간권(3시간권 등): 당일 만료 → end=start.
 function applyDuration(startDate: string, duration: PassDuration): string {
-  return "months" in duration
-    ? addMonths(startDate, duration.months)
-    : addDays(startDate, duration.days - 1);
+  if ("months" in duration) return addMonths(startDate, duration.months);
+  if ("days" in duration) return addDays(startDate, duration.days - 1);
+  return startDate; // hours — 당일
 }
 
 // enum 옵션 → Select 옵션
@@ -251,7 +252,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
   // 선택된 회원권의 이용 기간 (이름에서 추출, 없으면 null) — months 또는 days
   const durationOf = (passId: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === passId);
-    return p ? passDuration(p.name, p.duration_months) : null;
+    return p ? passDuration(p) : null;
   };
   // 선택된 회원권·락커·운동복 — 교차 무료 제공 판단용
   const selectedMembership = membershipPasses.find(

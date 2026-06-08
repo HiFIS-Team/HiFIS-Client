@@ -219,7 +219,7 @@ export function PtForm({ branchId }: { branchId: string }) {
         // 종료일 = 마지막 유효일(포함) — N일권이면 start + (N-1)
         base.end_date = addDays(
           base.start_date,
-          ptDurationDays(next.name, next.duration_months) - 1,
+          ptDurationDays(next) - 1,
         );
       }
       return { ...base, final_price: String(totalFor(base)) };
@@ -292,7 +292,7 @@ export function PtForm({ branchId }: { branchId: string }) {
         start_date: value,
         end_date:
           value && pass
-            ? addDays(value, ptDurationDays(pass.name, pass.duration_months) - 1)
+            ? addDays(value, ptDurationDays(pass) - 1)
             : "",
       };
     });
@@ -555,7 +555,7 @@ export function PtForm({ branchId }: { branchId: string }) {
             </div>
             <p className="mt-1.5 text-sm text-gray-500">
               {selectedPtPass
-                ? `PT 회원은 헬스권 ${ptDurationDays(selectedPtPass.name, selectedPtPass.duration_months)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
+                ? `PT 회원은 헬스권 ${ptDurationDays(selectedPtPass)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
                 : "수강권을 선택하면 헬스권 이용 기간이 자동 설정돼요. (회수 × 4일)"}
             </p>
           </div>

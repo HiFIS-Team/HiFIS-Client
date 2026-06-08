@@ -80,10 +80,11 @@ function addDays(dateStr: string, days: number): string {
 }
 // 종료일은 "마지막 유효일"(포함) — 백엔드 만기 기준 end_date < today.
 // 일권/주권은 -1 적용 (1일권 → end=start). 개월권은 관례상 같은 날짜 다음달 유지.
+// 시간권은 당일 만료 (end=start).
 function applyDuration(startDate: string, duration: PassDuration): string {
-  return "months" in duration
-    ? addMonths(startDate, duration.months)
-    : addDays(startDate, duration.days - 1);
+  if ("months" in duration) return addMonths(startDate, duration.months);
+  if ("days" in duration) return addDays(startDate, duration.days - 1);
+  return startDate; // hours — 당일
 }
 // 활성 상태(현재 이용 중)이면 기존 종료일 다음 날부터, 만료면 오늘부터.
 function nextStartDate(prev: { status: string; end_date: string }): string {
@@ -505,7 +506,7 @@ function MemberRenewalForm({
   // 회원권 기간 → 종료일 미세팅 시 처음 한 번 채움 (render 중 derive)
   const durationOf = (id: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === id);
-    return p ? passDuration(p.name, p.duration_months) : null;
+    return p ? passDuration(p) : null;
   };
   if (form.end_date === "" && form.membership_pass_id) {
     const d = durationOf(form.membership_pass_id);
@@ -628,7 +629,7 @@ function MemberRenewalForm({
         base.clothes_opt_out = false;
       }
       base.final_price = String(totalFor(base));
-      const d = next ? passDuration(next.name, next.duration_months) : null;
+      const d = next ? passDuration(next) : null;
       if (d == null) return base;
       const start = base.start_date || todayStr();
       return { ...base, start_date: start, end_date: applyDuration(start, d) };
@@ -1016,7 +1017,7 @@ function PtRenewalForm({
     form.start_date && selected
       ? addDays(
           form.start_date,
-          ptDurationDays(selected.name, selected.duration_months) - 1,
+          ptDurationDays(selected) - 1,
         )
       : "";
 
@@ -1223,7 +1224,7 @@ function PtRenewalForm({
           </div>
           <p className="mt-1.5 text-sm text-gray-500">
             {selected
-              ? `PT 회원은 헬스권 ${ptDurationDays(selected.name, selected.duration_months)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
+              ? `PT 회원은 헬스권 ${ptDurationDays(selected)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
               : "수강권을 선택하면 헬스권 이용 기간이 자동 설정돼요. (회수 × 4일)"}
           </p>
         </div>

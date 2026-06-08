@@ -37,8 +37,11 @@ export interface PassInput {
   name: string;
   cash_price: number;
   card_price: number;
-  // 이용 기간(개월). 1~120 정수 또는 null. 일권·2주권 같은 예외는 null 로 두고 이름에서 추출.
+  // 이용 기간 — 셋 중 최대 하나만 number, 나머지는 null. 셋 다 null 이면 이름에서 추출.
+  // 백엔드 cross-field 검증: 둘 이상 채우면 400.
   duration_months?: number | null;
+  duration_days?: number | null;
+  duration_hours?: number | null;
   // 회원권·수강권에만 사용 — 락커·운동복 등록·수정 시엔 payload 에 포함하지 말 것.
   provides_locker?: boolean;
   provides_clothes?: boolean;

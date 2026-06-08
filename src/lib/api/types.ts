@@ -63,7 +63,11 @@ export interface Enums {
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---
 // provides_locker / provides_clothes 는 회원권·수강권에만 존재 (락커·운동복 패스 응답엔 없음).
 // true 이면 신청 시 별도 락커/운동복 선택을 차단하고 자동 포함 — 백엔드가 검증 (400).
-// duration_months: 1~120 개월 정수 (선택). 일권·2주권 같은 예외는 null → 프론트가 이름에서 추출.
+// 이용 기간 — (months, days, hours) 중 최대 하나만 채워짐. 셋 다 null 이면 이름에서 추출.
+//   duration_months: 1~120 개월
+//   duration_days:   1~365 일
+//   duration_hours:  1~23 시간 (당일 만료)
+// 백엔드가 서비스 레이어에서 cross-field 검증.
 export interface Pass {
   id: string;
   branch_id: string;
@@ -71,6 +75,8 @@ export interface Pass {
   cash_price: number;
   card_price: number;
   duration_months: number | null;
+  duration_days: number | null;
+  duration_hours: number | null;
   provides_locker?: boolean;
   provides_clothes?: boolean;
   created_at: string;

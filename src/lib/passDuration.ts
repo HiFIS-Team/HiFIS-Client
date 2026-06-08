@@ -1,11 +1,22 @@
-// 회원권·수강권 이용 기간 추출 — 백엔드 `duration_months` 컬럼 우선,
-// 없으면(예: 일권·2주권) 이름에서 정규식 fallback. 정렬·자동 일자 계산·그룹화에 공용.
+// 회원권·수강권 이용 기간 추출 — 백엔드 컬럼 우선(`duration_months` → `_days` → `_hours`),
+// 없으면 이름에서 정규식 fallback. 정렬·자동 일자 계산·그룹화에 공용.
 
-export type PassDuration = { months: number } | { days: number };
+export type PassDuration =
+  | { months: number }
+  | { days: number }
+  | { hours: number };
+
+// passDuration 헬퍼가 읽는 컬럼들 — Pass 또는 PassInput 모두 호환.
+export interface PassDurationSource {
+  name: string;
+  duration_months?: number | null;
+  duration_days?: number | null;
+  duration_hours?: number | null;
+}
 
 // 이름에서 기간 토큰을 잡는다 — "3개월권" → {months:3}, "1년권" → {months:12},
 // "2주권" → {days:14}, "7일권" → {days:7}, "일권" → {days:1},
-// "3시간권" → {days:1} (시간 단위는 DB 에 못 담아서 당일 처리, 시간 제한은 지점 운영).
+// "3시간권" → {hours:3}.
 function durationFromName(name: string): PassDuration | null {
   const year = name.match(/(\d+)\s*년/);
   if (year) return { months: Number(year[1]) * 12 };
@@ -15,49 +26,52 @@ function durationFromName(name: string): PassDuration | null {
   if (week) return { days: Number(week[1]) * 7 };
   const day = name.match(/(\d+)\s*일/);
   if (day) return { days: Number(day[1]) };
-  if (/\d+\s*시간/.test(name)) return { days: 1 };
+  const hour = name.match(/(\d+)\s*시간/);
+  if (hour) return { hours: Number(hour[1]) };
   if (/일\s*권/.test(name)) return { days: 1 };
   return null;
 }
 
-// 백엔드 duration_months 가 있으면 그걸 사용, 없으면 이름에서 추출.
-// 호출처는 가능하면 Pass 객체를 전달 — 정확도 높아짐.
-export function passDuration(
-  name: string,
-  durationMonths?: number | null,
-): PassDuration | null {
-  if (durationMonths != null && durationMonths > 0) {
-    return { months: durationMonths };
-  }
-  return durationFromName(name);
+// 백엔드 duration_* 컬럼이 채워져 있으면 그 값을 사용, 아니면 이름에서 추출.
+// 한 상품엔 (months, days, hours) 중 하나만 채워져 있다는 백엔드 검증을 신뢰.
+export function passDuration(p: PassDurationSource): PassDuration | null {
+  if (p.duration_months != null && p.duration_months > 0)
+    return { months: p.duration_months };
+  if (p.duration_days != null && p.duration_days > 0)
+    return { days: p.duration_days };
+  if (p.duration_hours != null && p.duration_hours > 0)
+    return { hours: p.duration_hours };
+  return durationFromName(p.name);
 }
 
 // PT 수강권 이용 기간(일). 우선순위:
-//   1) duration_months 컬럼이 채워져 있으면 그 값을 "일" 로 사용
-//      (PT 한정으로 컬럼을 일 단위 저장소로 재사용 — 백엔드 schema 그대로)
-//   2) 비어있으면 이름에서 회수(N회) 추출 → N × 4 (10회당 40일 정책)
-//   3) 회수도 못 찾으면 40일 fallback
+//   1) duration_days  — 일 단위 직접 입력 (PT 기본)
+//   2) duration_months — 개월 입력 시 ×30 (드문 케이스)
+//   3) duration_hours — 시간권 → 당일(1일)
+//   4) 이름에서 회수(N회) 추출 → N × 4 (10회당 40일 정책)
+//   5) 다 실패하면 40일 fallback
 export const PT_DAYS_PER_SESSION = 4;
 export const PT_DAYS_FALLBACK = 40;
-export function ptDurationDays(
-  passName: string,
-  durationMonths?: number | null,
-): number {
-  if (durationMonths != null && durationMonths > 0) return durationMonths;
-  const m = passName.match(/(\d+)\s*회/);
+export function ptDurationDays(p: PassDurationSource): number {
+  if (p.duration_days != null && p.duration_days > 0) return p.duration_days;
+  if (p.duration_months != null && p.duration_months > 0)
+    return p.duration_months * 30;
+  if (p.duration_hours != null && p.duration_hours > 0) return 1; // 당일
+  const m = p.name.match(/(\d+)\s*회/);
   return m ? Number(m[1]) * PT_DAYS_PER_SESSION : PT_DAYS_FALLBACK;
 }
 
-// 정렬 비교용 — 일 단위 환산. 개월은 30일로 단순 환산.
+// 정렬 비교용 — 일 단위 환산. 개월은 30일, 시간은 N/24 로 환산.
 // 시간 토큰이 없는 수강권("N회") 은 회수를 정렬 키로 사용 — 실제 일수 아님,
 // 어차피 같은 카테고리("1:1 PT" 등) 안에서만 비교되므로 단위 혼동 없음.
-export function passDurationDays(
-  name: string,
-  durationMonths?: number | null,
-): number {
-  const d = passDuration(name, durationMonths);
-  if (d) return "months" in d ? d.months * 30 : d.days;
-  const sessions = name.match(/(\d+)\s*회/);
+export function passDurationDays(p: PassDurationSource): number {
+  const d = passDuration(p);
+  if (d) {
+    if ("months" in d) return d.months * 30;
+    if ("days" in d) return d.days;
+    return d.hours / 24;
+  }
+  const sessions = p.name.match(/(\d+)\s*회/);
   if (sessions) return Number(sessions[1]);
   return Number.POSITIVE_INFINITY;
 }
@@ -91,8 +105,8 @@ export function sortPassesForUI(arr: Pass[]): Pass[] {
     const cb = passCategoryKey(b.name);
     if (ca.sort !== cb.sort) return ca.sort - cb.sort;
     if (ca.label !== cb.label) return ca.label.localeCompare(cb.label);
-    const da = passDurationDays(a.name, a.duration_months);
-    const db = passDurationDays(b.name, b.duration_months);
+    const da = passDurationDays(a);
+    const db = passDurationDays(b);
     if (da !== db) return da - db;
     if (a.cash_price !== b.cash_price) return a.cash_price - b.cash_price;
     return a.name.localeCompare(b.name);
