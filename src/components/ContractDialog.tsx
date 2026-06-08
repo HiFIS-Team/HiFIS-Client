@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import html2canvas from "html2canvas-pro";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { CheckIcon } from "@heroicons/react/20/solid";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { Checkbox } from "./Checkbox";
 import { SignaturePad, type SignaturePadHandle } from "./SignaturePad";
@@ -135,8 +136,9 @@ export function ContractDialog({
         n instanceof HTMLElement && n.dataset.captureIgnore === "true",
     });
     return new Promise<Blob | null>((resolve) => {
-      // JPEG q=0.92 — 문서 이미지로 충분히 선명하면서 ~500KB 선
-      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92);
+      // 백엔드 signature 필드가 PNG 만 받음 → PNG 로 저장.
+      // 약관 길이에 따라 1~2MB 정도 나옴.
+      canvas.toBlob((b) => resolve(b), "image/png");
     });
   }
 
@@ -270,8 +272,15 @@ export function ContractDialog({
                   </div>
                   {/* 종이 위 서명란 — 본문과 구분되는 옅은 회색 + 굵은 테두리.
                       빈 상태에선 가운데 "(서명)" 안내 노출, 한 획이라도 그리면 사라짐.
-                      "서명 완료" 누르면 잠겨서 더 못 그리게, "다시 그리기" 로 풀림. */}
-                  <div className="relative mt-2 overflow-hidden rounded-md border-2 border-gray-400 bg-gray-50">
+                      "서명 완료" 누르면 잠겨서 더 못 그리게, "다시 그리기" 로 풀림.
+                      잠긴 상태에선 테두리 색이 primary 로 바뀌고 우상단에 ✓ 뱃지. */}
+                  <div
+                    className={`relative mt-2 overflow-hidden rounded-md border-2 transition-colors ${
+                      isLocked
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-400 bg-gray-50"
+                    }`}
+                  >
                     <SignaturePad
                       ref={padRef}
                       className="h-40 w-full"
@@ -280,6 +289,15 @@ export function ContractDialog({
                     {!hasDrawn && !isLocked && (
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                         <span className="text-base text-gray-400">(서명)</span>
+                      </div>
+                    )}
+                    {isLocked && (
+                      <div
+                        className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                        data-capture-ignore="true"
+                      >
+                        <CheckIcon className="size-3.5" />
+                        서명 완료
                       </div>
                     )}
                   </div>
