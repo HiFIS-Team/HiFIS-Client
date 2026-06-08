@@ -45,6 +45,12 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       },
       {
         type: "feature",
+        title: "첨단·동광주점 이용약관 분기",
+        description:
+          "첨단·동광주점 회원가입·PT 신청서의 이용약관을 각 지점 운영 회칙에 맞게 별도로 적용했어요. (화순점은 기존 약관 그대로)",
+      },
+      {
+        type: "feature",
         title: "첨단·동광주점 전자서명",
         description:
           "첨단·동광주점 회원가입·PT 신청서에 약관 동의와 서명을 종이 신청서처럼 받아 통째로 저장합니다. 회원·PT 상세에서 저장된 신청서 이미지를 크게 확인할 수 있어요.",
