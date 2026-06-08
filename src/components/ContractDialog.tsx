@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { Checkbox } from "./Checkbox";
 import { SignaturePad, type SignaturePadHandle } from "./SignaturePad";
 import type { TermsContent } from "./TermsDialog";
 
@@ -46,6 +47,8 @@ export function ContractDialog({
   onClose,
 }: ContractDialogProps) {
   const padRef = useRef<SignaturePadHandle>(null);
+  // 모달 안에서 받는 동의 — 체크 + 서명 둘 다 있어야 "완료" 활성.
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEscapeKey(onClose, open);
 
@@ -61,6 +64,10 @@ export function ContractDialog({
   }
 
   async function handleConfirm() {
+    if (!agreed) {
+      setError("위 내용에 동의하셔야 신청이 가능합니다.");
+      return;
+    }
     if (padRef.current?.isEmpty() ?? true) {
       setError("서명을 입력해 주세요.");
       return;
@@ -126,10 +133,18 @@ export function ContractDialog({
 
           {/* 동의·날짜·서명 구역 — 종이 신청서 하단처럼 */}
           <div className="mt-10 border-t border-gray-300 pt-8">
-            <p className="text-center text-lg font-semibold text-gray-900">
-              위 내용에 동의합니다.
-            </p>
-            <p className="mt-3 text-center text-base text-gray-700">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+              <Checkbox
+                id="contract-agree"
+                label="위 내용에 동의합니다. (필수)"
+                checked={agreed}
+                onChange={(e) => {
+                  setAgreed(e.target.checked);
+                  if (e.target.checked) setError(null);
+                }}
+              />
+            </div>
+            <p className="mt-5 text-center text-base text-gray-700">
               {todayLabel()}
             </p>
 
