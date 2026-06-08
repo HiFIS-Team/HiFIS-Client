@@ -234,6 +234,14 @@ export function Sidebar({
         >
           로그아웃
         </button>
+        {/* 빌드 버전 — next.config 에서 package.json version 주입.
+            NEXT_PUBLIC_APP_ENV=dev 면 옆에 (dev) 표시. */}
+        <p className="mt-3 text-center text-[10px] text-gray-400">
+          v{process.env.NEXT_PUBLIC_APP_VERSION}
+          {process.env.NEXT_PUBLIC_APP_ENV === "dev" && (
+            <span className="ml-1 text-gray-300">(dev)</span>
+          )}
+        </p>
       </div>
     </aside>
 

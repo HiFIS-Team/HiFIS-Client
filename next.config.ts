@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import pkg from "./package.json";
 
 // PWA 서비스워커 — 키오스크 오프라인 대응.
 // dev에선 비활성화(캐시 간섭 방지) → dev는 Turbopack 그대로,
@@ -15,6 +16,12 @@ const nextConfig: NextConfig = {
   output: "export",
   // 정적 export는 이미지 최적화 서버가 없으므로 비활성화
   images: { unoptimized: true },
+  // 빌드 시 package.json 의 version 을 클라이언트 번들로 인라인.
+  // 사이드바 푸터에서 process.env.NEXT_PUBLIC_APP_VERSION 으로 접근.
+  // 버전 올릴 땐 `npm version <patch|minor|major>` — package.json + git tag 자동.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+  },
   // Serwist가 webpack 설정을 주입 → dev의 Turbopack이 충돌로 보지 않도록
   // 빈 turbopack 설정을 명시 (Next.js 16 권장 해법)
   turbopack: {},
