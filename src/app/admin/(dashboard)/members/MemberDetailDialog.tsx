@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/passes";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { ContractImageThumb } from "@/components/ContractImageThumb";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
 import type { EnumOption, Member, Pass } from "@/lib/api/types";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
@@ -136,6 +137,9 @@ export function MemberDetailDialog({
               <CategoryBadge category={member.category} />
             </Row>
             <Row label="신청일">{formatDate(member.created_at)}</Row>
+            <Row label="신청서">
+              <ContractImageThumb url={member.signature_url} />
+            </Row>
           </dl>
         )}
 

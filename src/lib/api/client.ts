@@ -10,6 +10,13 @@ import {
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
+// 백엔드가 내려주는 정적 파일(예: signature_url = "/static/signatures/xxx.png") 을
+// 화면에 띄울 수 있는 전체 URL 로 변환. 이미 절대 URL 이면 그대로.
+export function resolveStaticUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${BASE_URL}${url}`;
+}
+
 // 백엔드 에러 — HTTP status + { detail: "한국어 메시지" }.
 // detail은 사용자에게 그대로 보여줘도 되는 한국어 메시지.
 export class ApiError extends Error {
