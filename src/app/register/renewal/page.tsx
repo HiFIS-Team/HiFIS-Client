@@ -17,9 +17,19 @@ export default function RegisterRenewalPage() {
 }
 
 function Entry() {
-  const branchId = useSearchParams().get("branch_id");
+  const sp = useSearchParams();
+  const branchId = sp.get("branch_id");
   if (!branchId) return <BadQrError />;
-  return <RenewalForm branchId={branchId} />;
+  // 신규 신청서(MemberForm/PtForm)에서 같은 전화번호 발견 → 본인 확인 단계 건너뛰도록 prefill.
+  const initialName = sp.get("prefill_name") ?? undefined;
+  const initialPhone = sp.get("prefill_phone") ?? undefined;
+  return (
+    <RenewalForm
+      branchId={branchId}
+      initialName={initialName}
+      initialPhone={initialPhone}
+    />
+  );
 }
 
 function BadQrError() {

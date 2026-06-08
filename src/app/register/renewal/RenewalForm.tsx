@@ -133,7 +133,16 @@ type Stage =
 // ═══════════════════════════════════════════
 // 최상위 — 단계별 화면 분기
 // ═══════════════════════════════════════════
-export function RenewalForm({ branchId }: { branchId: string }) {
+export function RenewalForm({
+  branchId,
+  initialName,
+  initialPhone,
+}: {
+  branchId: string;
+  // 신규 신청서에서 같은 전화번호 발견 시 prefill — IdentifyStep 이 자동으로 lookup 실행.
+  initialName?: string;
+  initialPhone?: string;
+}) {
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
@@ -158,7 +167,12 @@ export function RenewalForm({ branchId }: { branchId: string }) {
       </header>
 
       {stage.kind === "identify" && (
-        <IdentifyStep branchId={branchId} onResult={setStage} />
+        <IdentifyStep
+          branchId={branchId}
+          initialName={initialName}
+          initialPhone={initialPhone}
+          onResult={setStage}
+        />
       )}
       {stage.kind === "choose" && (
         <ChooseStep
@@ -213,13 +227,17 @@ export function RenewalForm({ branchId }: { branchId: string }) {
 // ═══════════════════════════════════════════
 function IdentifyStep({
   branchId,
+  initialName,
+  initialPhone,
   onResult,
 }: {
   branchId: string;
+  initialName?: string;
+  initialPhone?: string;
   onResult: (s: Stage) => void;
 }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(initialName ?? "");
+  const [phone, setPhone] = useState(initialPhone ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const lookupMutation = useMutation({
@@ -255,6 +273,18 @@ function IdentifyStep({
       });
     },
   });
+
+  // prefill (신규 신청서에서 같은 전화번호 발견 후 넘어온 경우) → 자동 조회 1회.
+  // 마운트 시점에 initialName/Phone 양쪽 다 있고 전화 형식 OK 면 바로 lookup.
+  const lookupMutate = lookupMutation.mutate;
+  useEffect(() => {
+    if (!initialName || !initialPhone) return;
+    const digits = initialPhone.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 12) return;
+    lookupMutate();
+    // 마운트 1회 only — prefill 변화는 새 페이지 진입이라 라우터가 알아서 새 컴포넌트.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();

@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
@@ -26,6 +27,7 @@ import {
   getPtPasses,
 } from "@/lib/api/passes";
 import { createPtApplication } from "@/lib/api/ptApplications";
+import { getRegistrationLookup } from "@/lib/api/registrations";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
@@ -38,6 +40,7 @@ import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { ContractDialog } from "@/components/ContractDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { DAJIM_PT_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
@@ -111,6 +114,7 @@ const INITIAL = {
 type FormState = typeof INITIAL;
 
 export function PtForm({ branchId }: { branchId: string }) {
+  const router = useRouter();
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
@@ -137,6 +141,60 @@ export function PtForm({ branchId }: { branchId: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [signatureOpen, setSignatureOpen] = useState(false);
+  // 중복 PT 신청 감지 — 같은 이름+전화로 이미 PT 이력이 있으면 1회 안내.
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
+
+  // 이름+전화 디바운스 (입력 멈춘 뒤 500ms) — MemberForm 과 동일 패턴
+  const [debouncedName, setDebouncedName] = useState("");
+  const [debouncedPhone, setDebouncedPhone] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedName(form.name.trim());
+      setDebouncedPhone(form.phone.replace(/\D/g, ""));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.name, form.phone]);
+
+  const lookupEnabled =
+    !!debouncedName &&
+    debouncedPhone.length >= 9 &&
+    debouncedPhone.length <= 12;
+  const lookupQuery = useQuery({
+    queryKey: ["registration-lookup", branchId, debouncedName, debouncedPhone],
+    queryFn: () =>
+      getRegistrationLookup({
+        branchId,
+        name: debouncedName,
+        phone: debouncedPhone,
+      }),
+    enabled: lookupEnabled,
+    retry: false,
+  });
+
+  // PT 가 lookup 에 잡히면 모달 (회원만 있는 건 무시 — 회원 따로 가입한 사람이 PT 처음 신청 케이스).
+  const currentKey = `${debouncedName}|${debouncedPhone}`;
+  useEffect(() => {
+    if (!lookupQuery.data) return;
+    if (!lookupQuery.data.kinds.includes("PT")) return;
+    if (currentKey === dismissedKey) return;
+    setDuplicateOpen(true);
+  }, [lookupQuery.data, currentKey, dismissedKey]);
+
+  function goRenewal() {
+    setDuplicateOpen(false);
+    const qs = new URLSearchParams({
+      branch_id: branchId,
+      prefill_name: form.name.trim(),
+      prefill_phone: form.phone.trim(),
+    }).toString();
+    router.push(`/register/renewal?${qs}`);
+  }
+
+  function dismissDuplicate() {
+    setDuplicateOpen(false);
+    setDismissedKey(currentKey);
+  }
   // 전자서명 PNG Blob — 동의의 근거 (체크박스 대체). 미리보기는 derive + cleanup-only effect.
   const [signature, setSignature] = useState<Blob | null>(null);
   const signaturePreview = useMemo(
@@ -755,6 +813,15 @@ export function PtForm({ branchId }: { branchId: string }) {
       {!isDajim && noticeOpen && (
         <TermsDialog content={terms} onClose={() => setNoticeOpen(false)} />
       )}
+      {/* 같은 이름+전화로 이미 PT 신청 이력이 있으면 재등록 페이지로 안내 */}
+      <ConfirmDialog
+        open={duplicateOpen}
+        title="이미 신청한 이력이 있습니다"
+        message="입력하신 이름·전화번호로 등록된 PT 신청 정보가 있어요. 재등록 페이지로 이동하시겠습니까?"
+        confirmLabel="재등록 페이지로 이동"
+        onConfirm={goRenewal}
+        onCancel={dismissDuplicate}
+      />
     </main>
   );
 }
