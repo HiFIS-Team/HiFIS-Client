@@ -7,6 +7,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { adminRoleLabel } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
@@ -97,6 +98,9 @@ export function Sidebar({
   const router = useRouter();
   const toast = useToast();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  // 모바일 드로어 열려있는 동안 뒤 페이지 스크롤 잠금. 데스크탑(lg+)은 open 이
+  // 항상 false 라 영향 없음 (드로어 토글은 모바일 햄버거에서만 호출됨).
+  useBodyScrollLock(open);
 
   function isActive(href: string): boolean {
     if (href === "/admin") return pathname === "/admin";
