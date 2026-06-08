@@ -154,7 +154,9 @@ function MonthlyTrendChart({
         </p>
       </div>
 
-      <div className="mt-4 flex h-32 items-end gap-1">
+      {/* items-end 빼고 default(items-stretch) 사용 — 각 컬럼이 h-32 까지 늘어나야
+          안쪽 막대의 height:X% 가 의미를 가짐. 컬럼 안 justify-end 가 막대를 하단에 정렬. */}
+      <div className="mt-4 flex h-32 gap-1">
         {days.map((d) => {
           const m = memberByDate[d] ?? 0;
           const p = ptByDate[d] ?? 0;
