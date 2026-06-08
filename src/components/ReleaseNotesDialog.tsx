@@ -139,9 +139,13 @@ function CategoryGroup({
               <p className="text-sm font-semibold text-gray-900">
                 {item.title}
               </p>
-              <p className="mt-1 text-sm/6 text-gray-600">
-                {item.description}
-              </p>
+              <div className="mt-1 space-y-1.5">
+                {item.description.map((para, j) => (
+                  <p key={j} className="text-sm/6 text-gray-600">
+                    {para}
+                  </p>
+                ))}
+              </div>
             </div>
           </li>
         ))}
