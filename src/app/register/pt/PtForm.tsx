@@ -36,8 +36,7 @@ import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
-import { SignatureDialog } from "@/components/SignatureDialog";
-import { SignatureField } from "@/components/SignatureField";
+import { ContractDialog } from "@/components/ContractDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { DAJIM_PT_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
@@ -185,6 +184,7 @@ export function PtForm({ branchId }: { branchId: string }) {
   const clothesPasses = clothesPassQuery.data ?? [];
   const branch = branchesQuery.data?.find((b) => b.id === branchId);
   const branchName = branch?.name ?? "";
+  const branchShort = branchName.replace(/^피트니스스타\s*/, "");
   // 다짐 지점(첨단·동광주)은 PT 유의사항 대신 통합 이용약관 사용
   const isDajim = !!branch?.dajim_enabled;
   const terms = isDajim ? DAJIM_PT_TERMS : PT_NOTICE;
@@ -581,44 +581,80 @@ export function PtForm({ branchId }: { branchId: string }) {
         </Section>
 
         <Section title="동의" icon={CheckBadgeIcon}>
-          <div>
-            {/* 준수 서약문 — 동의 대상 */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
-              <p className="text-base/7 text-gray-700">{pledge}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setNoticeOpen(true)}
-              className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {termsButtonLabel}
-            </button>
-            <div className="mt-4 space-y-4">
-              {/* 동의 체크 — 모든 지점 공통 */}
-              <Checkbox
-                id="agreed-notice"
-                label="위 내용에 동의합니다. (필수)"
-                checked={form.agreed_notice}
-                onChange={(e) => set({ agreed_notice: e.target.checked })}
-                error={errors.agreed_notice}
-              />
-
-              {/* 다짐 지점만 — 체크박스에 더해 전자서명까지 */}
-              {isDajim && (
-                <SignatureField
-                  preview={signaturePreview}
-                  onOpen={() => setSignatureOpen(true)}
-                  error={errors.signature}
+          <div className="space-y-4">
+            {isDajim ? (
+              /* 다짐 지점 — 종이 계약서 다이얼로그 하나로 동의·서명 동시 처리 */
+              signature && signaturePreview ? (
+                <div className="flex items-center gap-4 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={signaturePreview}
+                    alt="입력한 서명 미리보기"
+                    className="h-16 w-32 shrink-0 rounded-lg border border-violet-100 bg-white object-contain"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-primary">
+                      <span
+                        aria-hidden="true"
+                        className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-white"
+                      >
+                        ✓
+                      </span>
+                      약관 동의 + 전자서명 완료
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      내용을 바꾸려면 다시 동의해 주세요.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSignatureOpen(true)}
+                    className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    다시 동의
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSignatureOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-base font-semibold text-primary hover:border-primary hover:bg-violet-50"
+                >
+                  📄 이용약관 동의 + 전자서명
+                </button>
+              )
+            ) : (
+              /* 일반 지점 — 기존 흐름: 서약문 + 유의사항 보기 + 체크박스 */
+              <>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+                  <p className="text-base/7 text-gray-700">{pledge}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNoticeOpen(true)}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  {termsButtonLabel}
+                </button>
+                <Checkbox
+                  id="agreed-notice"
+                  label="위 내용에 동의합니다. (필수)"
+                  checked={form.agreed_notice}
+                  onChange={(e) => set({ agreed_notice: e.target.checked })}
+                  error={errors.agreed_notice}
                 />
-              )}
+              </>
+            )}
+            {isDajim && errors.signature && (
+              <p className="text-sm text-red-600">{errors.signature}</p>
+            )}
 
-              <Checkbox
-                id="agreed-marketing"
-                label="마케팅 정보 수신에 동의합니다. (선택)"
-                checked={form.agreed_marketing}
-                onChange={(e) => set({ agreed_marketing: e.target.checked })}
-              />
-            </div>
+            <Checkbox
+              id="agreed-marketing"
+              label="마케팅 정보 수신에 동의합니다. (선택)"
+              checked={form.agreed_marketing}
+              onChange={(e) => set({ agreed_marketing: e.target.checked })}
+            />
           </div>
         </Section>
 
@@ -646,23 +682,31 @@ export function PtForm({ branchId }: { branchId: string }) {
         </div>
       </form>
 
-      <SignatureDialog
-        open={signatureOpen}
-        name={form.name.trim() || undefined}
-        pledge={pledge}
-        onConfirm={(blob) => {
-          setSignature(blob);
-          setSignatureOpen(false);
-          setErrors((prev) => {
-            if (!prev.signature) return prev;
-            const next = { ...prev };
-            delete next.signature;
-            return next;
-          });
-        }}
-        onClose={() => setSignatureOpen(false)}
-      />
-      {noticeOpen && (
+      {/* 다짐 지점 — 종이 계약서: 약관 + 동의 + 서명 한 모달에서 처리 */}
+      {isDajim && (
+        <ContractDialog
+          open={signatureOpen}
+          kind="pt"
+          branchName={branchShort}
+          terms={terms}
+          memberName={form.name.trim()}
+          onConfirm={(blob) => {
+            setSignature(blob);
+            set({ agreed_notice: true });
+            setSignatureOpen(false);
+            setErrors((prev) => {
+              if (!prev.signature && !prev.agreed_notice) return prev;
+              const next = { ...prev };
+              delete next.signature;
+              delete next.agreed_notice;
+              return next;
+            });
+          }}
+          onClose={() => setSignatureOpen(false)}
+        />
+      )}
+      {/* 일반 지점 — 기존 유의사항 보기 모달 */}
+      {!isDajim && noticeOpen && (
         <TermsDialog content={terms} onClose={() => setNoticeOpen(false)} />
       )}
     </main>

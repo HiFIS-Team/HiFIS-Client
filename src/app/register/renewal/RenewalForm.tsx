@@ -43,8 +43,8 @@ import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
-import { SignatureDialog } from "@/components/SignatureDialog";
-import { SignatureField } from "@/components/SignatureField";
+import { ContractDialog } from "@/components/ContractDialog";
+import { DAJIM_MEMBER_TERMS, DAJIM_PT_TERMS } from "@/lib/dajimTerms";
 import {
   passDuration,
   ptDurationDays,
@@ -138,6 +138,7 @@ export function RenewalForm({ branchId }: { branchId: string }) {
   });
   const branch = branchesQuery.data?.find((b) => b.id === branchId);
   const branchName = branch?.name ?? "";
+  const branchShort = branchName.replace(/^피트니스스타\s*/, "");
   // 다짐 지점(첨단·동광주)만 재등록 시에도 새 약관에 전자서명 받음.
   const isDajim = !!branch?.dajim_enabled;
   const [stage, setStage] = useState<Stage>({ kind: "identify" });
@@ -183,6 +184,7 @@ export function RenewalForm({ branchId }: { branchId: string }) {
         <MemberRenewalForm
           branchId={branchId}
           isDajim={isDajim}
+          branchShort={branchShort}
           member={stage.member}
           name={stage.name}
           phone={stage.phone}
@@ -193,6 +195,7 @@ export function RenewalForm({ branchId }: { branchId: string }) {
         <PtRenewalForm
           branchId={branchId}
           isDajim={isDajim}
+          branchShort={branchShort}
           pt={stage.pt}
           name={stage.name}
           phone={stage.phone}
@@ -421,6 +424,7 @@ function statusLabel(s: string): string {
 function MemberRenewalForm({
   branchId,
   isDajim,
+  branchShort,
   member,
   name,
   phone,
@@ -428,6 +432,7 @@ function MemberRenewalForm({
 }: {
   branchId: string;
   isDajim: boolean;
+  branchShort: string;
   member: MemberLookup;
   name: string;
   phone: string;
@@ -790,7 +795,8 @@ function MemberRenewalForm({
       </Section>
 
       {isDajim && (
-        <SignatureAgreement
+        <ContractAgreement
+          signature={signature}
           signaturePreview={signaturePreview}
           onOpen={() => setSignatureOpen(true)}
           error={errors.signature}
@@ -816,10 +822,12 @@ function MemberRenewalForm({
       />
     </form>
     {isDajim && (
-      <SignatureDialog
+      <ContractDialog
         open={signatureOpen}
-        name={name}
-        pledge="새 약관에 동의하신다는 확인으로 서명해 주세요."
+        kind="member"
+        branchName={branchShort}
+        terms={DAJIM_MEMBER_TERMS}
+        memberName={name}
         onConfirm={(blob) => {
           setSignature(blob);
           setSignatureOpen(false);
@@ -843,6 +851,7 @@ function MemberRenewalForm({
 function PtRenewalForm({
   branchId,
   isDajim,
+  branchShort,
   pt,
   name,
   phone,
@@ -850,6 +859,7 @@ function PtRenewalForm({
 }: {
   branchId: string;
   isDajim: boolean;
+  branchShort: string;
   pt: PTLookup;
   name: string;
   phone: string;
@@ -1147,7 +1157,8 @@ function PtRenewalForm({
       </Section>
 
       {isDajim && (
-        <SignatureAgreement
+        <ContractAgreement
+          signature={signature}
           signaturePreview={signaturePreview}
           onOpen={() => setSignatureOpen(true)}
           error={errors.signature}
@@ -1173,10 +1184,12 @@ function PtRenewalForm({
       />
     </form>
     {isDajim && (
-      <SignatureDialog
+      <ContractDialog
         open={signatureOpen}
-        name={name}
-        pledge="새 약관에 동의하신다는 확인으로 서명해 주세요."
+        kind="pt"
+        branchName={branchShort}
+        terms={DAJIM_PT_TERMS}
+        memberName={name}
         onConfirm={(blob) => {
           setSignature(blob);
           setSignatureOpen(false);
@@ -1282,23 +1295,61 @@ function SubmitRow({
   );
 }
 
-// 재등록 폼의 전자서명 섹션 — 회원·PT 공통.
-// 서명 후 제출 가능. SignatureField 가 미리보기/다시 서명까지 다룸.
-function SignatureAgreement({
+// 재등록 폼의 약관 동의 + 전자서명 섹션 — 회원·PT 공통.
+// 빈 상태: 큰 버튼, 서명 후: 미리보기 + "다시 동의" — 폼 안에서 새 약관에 다시 동의 받음.
+function ContractAgreement({
+  signature,
   signaturePreview,
   onOpen,
   error,
 }: {
+  signature: Blob | null;
   signaturePreview: string | null;
   onOpen: () => void;
   error?: string;
 }) {
   return (
-    <Section title="전자서명" icon={ArrowPathIcon}>
-      <p className="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-3 text-sm/6 text-gray-700">
-        새 약관에 동의하신다는 확인으로 전자서명을 입력해 주세요.
-      </p>
-      <SignatureField preview={signaturePreview} onOpen={onOpen} error={error} />
+    <Section title="이용약관 동의" icon={ArrowPathIcon}>
+      {signature && signaturePreview ? (
+        <div className="flex items-center gap-4 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={signaturePreview}
+            alt="입력한 서명 미리보기"
+            className="h-16 w-32 shrink-0 rounded-lg border border-violet-100 bg-white object-contain"
+          />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-primary">
+              <span
+                aria-hidden="true"
+                className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-white"
+              >
+                ✓
+              </span>
+              약관 동의 + 전자서명 완료
+            </p>
+            <p className="text-xs text-gray-500">
+              내용을 바꾸려면 다시 동의해 주세요.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpen}
+            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            다시 동의
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-base font-semibold text-primary hover:border-primary hover:bg-violet-50"
+        >
+          📄 이용약관 동의 + 전자서명
+        </button>
+      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </Section>
   );
 }
