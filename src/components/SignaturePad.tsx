@@ -58,19 +58,35 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
         ctx.restore();
       }
 
-      // 캔버스 픽셀 크기 = CSS 크기 × devicePixelRatio.
-      const resize = () => {
+      // 캔버스 픽셀 크기 ↔ CSS 크기 동기화.
+      // 다이얼로그 열림 애니메이션·창 크기 변경·반응형 레이아웃 등으로
+      // CSS 크기가 변하면 내부 좌표계가 깨져 마우스 작은 움직임이 큰 선으로 그려진다.
+      // ResizeObserver 로 매번 따라가며, 기존 서명은 fromData 로 복원.
+      function syncCanvasSize() {
+        if (!canvas) return;
         const dpr = window.devicePixelRatio || 1;
-        const { width, height } = canvas.getBoundingClientRect();
-        canvas.width = Math.max(1, Math.floor(width * dpr));
-        canvas.height = Math.max(1, Math.floor(height * dpr));
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        const newW = Math.floor(rect.width * dpr);
+        const newH = Math.floor(rect.height * dpr);
+        if (canvas.width === newW && canvas.height === newH) return;
+
+        // 기존 서명 데이터 백업 → 캔버스 리사이즈 → 복원.
+        const data = padRef.current?.toData() ?? [];
+        canvas.width = newW;
+        canvas.height = newH;
         const ctx = canvas.getContext("2d");
         ctx?.scale(dpr, dpr);
-        padRef.current?.clear();
-        drawBaseline();
-      };
-      resize();
-      window.addEventListener("resize", resize);
+        if (data.length && padRef.current) {
+          // signature_pad 가 fromData 시 clear + replay 하므로 baseline 위로 덮어쓰는 충돌 없음.
+          padRef.current.fromData(data);
+        } else {
+          // 빈 캔버스에만 가이드 라인. 서명이 있으면 가이드가 사인을 가로지르지 않게 생략.
+          drawBaseline();
+        }
+      }
+
+      syncCanvasSize();
 
       const pad = new SignaturePadCore(canvas, {
         penColor: "#111827", // gray-900
@@ -83,8 +99,12 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
       });
       padRef.current = pad;
 
+      // CSS 크기 변화 추적 — window resize 뿐 아니라 다이얼로그 애니메이션·반응형도 잡힘.
+      const ro = new ResizeObserver(() => syncCanvasSize());
+      ro.observe(canvas);
+
       return () => {
-        window.removeEventListener("resize", resize);
+        ro.disconnect();
         pad.off();
         padRef.current = null;
       };
