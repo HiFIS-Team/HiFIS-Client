@@ -260,83 +260,93 @@ export function ContractDialog({
                     }}
                   />
                 </div>
-                <p className="mt-5 text-center text-base text-gray-700">
-                  {todayLabel()}
-                </p>
+                {/* 날짜(좌) · 서명(우) — 다짐 종이 신청서처럼 가로 배치.
+                    모바일은 세로 스택(날짜 위, 서명 아래), sm 이상은 가로 + 세로 가운데. */}
+                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
+                  {/* 좌: 날짜 — 가운데(세로) 정렬, 큰 글자. 모바일은 가운데 정렬. */}
+                  <div className="shrink-0 text-center sm:text-left">
+                    <p className="text-lg font-bold text-gray-900 sm:text-xl">
+                      {todayLabel()}
+                    </p>
+                  </div>
 
-                <div className="mt-6">
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-sm font-medium text-gray-600">
-                      회원 이름
-                    </span>
-                    <span className="flex-1 border-b border-gray-300 pb-0.5 text-base text-gray-900">
-                      {memberName || "—"}
-                    </span>
-                    <span className="text-sm text-gray-500">(서명)</span>
-                  </div>
-                  {/* 종이 위 서명란 — 본문과 구분되는 옅은 회색 + 굵은 테두리.
-                      빈 상태에선 가운데 "(서명)" 안내 노출, 한 획이라도 그리면 사라짐.
-                      "서명 완료" 누르면 잠겨서 더 못 그리게, "다시 그리기" 로 풀림.
-                      잠긴 상태에선 테두리 색이 primary 로 바뀌고 우상단에 ✓ 뱃지. */}
-                  <div
-                    className={`relative mt-2 overflow-hidden rounded-md border-2 transition-colors ${
-                      isLocked
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-400 bg-gray-50"
-                    }`}
-                  >
-                    <SignaturePad
-                      ref={padRef}
-                      className="h-32 w-full"
-                      onStrokeEnd={() => setHasDrawn(true)}
-                    />
-                    {!hasDrawn && !isLocked && (
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <span className="text-base text-gray-400">(서명)</span>
-                      </div>
-                    )}
-                    {isLocked && (
-                      <div
-                        className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
-                        data-capture-ignore="true"
-                      >
-                        <CheckIcon className="size-3.5" />
-                        서명 완료
-                      </div>
-                    )}
-                  </div>
-                  {/* 서명 영역 버튼: 다시 그리기 / 서명 완료. 잠그면 다시 그리기만 활성.
-                      캡처 시 신청서 문서엔 나오면 안 되므로 data-capture-ignore. */}
-                  <div
-                    className="mt-2 flex justify-end gap-2"
-                    data-capture-ignore="true"
-                  >
-                    <button
-                      type="button"
-                      onClick={handleRedraw}
-                      disabled={!hasDrawn && !isLocked}
-                      className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  {/* 우: 회원 이름 + 서명 캔버스 + 컨트롤 */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-sm font-medium text-gray-600">
+                        회원 이름
+                      </span>
+                      <span className="flex-1 border-b border-gray-300 pb-0.5 text-base text-gray-900">
+                        {memberName || "—"}
+                      </span>
+                      <span className="text-sm text-gray-500">(서명)</span>
+                    </div>
+                    {/* 종이 위 서명란 — 본문과 구분되는 옅은 회색 + 굵은 테두리.
+                        빈 상태에선 가운데 "(서명)" 안내 노출, 한 획이라도 그리면 사라짐.
+                        "서명 완료" 누르면 잠겨서 더 못 그리게, "다시 그리기" 로 풀림.
+                        잠긴 상태에선 테두리 색이 primary 로 바뀌고 우상단에 ✓ 뱃지. */}
+                    <div
+                      className={`relative mt-2 overflow-hidden rounded-md border-2 transition-colors ${
+                        isLocked
+                          ? "border-primary bg-primary/5"
+                          : "border-gray-400 bg-gray-50"
+                      }`}
                     >
-                      다시 그리기
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSignDone}
-                      disabled={!hasDrawn || isLocked}
-                      className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      서명 완료
-                    </button>
-                  </div>
-                  {error && (
-                    <p
-                      className="mt-2 text-sm text-red-600"
-                      role="alert"
+                      <SignaturePad
+                        ref={padRef}
+                        className="h-32 w-full"
+                        onStrokeEnd={() => setHasDrawn(true)}
+                      />
+                      {!hasDrawn && !isLocked && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <span className="text-base text-gray-400">
+                            (서명)
+                          </span>
+                        </div>
+                      )}
+                      {isLocked && (
+                        <div
+                          className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                          data-capture-ignore="true"
+                        >
+                          <CheckIcon className="size-3.5" />
+                          서명 완료
+                        </div>
+                      )}
+                    </div>
+                    {/* 서명 영역 버튼: 다시 그리기 / 서명 완료. 잠그면 다시 그리기만 활성.
+                        캡처 시 신청서 문서엔 나오면 안 되므로 data-capture-ignore. */}
+                    <div
+                      className="mt-2 flex justify-end gap-2"
                       data-capture-ignore="true"
                     >
-                      {error}
-                    </p>
-                  )}
+                      <button
+                        type="button"
+                        onClick={handleRedraw}
+                        disabled={!hasDrawn && !isLocked}
+                        className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        다시 그리기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSignDone}
+                        disabled={!hasDrawn || isLocked}
+                        className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        서명 완료
+                      </button>
+                    </div>
+                    {error && (
+                      <p
+                        className="mt-2 text-sm text-red-600"
+                        role="alert"
+                        data-capture-ignore="true"
+                      >
+                        {error}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* 대표자 — 고정 문구 (양 지점 공통) */}
