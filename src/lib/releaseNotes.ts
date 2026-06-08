@@ -75,12 +75,6 @@ export const RELEASE_NOTES: ReleaseNote[] = [
         description:
           "수강권·회원권 등 상품 목록이 회수와 기간을 인식해 자연 순서로 정렬돼요. (예: 1회 → 2회 → 3회 → 10회 → 20회)",
       },
-      {
-        type: "improvement",
-        title: "관리자 관리 정돈",
-        description:
-          "관리자 관리 화면이 지점·직책 순서대로 정렬되고, 대표를 제외한 SUPER_ADMIN 표시가 \"관리자\"로 통일됐어요.",
-      },
 
       // 버그 수정 (운영 환경에서 어드민·회원이 마주칠 수 있던 것들)
       {
