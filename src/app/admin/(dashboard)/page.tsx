@@ -26,11 +26,6 @@ import { getDashboardSummary } from "@/lib/api/dashboard";
 import { formatDate, formatPhone } from "@/lib/format";
 import type { DayCount } from "@/lib/api/types";
 
-// 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
-function todayStr(): string {
-  return new Date().toLocaleDateString("en-CA");
-}
-
 // 최근 신청 리스트 — 타입별 아이콘 + chip 색상 메타. 한 톤이지만 색으로 구분 가능.
 const RECENT_TYPE_META: Record<
   string,
@@ -109,8 +104,8 @@ function TodoCard({
   );
 }
 
-// 이번 달 가입 추이 — 일별 막대 (회원·PT 색깔 분할 스택)
-// summary 응답의 this_month_by_day(0건 날은 생략) 을 받아 오늘까지 일자 모두 채워서 렌더.
+// 이번 달 가입 추이 — 회원·PT 두 줄 수평 막대 (연령대 분포 카드와 동일 패턴).
+// 같은 max 기준으로 길이 비교 → 회원·PT 상대적 비중 한눈에.
 function MonthlyTrendChart({
   memberByDay,
   ptByDay,
@@ -118,88 +113,72 @@ function MonthlyTrendChart({
   memberByDay: DayCount[];
   ptByDay: DayCount[];
 }) {
-  const today = todayStr();
-  const monthPrefix = today.slice(0, 7);
-  const todayDay = Number(today.slice(8, 10));
-
-  const memberByDate: Record<string, number> = {};
-  const ptByDate: Record<string, number> = {};
-  for (const d of memberByDay) memberByDate[d.date] = d.count;
-  for (const d of ptByDay) ptByDate[d.date] = d.count;
-
-  const days = Array.from(
-    { length: todayDay },
-    (_, i) => `${monthPrefix}-${String(i + 1).padStart(2, "0")}`,
-  );
-  const max = Math.max(
-    ...days.map((d) => (memberByDate[d] ?? 0) + (ptByDate[d] ?? 0)),
-    1,
-  );
-  const monthMembers = Object.values(memberByDate).reduce((a, b) => a + b, 0);
-  const monthPts = Object.values(ptByDate).reduce((a, b) => a + b, 0);
-  const monthLabel = Number(monthPrefix.slice(5));
-  const todayLabel = `${monthLabel}/${todayDay}`;
+  const monthMembers = memberByDay.reduce((sum, d) => sum + d.count, 0);
+  const monthPts = ptByDay.reduce((sum, d) => sum + d.count, 0);
+  const max = Math.max(monthMembers, monthPts, 1);
+  const today = new Date();
+  const todayLabel = `${today.getMonth() + 1}/${today.getDate()}`;
 
   return (
     <section className="rounded-xl border border-violet-200 p-5">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-base font-semibold text-gray-900">
-          이번 달 가입 추이
-        </h2>
-        <p className="text-sm text-gray-500">
-          회원{" "}
-          <span className="font-semibold text-gray-900">{monthMembers}</span>명
-          · PT{" "}
-          <span className="font-semibold text-gray-900">{monthPts}</span>건
-        </p>
+      <h3 className="text-base font-semibold text-gray-900">
+        이번 달 가입 추이
+      </h3>
+
+      <div className="mt-4 space-y-3">
+        <TrendBar
+          label="회원"
+          count={monthMembers}
+          max={max}
+          unit="명"
+          barClass="bg-primary"
+        />
+        <TrendBar
+          label="PT"
+          count={monthPts}
+          max={max}
+          unit="건"
+          barClass="bg-violet-300"
+        />
       </div>
 
-      {/* items-end 빼고 default(items-stretch) 사용 — 각 컬럼이 h-32 까지 늘어나야
-          안쪽 막대의 height:X% 가 의미를 가짐. 컬럼 안 justify-end 가 막대를 하단에 정렬. */}
-      <div className="mt-4 flex h-32 gap-1">
-        {days.map((d) => {
-          const m = memberByDate[d] ?? 0;
-          const p = ptByDate[d] ?? 0;
-          const total = m + p;
-          const heightPct = (total / max) * 100;
-          return (
-            <div
-              key={d}
-              className="flex flex-1 flex-col justify-end"
-              title={`${d.slice(5).replace("-", "/")} · 회원 ${m} · PT ${p}`}
-            >
-              <div
-                style={{ height: `${heightPct}%` }}
-                className="flex w-full flex-col overflow-hidden rounded-t"
-              >
-                {p > 0 && (
-                  <div style={{ flexGrow: p }} className="bg-violet-300" />
-                )}
-                {m > 0 && (
-                  <div style={{ flexGrow: m }} className="bg-primary" />
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-1.5 flex justify-between text-xs text-gray-400">
-        <span>{monthLabel}/1</span>
-        <span>오늘 ({todayLabel})</span>
-      </div>
-
-      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-sm bg-primary" />
-          회원
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-sm bg-violet-300" />
-          PT
-        </span>
-      </div>
+      <p className="mt-5 text-right text-xs text-gray-400">오늘 {todayLabel}</p>
     </section>
+  );
+}
+
+// 가로 막대 한 줄 — 좌측 라벨 + 회색 트랙 안에 색 막대 + 우측 카운트.
+// 0 이면 막대 안 그림, 0 초과는 최소 2% 너비 보장 (1건도 살짝 보이게).
+function TrendBar({
+  label,
+  count,
+  max,
+  unit,
+  barClass,
+}: {
+  label: string;
+  count: number;
+  max: number;
+  unit: string;
+  barClass: string;
+}) {
+  const pct = max > 0 ? (count / max) * 100 : 0;
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <span className="w-10 shrink-0 text-gray-500">{label}</span>
+      <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-100">
+        {count > 0 && (
+          <div
+            style={{ width: `${Math.max(2, pct)}%` }}
+            className={`h-full rounded-full ${barClass}`}
+          />
+        )}
+      </div>
+      <span className="w-12 shrink-0 text-right tabular-nums text-gray-900">
+        {count}
+        {unit}
+      </span>
+    </div>
   );
 }
 
