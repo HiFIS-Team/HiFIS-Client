@@ -119,21 +119,31 @@ function MonthlyTrendChart({
   const today = new Date();
   const todayLabel = `${today.getMonth() + 1}/${today.getDate()}`;
 
+  // PC 세로 막대 — 카드가 좁아서 가로보다 세로가 빈 공간 적음.
+  const V_MAX = 100; // 막대 영역 세로 최대치(px)
+  const memberBarPx =
+    monthMembers > 0
+      ? Math.max(4, Math.round((monthMembers / max) * V_MAX))
+      : 0;
+  const ptBarPx =
+    monthPts > 0 ? Math.max(4, Math.round((monthPts / max) * V_MAX)) : 0;
+
   return (
-    <section className="rounded-xl border border-violet-200 p-5">
+    <section className="flex h-full flex-col rounded-xl border border-violet-200 p-5">
       <h3 className="text-base font-semibold text-gray-900">
         이번 달 가입 추이
       </h3>
 
-      <div className="mt-4 space-y-3">
-        <TrendBar
+      {/* 모바일: 가로 막대 — 제목과 today 양쪽 모두 mt-6 으로 여백 확보 */}
+      <div className="mt-6 space-y-4 lg:hidden">
+        <HorizontalBar
           label="회원"
           count={monthMembers}
           max={max}
           unit="명"
           barClass="bg-primary"
         />
-        <TrendBar
+        <HorizontalBar
           label="PT"
           count={monthPts}
           max={max}
@@ -142,14 +152,33 @@ function MonthlyTrendChart({
         />
       </div>
 
-      <p className="mt-5 text-right text-xs text-gray-400">오늘 {todayLabel}</p>
+      {/* PC: 세로 막대 — 카운트(위) → 막대 → 라벨(아래). items-end 로 라벨 끝선 정렬 */}
+      <div className="hidden flex-1 items-end justify-center gap-10 pt-2 lg:flex">
+        <VerticalBar
+          label="회원"
+          count={monthMembers}
+          unit="명"
+          barPx={memberBarPx}
+          barClass="bg-primary"
+        />
+        <VerticalBar
+          label="PT"
+          count={monthPts}
+          unit="건"
+          barPx={ptBarPx}
+          barClass="bg-violet-300"
+        />
+      </div>
+
+      <p className="mt-6 text-right text-xs text-gray-400 lg:mt-3">
+        오늘 {todayLabel}
+      </p>
     </section>
   );
 }
 
 // 가로 막대 한 줄 — 좌측 라벨 + 회색 트랙 안에 색 막대 + 우측 카운트.
-// 0 이면 막대 안 그림, 0 초과는 최소 2% 너비 보장 (1건도 살짝 보이게).
-function TrendBar({
+function HorizontalBar({
   label,
   count,
   max,
@@ -164,7 +193,7 @@ function TrendBar({
 }) {
   const pct = max > 0 ? (count / max) * 100 : 0;
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-5 text-sm">
       <span className="w-10 shrink-0 text-gray-500">{label}</span>
       <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-100">
         {count > 0 && (
@@ -174,10 +203,40 @@ function TrendBar({
           />
         )}
       </div>
-      <span className="w-12 shrink-0 text-right tabular-nums text-gray-900">
+      <span className="w-14 shrink-0 text-right tabular-nums text-gray-900">
         {count}
         {unit}
       </span>
+    </div>
+  );
+}
+
+// 세로 막대 한 칸 — 카운트(위) → 막대 → 라벨(아래).
+// items-center 로 세로 컬럼 가운데 정렬, 컬럼 자체는 부모 items-end 로 바닥 정렬.
+function VerticalBar({
+  label,
+  count,
+  unit,
+  barPx,
+  barClass,
+}: {
+  label: string;
+  count: number;
+  unit: string;
+  barPx: number;
+  barClass: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <span className="text-sm font-semibold tabular-nums text-gray-900">
+        {count}
+        {unit}
+      </span>
+      <div
+        style={{ height: `${barPx}px` }}
+        className={`w-10 rounded-t ${barClass}`}
+      />
+      <span className="text-xs text-gray-500">{label}</span>
     </div>
   );
 }
@@ -517,15 +576,14 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="mt-6">
-        <MonthlyTrendChart
-          memberByDay={m?.this_month_by_day ?? []}
-          ptByDay={pt?.this_month_by_day ?? []}
-        />
-      </section>
-
-      <section className="mt-6">
         <h2 className="text-base font-semibold text-gray-900">회원 분석</h2>
-        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+        {/* 가입 추이도 회원 분석 범주라 같은 grid 에 합침.
+            mobile 1col → sm 2col → lg 4col 로 적당히 채워짐. */}
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MonthlyTrendChart
+            memberByDay={m?.this_month_by_day ?? []}
+            ptByDay={pt?.this_month_by_day ?? []}
+          />
           <BirthdayCard list={m?.birthday_today ?? []} />
           <GenderCard byGender={m?.by_gender ?? {}} />
           <AgeRangeCard byAgeRange={m?.by_age_range ?? {}} />
