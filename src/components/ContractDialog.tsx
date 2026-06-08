@@ -211,8 +211,9 @@ export function ContractDialog({
                 </span>
                 <span className="text-sm text-gray-500">(서명)</span>
               </div>
-              {/* 종이 위 서명란 — touch-none 으로 스크롤 제스처 차단 */}
-              <div className="mt-2 overflow-hidden rounded-md border border-gray-300 bg-white">
+              {/* 종이 위 서명란 — 흰 본문과 구분되도록 옅은 회색 + 굵은 테두리.
+                  touch-none 으로 스크롤 제스처 차단. */}
+              <div className="mt-2 overflow-hidden rounded-md border-2 border-gray-400 bg-gray-50">
                 <SignaturePad ref={padRef} className="h-40 w-full" />
               </div>
               <div className="mt-2 flex justify-end">
