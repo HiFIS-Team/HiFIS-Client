@@ -566,6 +566,54 @@ function MemberRenewalForm({
       ? "락커에 포함 (무료 제공)"
       : "포함 (무료 제공)";
 
+  // 종이 계약서용 회원·상품 정보 — 다짐 지점만 사용.
+  // 재등록은 성별이 lookup 에 없어 생략, 이름·전화는 props 그대로.
+  const contractMemberInfo = [
+    { label: "이름", value: name },
+    { label: "연락처", value: phone },
+  ];
+  const contractProductInfo = [
+    { label: "회원권", value: selected?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : lockerProvidedLabel
+        : (selectedLocker?.name ?? "선택 안 함"),
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : clothesProvidedLabel
+        : (selectedClothes?.name ?? "선택 안 함"),
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && form.end_date
+          ? `${form.start_date} ~ ${form.end_date}`
+          : "",
+    },
+    {
+      label: "결제 방식",
+      value:
+        form.payment_method === "CARD"
+          ? "카드"
+          : form.payment_method === "CASH"
+            ? "현금"
+            : "",
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
+
   const onMembershipChange = (id: string) => {
     const next = membershipPasses.find((x) => x.id === id);
     setForm((f) => {
@@ -828,6 +876,8 @@ function MemberRenewalForm({
         branchName={branchShort}
         terms={DAJIM_MEMBER_TERMS}
         memberName={name}
+        memberInfo={contractMemberInfo}
+        productInfo={contractProductInfo}
         onConfirm={(blob) => {
           setSignature(blob);
           setSignatureOpen(false);
@@ -968,6 +1018,51 @@ function PtRenewalForm({
           ptDurationDays(selected.name, selected.duration_months) - 1,
         )
       : "";
+
+  // 종이 계약서용 정보 — 다짐 지점만 사용. 재등록은 성별 lookup 없어 생략.
+  const contractMemberInfo = [
+    { label: "이름", value: name },
+    { label: "연락처", value: phone },
+  ];
+  const contractProductInfo = [
+    { label: "수강권", value: selected?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && endDate ? `${form.start_date} ~ ${endDate}` : "",
+    },
+    {
+      label: "결제 방식",
+      value:
+        form.payment_method === "CARD"
+          ? "카드"
+          : form.payment_method === "CASH"
+            ? "현금"
+            : "",
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
 
   if (mutation.isSuccess) {
     return (
@@ -1190,6 +1285,8 @@ function PtRenewalForm({
         branchName={branchShort}
         terms={DAJIM_PT_TERMS}
         memberName={name}
+        memberInfo={contractMemberInfo}
+        productInfo={contractProductInfo}
         onConfirm={(blob) => {
           setSignature(blob);
           setSignatureOpen(false);

@@ -8,10 +8,16 @@ import { SignaturePad, type SignaturePadHandle } from "./SignaturePad";
 import type { TermsContent } from "./TermsDialog";
 
 // 다짐 지점(첨단·동광주) 전용 — 종이 신청서 느낌의 통합 약관·서명 다이얼로그.
-// 회원 정보·상품 정보는 DB 저장 후 별도 화면에서 보이므로 여기서는 표시하지 않고,
-// 종이 양식에서 법적 효력이 있는 "이용약관 + 동의 + 서명 + 대표자" 파트만 다룬다.
+// 폼 state 가 가지고 있는 회원·상품 정보를 종이 위쪽에 그대로 표시해서
+// 사용자가 자기가 적은 내용을 마지막으로 확인하고 사인하는 흐름을 만든다.
 // 어드민 상세에서 같은 양식을 다시 렌더링하면 그 시점 약관·서명·시각이 모두 복원되므로
 // 별도의 종이 사본을 저장할 필요가 없다.
+
+// 종이 위 정보 박스의 한 줄 — 라벨/값 쌍.
+export interface ContractInfoLine {
+  label: string;
+  value: string;
+}
 
 interface ContractDialogProps {
   open: boolean;
@@ -23,6 +29,11 @@ interface ContractDialogProps {
   terms: TermsContent;
   // 회원이 폼에 입력한 이름 — 서명 위 라벨에 표시 (비어있으면 "—")
   memberName: string;
+  // 종이 위쪽 "회원 정보" 박스 — 폼에서 만들어 전달.
+  // 비어있으면 박스 자체를 안 보임.
+  memberInfo?: ContractInfoLine[];
+  // 종이 위쪽 "상품 결제 정보" 박스 — 폼에서 만들어 전달.
+  productInfo?: ContractInfoLine[];
   // 동의 + 서명 동시 완료 콜백 (서명 PNG Blob 전달)
   onConfirm: (signature: Blob) => void;
   onClose: () => void;
@@ -37,12 +48,40 @@ function todayLabel(): string {
   return `${y}년 ${m}월 ${day}일`;
 }
 
+// 종이 위 정보 박스 — "회원 정보" / "상품 결제 정보" 공통 레이아웃.
+// 좌측 라벨(고정폭) + 우측 값. 값이 비어있으면 "—".
+function InfoSection({
+  title,
+  lines,
+}: {
+  title: string;
+  lines: ContractInfoLine[];
+}) {
+  return (
+    <section>
+      <h4 className="border-b-2 border-gray-300 pb-1.5 text-base font-bold text-gray-900">
+        {title}
+      </h4>
+      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[15px]">
+        {lines.map((line, i) => (
+          <div key={i} className="contents">
+            <dt className="font-medium text-gray-600">{line.label}</dt>
+            <dd className="text-gray-900">{line.value || "—"}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export function ContractDialog({
   open,
   kind,
   branchName,
   terms,
   memberName,
+  memberInfo,
+  productInfo,
   onConfirm,
   onClose,
 }: ContractDialogProps) {
@@ -106,9 +145,23 @@ export function ContractDialog({
           </button>
         </div>
 
-        {/* 본문 — 종이처럼 흰 배경. 약관·동의·날짜·서명·대표자 순으로 한 종이 안에. */}
+        {/* 본문 — 종이처럼 흰 배경. 회원정보·상품정보·약관·동의·서명 순으로 한 종이 안에. */}
         <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-10 sm:py-8">
-          <h3 className="text-center text-xl font-bold text-gray-900">
+          {/* 회원 정보 / 상품 결제 정보 — 폼이 build 해서 prop 으로 넘긴 라벨/값 */}
+          {memberInfo && memberInfo.length > 0 && (
+            <InfoSection title="회원 정보" lines={memberInfo} />
+          )}
+          {productInfo && productInfo.length > 0 && (
+            <div className={memberInfo && memberInfo.length > 0 ? "mt-6" : ""}>
+              <InfoSection title="상품 결제 정보" lines={productInfo} />
+            </div>
+          )}
+
+          <h3 className={`text-center text-xl font-bold text-gray-900 ${
+            (memberInfo && memberInfo.length > 0) || (productInfo && productInfo.length > 0)
+              ? "mt-10"
+              : ""
+          }`}>
             이용약관
           </h3>
 

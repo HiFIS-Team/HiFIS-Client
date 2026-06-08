@@ -236,6 +236,51 @@ export function PtForm({ branchId }: { branchId: string }) {
   const lockerProvided = !!selectedPtPass?.provides_locker;
   const clothesProvided = !!selectedPtPass?.provides_clothes;
 
+  // 종이 계약서에 띄울 회원·상품 정보 — 다짐 지점만 사용.
+  const enumLabel = (arr: EnumOption[], code: string) =>
+    arr.find((o) => o.code === code)?.label ?? "";
+  const contractMemberInfo = [
+    { label: "이름", value: form.name.trim() },
+    { label: "성별", value: enumLabel(enums.gender, form.gender) },
+    { label: "연락처", value: form.phone.trim() },
+  ];
+  const contractProductInfo = [
+    { label: "수강권", value: selectedPtPass?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && form.end_date
+          ? `${form.start_date} ~ ${form.end_date}`
+          : "",
+    },
+    {
+      label: "결제 방식",
+      value: enumLabel(enums.payment_method, form.payment_method),
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
+
   // 이용 시작일 변경 — 종료일 = 시작일 + (선택 수강권 회수 × 4일).
   // 수강권 미선택이면 종료일은 비움 — 수강권 선택 시 onPtPassChange 가 채움.
   const onStartDateChange = (value: string) => {
@@ -690,6 +735,8 @@ export function PtForm({ branchId }: { branchId: string }) {
           branchName={branchShort}
           terms={terms}
           memberName={form.name.trim()}
+          memberInfo={contractMemberInfo}
+          productInfo={contractProductInfo}
           onConfirm={(blob) => {
             setSignature(blob);
             set({ agreed_notice: true });

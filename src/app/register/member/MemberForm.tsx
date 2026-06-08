@@ -281,6 +281,52 @@ export function MemberForm({ branchId }: { branchId: string }) {
     : selectedLocker?.provides_clothes
       ? "락커에 포함 (무료 제공)"
       : "포함 (무료 제공)";
+
+  // 종이 계약서에 띄울 회원·상품 정보 — 폼 state + enum 라벨 + pass lookup 으로 조립.
+  // 빈 값은 ContractDialog 가 "—" 로 표시. 다짐 지점만 사용.
+  const enumLabel = (arr: EnumOption[], code: string) =>
+    arr.find((o) => o.code === code)?.label ?? "";
+  const contractMemberInfo = [
+    { label: "이름", value: form.name.trim() },
+    { label: "성별", value: enumLabel(enums.gender, form.gender) },
+    { label: "연락처", value: form.phone.trim() },
+  ];
+  const contractProductInfo = [
+    { label: "회원권", value: selectedMembership?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : lockerProvidedLabel
+        : (selectedLocker?.name ?? "선택 안 함"),
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : clothesProvidedLabel
+        : (selectedClothes?.name ?? "선택 안 함"),
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && form.end_date
+          ? `${form.start_date} ~ ${form.end_date}`
+          : "",
+    },
+    {
+      label: "결제 방식",
+      value: enumLabel(enums.payment_method, form.payment_method),
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
   // 회원권 선택 — 가격 + 이용 기간 자동 설정
   // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
   // 새 회원권이 락커·운동복을 무료 제공하면 기존 별도 선택을 비우고 opt-out 상태도 리셋
@@ -766,6 +812,8 @@ export function MemberForm({ branchId }: { branchId: string }) {
           branchName={branchShort}
           terms={terms}
           memberName={form.name.trim()}
+          memberInfo={contractMemberInfo}
+          productInfo={contractProductInfo}
           onConfirm={(blob) => {
             setSignature(blob);
             // 종이 안에서 "동의합니다" 받았으므로 agreed_terms 도 true 로
