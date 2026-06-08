@@ -9,19 +9,29 @@ export interface SignaturePadHandle {
   isEmpty(): boolean;
   // PNG Blob 으로 추출 (서버 업로드용)
   toBlob(): Promise<Blob | null>;
+  // 입력 잠금/해제 — false 면 그리기 비활성, true 면 다시 그릴 수 있음.
+  // signature_pad 내부의 dom 리스너만 제어, 우리가 등록한 endStroke 등은 유지.
+  setEnabled(enabled: boolean): void;
 }
 
 interface SignaturePadProps {
   className?: string;
+  // 한 획이 끝날 때마다 호출 — 부모가 hasDrawn 상태 추적에 사용.
+  onStrokeEnd?: () => void;
 }
 
 // 캔버스 기반 서명 패드 — signature_pad 라이브러리 래퍼.
 // 터치/마우스/스타일러스 모두 지원, DPR 보정으로 선이 흐리지 않게.
 // 종이 위 서명 느낌 — 흰 배경 + 옅은 baseline 가이드 + touch-none 으로 모바일 제스처 차단.
 export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
-  function SignaturePad({ className }, ref) {
+  function SignaturePad({ className, onStrokeEnd }, ref) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const padRef = useRef<SignaturePadCore | null>(null);
+    // onStrokeEnd 가 매 렌더 함수 새로 만들어져도 useEffect 가 다시 안 돌게 ref 로 보관.
+    const onStrokeEndRef = useRef(onStrokeEnd);
+    useEffect(() => {
+      onStrokeEndRef.current = onStrokeEnd;
+    }, [onStrokeEnd]);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -68,9 +78,9 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
         minWidth: 0.9,
         maxWidth: 2.6,
       });
-      // 사용자가 그리기 시작하면 baseline 은 자연스럽게 묻힘. clear() 후 다시 그릴 때
-      // baseline 도 같이 복원해야 첫 진입과 동일한 모습.
-      pad.addEventListener("afterUpdateStroke" as never, () => {});
+      pad.addEventListener("endStroke" as never, () => {
+        onStrokeEndRef.current?.();
+      });
       padRef.current = pad;
 
       return () => {
@@ -113,6 +123,11 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
             }
             c.toBlob((b) => resolve(b), "image/png");
           }),
+        setEnabled: (enabled: boolean) => {
+          // signature_pad 의 dom 리스너 on/off — endStroke 등 custom listener 는 유지됨.
+          if (enabled) padRef.current?.on();
+          else padRef.current?.off();
+        },
       }),
       [],
     );

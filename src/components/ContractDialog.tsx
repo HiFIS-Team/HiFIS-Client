@@ -88,6 +88,10 @@ export function ContractDialog({
   const padRef = useRef<SignaturePadHandle>(null);
   // 모달 안에서 받는 동의 — 체크 + 서명 둘 다 있어야 "완료" 활성.
   const [agreed, setAgreed] = useState(false);
+  // 서명 상태: 빈 칸 → 한 획이라도 그려짐 → "서명 완료" 눌러서 잠금.
+  // 잠긴 후엔 "다시 그리기" 눌러야 다시 그릴 수 있음.
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEscapeKey(onClose, open);
 
@@ -97,9 +101,18 @@ export function ContractDialog({
     kind === "pt" ? "PT" : "회원가입"
   } 신청서`;
 
-  function handleClear() {
+  function handleRedraw() {
     padRef.current?.clear();
+    padRef.current?.setEnabled(true);
+    setHasDrawn(false);
+    setIsLocked(false);
     setError(null);
+  }
+
+  function handleSignDone() {
+    if (!hasDrawn) return;
+    padRef.current?.setEnabled(false);
+    setIsLocked(true);
   }
 
   async function handleConfirm() {
@@ -211,18 +224,38 @@ export function ContractDialog({
                 </span>
                 <span className="text-sm text-gray-500">(서명)</span>
               </div>
-              {/* 종이 위 서명란 — 흰 본문과 구분되도록 옅은 회색 + 굵은 테두리.
-                  touch-none 으로 스크롤 제스처 차단. */}
-              <div className="mt-2 overflow-hidden rounded-md border-2 border-gray-400 bg-gray-50">
-                <SignaturePad ref={padRef} className="h-40 w-full" />
+              {/* 종이 위 서명란 — 본문과 구분되는 옅은 회색 + 굵은 테두리.
+                  빈 상태에선 가운데 "(서명)" 안내 노출, 한 획이라도 그리면 사라짐.
+                  "서명 완료" 누르면 잠겨서 더 못 그리게, "다시 그리기" 로 풀림. */}
+              <div className="relative mt-2 overflow-hidden rounded-md border-2 border-gray-400 bg-gray-50">
+                <SignaturePad
+                  ref={padRef}
+                  className="h-40 w-full"
+                  onStrokeEnd={() => setHasDrawn(true)}
+                />
+                {!hasDrawn && !isLocked && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="text-base text-gray-400">(서명)</span>
+                  </div>
+                )}
               </div>
-              <div className="mt-2 flex justify-end">
+              {/* 서명 영역 버튼: 다시 그리기 / 서명 완료. 잠그면 다시 그리기만 활성. */}
+              <div className="mt-2 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={handleClear}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-700 hover:underline"
+                  onClick={handleRedraw}
+                  disabled={!hasDrawn && !isLocked}
+                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   다시 그리기
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignDone}
+                  disabled={!hasDrawn || isLocked}
+                  className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  서명 완료
                 </button>
               </div>
               {error && (
@@ -256,7 +289,7 @@ export function ContractDialog({
             onClick={handleConfirm}
             className="rounded-lg bg-primary px-6 py-2.5 text-base font-semibold text-white shadow-sm hover:bg-primary-hover"
           >
-            동의 + 서명 완료
+            완료
           </button>
         </div>
       </div>
