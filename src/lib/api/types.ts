@@ -27,6 +27,9 @@ export interface Branch {
   // 지점별 알림톡 발송 토글. 전역 마스터(SystemConfig.messaging_enabled)와 AND 동작.
   // 기본 false — 사장님이 명시적으로 켜야 발송.
   messaging_enabled: boolean;
+  // 다짐(외부 SaaS) 자동 회원 등록 토글 — 첨단점·동광주점 만 ON.
+  // 프론트는 이 플래그로 신청서 이용약관 분기 (다짐매니저 위탁 고지가 포함된 약관 사용).
+  dajim_enabled: boolean;
   created_at: string;
 }
 
@@ -60,7 +63,11 @@ export interface Enums {
 // --- 상품(회원권·수강권·락커·운동복) — 4종 모두 동일 형태 ---
 // provides_locker / provides_clothes 는 회원권·수강권에만 존재 (락커·운동복 패스 응답엔 없음).
 // true 이면 신청 시 별도 락커/운동복 선택을 차단하고 자동 포함 — 백엔드가 검증 (400).
-// duration_months: 1~120 개월 정수 (선택). 일권·2주권 같은 예외는 null → 프론트가 이름에서 추출.
+// 이용 기간 — (months, days, hours) 중 최대 하나만 채워짐. 셋 다 null 이면 이름에서 추출.
+//   duration_months: 1~120 개월
+//   duration_days:   1~365 일
+//   duration_hours:  1~23 시간 (당일 만료)
+// 백엔드가 서비스 레이어에서 cross-field 검증.
 export interface Pass {
   id: string;
   branch_id: string;
@@ -68,6 +75,8 @@ export interface Pass {
   cash_price: number;
   card_price: number;
   duration_months: number | null;
+  duration_days: number | null;
+  duration_hours: number | null;
   provides_locker?: boolean;
   provides_clothes?: boolean;
   created_at: string;
@@ -138,6 +147,8 @@ export interface Member {
   clothes_pass_id: string | null;
   motivation: string;
   agreed_marketing: boolean;
+  // 전자서명 이미지 URL — 백엔드가 정적 파일로 보존 (어드민 상세에서 노출용).
+  signature_url: string | null;
   status: string;
   category: RegistrationCategory;
   created_at: string;
@@ -259,14 +270,17 @@ export interface PTApplication {
   end_date: string;
   notes: string | null;
   agreed_marketing: boolean;
+  // 전자서명 이미지 URL — Member 와 동일.
+  signature_url: string | null;
   status: string;
   category: RegistrationCategory;
   created_at: string;
 }
 
 // POST /pt-applications/re-register — PT 재등록 (공개).
-// 회원 재등록과 동일한 식별 규칙(branch+name+phone). PT는 40일 고정 — 시작일은
-// 활성이면 기존 end_date + 1일, 만료면 오늘. 프론트에서 계산해 start/end 전송.
+// 회원 재등록과 동일한 식별 규칙(branch+name+phone). PT 이용 기간은 회수 × 4일
+// (10회당 40일 정책) — 시작일은 활성이면 기존 end_date + 1일, 만료면 오늘.
+// 프론트에서 계산해 start/end 전송.
 export interface PTApplicationReRegister {
   branch_id: string;
   name: string;

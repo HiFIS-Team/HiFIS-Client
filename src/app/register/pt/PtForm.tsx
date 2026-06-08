@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type FormEvent,
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
@@ -15,6 +18,7 @@ import {
   CreditCardIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import {
@@ -23,6 +27,7 @@ import {
   getPtPasses,
 } from "@/lib/api/passes";
 import { createPtApplication } from "@/lib/api/ptApplications";
+import { getRegistrationLookup } from "@/lib/api/registrations";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
@@ -34,19 +39,19 @@ import { Textarea } from "@/components/Textarea";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
+import { ContractDialog } from "@/components/ContractDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { DAJIM_PT_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
-import { sortPassesForUI } from "@/lib/passDuration";
+import { ptDurationDays, sortPassesForUI } from "@/lib/passDuration";
 import { RegisterSuccess } from "../RegisterSuccess";
 
 // 오늘 날짜 YYYY-MM-DD (기기 로컬 기준)
 function todayStr(): string {
   return new Date().toLocaleDateString("en-CA");
 }
-
-// PT 회원에게 제공되는 헬스권 이용 기간 (일) — 고정값
-const PT_DURATION_DAYS = 40;
 
 // YYYY-MM-DD 에 일수를 더한다
 function addDays(dateStr: string, days: number): string {
@@ -96,6 +101,7 @@ const INITIAL = {
   referral_detail: "",
   motivation: "",
   notes: "",
+  // 일반 지점: 체크박스 / 다짐 지점(첨단·동광주): 전자서명 → 제출 시 자동 true.
   agreed_notice: false,
   // 마케팅 정보 수신 동의 (선택)
   agreed_marketing: false,
@@ -108,6 +114,7 @@ const INITIAL = {
 type FormState = typeof INITIAL;
 
 export function PtForm({ branchId }: { branchId: string }) {
+  const router = useRouter();
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
@@ -126,13 +133,78 @@ export function PtForm({ branchId }: { branchId: string }) {
     queryFn: () => getClothesPasses(branchId),
   });
 
-  // 시작일은 등록일(오늘), 종료일은 +40일로 시작 — PT 헬스권 기간은 40일 고정
-  const [form, setForm] = useState<FormState>(() => {
-    const t = todayStr();
-    return { ...INITIAL, start_date: t, end_date: addDays(t, PT_DURATION_DAYS) };
-  });
+  // 시작일은 등록일(오늘). 종료일은 PT 수강권을 골라야 결정됨 (회수 × 4일).
+  const [form, setForm] = useState<FormState>(() => ({
+    ...INITIAL,
+    start_date: todayStr(),
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  // 중복 PT 신청 감지 — 같은 이름+전화로 이미 PT 이력이 있으면 1회 안내.
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
+
+  // 이름+전화 디바운스 (입력 멈춘 뒤 500ms) — MemberForm 과 동일 패턴
+  const [debouncedName, setDebouncedName] = useState("");
+  const [debouncedPhone, setDebouncedPhone] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedName(form.name.trim());
+      setDebouncedPhone(form.phone.replace(/\D/g, ""));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.name, form.phone]);
+
+  const lookupEnabled =
+    !!debouncedName &&
+    debouncedPhone.length >= 9 &&
+    debouncedPhone.length <= 12;
+  const lookupQuery = useQuery({
+    queryKey: ["registration-lookup", branchId, debouncedName, debouncedPhone],
+    queryFn: () =>
+      getRegistrationLookup({
+        branchId,
+        name: debouncedName,
+        phone: debouncedPhone,
+      }),
+    enabled: lookupEnabled,
+    retry: false,
+  });
+
+  // PT 가 lookup 에 잡히면 모달 (회원만 있는 건 무시 — 회원 따로 가입한 사람이 PT 처음 신청 케이스).
+  const currentKey = `${debouncedName}|${debouncedPhone}`;
+  useEffect(() => {
+    if (!lookupQuery.data) return;
+    if (!lookupQuery.data.kinds.includes("PT")) return;
+    if (currentKey === dismissedKey) return;
+    setDuplicateOpen(true);
+  }, [lookupQuery.data, currentKey, dismissedKey]);
+
+  function goRenewal() {
+    setDuplicateOpen(false);
+    const qs = new URLSearchParams({
+      branch_id: branchId,
+      prefill_name: form.name.trim(),
+      prefill_phone: form.phone.trim(),
+    }).toString();
+    router.push(`/register/renewal?${qs}`);
+  }
+
+  function dismissDuplicate() {
+    setDuplicateOpen(false);
+    setDismissedKey(currentKey);
+  }
+  // 전자서명 PNG Blob — 동의의 근거 (체크박스 대체). 미리보기는 derive + cleanup-only effect.
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
   const mutation = useMutation({ mutationFn: createPtApplication });
 
   const set = (patch: Partial<FormState>) =>
@@ -169,8 +241,14 @@ export function PtForm({ branchId }: { branchId: string }) {
   // 지점에 패스가 하나도 등록 안 돼 있으면 신청 토글 자체를 숨김.
   const lockerPasses = lockerPassQuery.data ?? [];
   const clothesPasses = clothesPassQuery.data ?? [];
-  const branchName =
-    branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
+  const branch = branchesQuery.data?.find((b) => b.id === branchId);
+  const branchName = branch?.name ?? "";
+  const branchShort = branchName.replace(/^피트니스스타\s*/, "");
+  // 다짐 지점(첨단·동광주)은 PT 유의사항 대신 통합 이용약관 사용
+  const isDajim = !!branch?.dajim_enabled;
+  const terms = isDajim ? DAJIM_PT_TERMS : PT_NOTICE;
+  const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
+  const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "서명 전 유의사항 보기";
 
   // 락커·운동복은 무료라 결제 금액에 영향 없음 — totalFor 는 수강권만 반영
 
@@ -180,7 +258,8 @@ export function PtForm({ branchId }: { branchId: string }) {
     if (!p) return 0;
     return next.payment_method === "CARD" ? p.card_price : p.cash_price;
   }
-  // 수강권 변경 — 가격 재계산 + 무료 제공 수강권이면 별도 락커·운동복 선택과 opt-out 리셋
+  // 수강권 변경 — 가격 재계산 + 종료일(시작일 + 회수×4일) 재계산 +
+  // 무료 제공 수강권이면 별도 락커·운동복 선택과 opt-out 리셋
   // → 기본값 "포함 (무료 제공)" 으로 자연 노출
   const onPtPassChange = (id: string) => {
     const next = ptPasses.find((x) => x.id === id);
@@ -193,6 +272,13 @@ export function PtForm({ branchId }: { branchId: string }) {
       if (next?.provides_clothes) {
         base.clothes_pass_id = "";
         base.clothes_opt_out = false;
+      }
+      if (next && base.start_date) {
+        // 종료일 = 마지막 유효일(포함) — N일권이면 start + (N-1)
+        base.end_date = addDays(
+          base.start_date,
+          ptDurationDays(next) - 1,
+        );
       }
       return { ...base, final_price: String(totalFor(base)) };
     });
@@ -209,13 +295,65 @@ export function PtForm({ branchId }: { branchId: string }) {
   const lockerProvided = !!selectedPtPass?.provides_locker;
   const clothesProvided = !!selectedPtPass?.provides_clothes;
 
-  // 이용 시작일 변경 — 종료일은 항상 시작일 + 40일 (PT 헬스권 기간 고정)
+  // 종이 계약서에 띄울 회원·상품 정보 — 다짐 지점만 사용.
+  const enumLabel = (arr: EnumOption[], code: string) =>
+    arr.find((o) => o.code === code)?.label ?? "";
+  const contractMemberInfo = [
+    { label: "이름", value: form.name.trim() },
+    { label: "성별", value: enumLabel(enums.gender, form.gender) },
+    { label: "연락처", value: form.phone.trim() },
+  ];
+  const contractProductInfo = [
+    { label: "수강권", value: selectedPtPass?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && form.end_date
+          ? `${form.start_date} ~ ${form.end_date}`
+          : "",
+    },
+    {
+      label: "결제 방식",
+      value: enumLabel(enums.payment_method, form.payment_method),
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
+
+  // 이용 시작일 변경 — 종료일 = 시작일 + (선택 수강권 회수 × 4일).
+  // 수강권 미선택이면 종료일은 비움 — 수강권 선택 시 onPtPassChange 가 채움.
   const onStartDateChange = (value: string) => {
-    setForm((f) => ({
-      ...f,
-      start_date: value,
-      end_date: value ? addDays(value, PT_DURATION_DAYS) : "",
-    }));
+    setForm((f) => {
+      const pass = ptPasses.find((x) => x.id === f.pt_pass_id);
+      return {
+        ...f,
+        start_date: value,
+        end_date:
+          value && pass
+            ? addDays(value, ptDurationDays(pass) - 1)
+            : "",
+      };
+    });
   };
 
   // 제출 성공 — 완료 화면 (5초 후 키오스크 진입 화면으로 자동 복귀)
@@ -258,7 +396,9 @@ export function PtForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
+    // 동의 — 모든 지점: 체크박스 필수. 다짐 지점은 전자서명까지 추가로 필수.
     if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
+    if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -273,26 +413,30 @@ export function PtForm({ branchId }: { branchId: string }) {
       enums.referral,
     );
     mutation.mutate({
-      branch_id: branchId,
-      pt_pass_id: form.pt_pass_id,
-      // 수강권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      name: form.name.trim(),
-      gender: form.gender,
-      birth_date: form.birth_date,
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      referral,
-      referral_detail,
-      motivation: form.motivation,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: form.end_date,
-      notes: form.notes.trim() || null,
-      agreed_notice: form.agreed_notice,
-      agreed_marketing: form.agreed_marketing,
+      payload: {
+        branch_id: branchId,
+        pt_pass_id: form.pt_pass_id,
+        // 수강권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        name: form.name.trim(),
+        gender: form.gender,
+        birth_date: form.birth_date,
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        referral,
+        referral_detail,
+        motivation: form.motivation,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        notes: form.notes.trim() || null,
+        // 모든 지점에서 체크박스로 동의 받음 (다짐은 서명까지 추가).
+        agreed_notice: form.agreed_notice,
+        agreed_marketing: form.agreed_marketing,
+      },
+      signature: isDajim ? signature : undefined,
     });
   }
 
@@ -468,7 +612,9 @@ export function PtForm({ branchId }: { branchId: string }) {
               {form.end_date ? formatDate(form.end_date) : "—"}
             </div>
             <p className="mt-1.5 text-sm text-gray-500">
-              PT 회원은 헬스권 40일이 제공돼요. 시작일 기준 자동 설정됩니다.
+              {selectedPtPass
+                ? `PT 회원은 헬스권 ${ptDurationDays(selectedPtPass)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
+                : "수강권을 선택하면 헬스권 이용 기간이 자동 설정돼요. (회수 × 4일)"}
             </p>
           </div>
         </Section>
@@ -539,33 +685,78 @@ export function PtForm({ branchId }: { branchId: string }) {
         </Section>
 
         <Section title="동의" icon={CheckBadgeIcon}>
-          <div>
-            {/* 준수 서약문 — 동의 대상 */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
-              <p className="text-base/7 text-gray-700">{MEMBERSHIP_PLEDGE}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setNoticeOpen(true)}
-              className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-            >
-              서명 전 유의사항 보기
-            </button>
-            <div className="mt-4 space-y-3">
-              <Checkbox
-                id="agreed-notice"
-                label="위 내용에 동의합니다. (필수)"
-                checked={form.agreed_notice}
-                onChange={(e) => set({ agreed_notice: e.target.checked })}
-                error={errors.agreed_notice}
-              />
-              <Checkbox
-                id="agreed-marketing"
-                label="마케팅 정보 수신에 동의합니다. (선택)"
-                checked={form.agreed_marketing}
-                onChange={(e) => set({ agreed_marketing: e.target.checked })}
-              />
-            </div>
+          <div className="space-y-4">
+            {isDajim ? (
+              /* 다짐 지점 — 종이 계약서 다이얼로그 하나로 동의·서명 동시 처리 */
+              signature && signaturePreview ? (
+                <div className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5 sm:gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={signaturePreview}
+                    alt="신청서 미리보기"
+                    className="h-16 w-12 shrink-0 rounded-lg border border-violet-100 bg-white object-cover object-top"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-start gap-1.5 text-sm font-semibold text-primary">
+                      <CheckCircleIcon
+                        aria-hidden="true"
+                        className="size-5 shrink-0"
+                      />
+                      <span>약관 동의 + 전자서명 완료</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      내용을 바꾸려면 다시 동의해 주세요.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSignatureOpen(true)}
+                    className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    다시 동의
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSignatureOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-base font-semibold text-primary hover:border-primary hover:bg-violet-50"
+                >
+                  📄 이용약관 동의 + 전자서명
+                </button>
+              )
+            ) : (
+              /* 일반 지점 — 기존 흐름: 서약문 + 유의사항 보기 + 체크박스 */
+              <>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+                  <p className="text-base/7 text-gray-700">{pledge}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNoticeOpen(true)}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  {termsButtonLabel}
+                </button>
+                <Checkbox
+                  id="agreed-notice"
+                  label="위 내용에 동의합니다. (필수)"
+                  checked={form.agreed_notice}
+                  onChange={(e) => set({ agreed_notice: e.target.checked })}
+                  error={errors.agreed_notice}
+                />
+              </>
+            )}
+            {isDajim && errors.signature && (
+              <p className="text-sm text-red-600">{errors.signature}</p>
+            )}
+
+            <Checkbox
+              id="agreed-marketing"
+              label="마케팅 정보 수신에 동의합니다. (선택)"
+              checked={form.agreed_marketing}
+              onChange={(e) => set({ agreed_marketing: e.target.checked })}
+            />
           </div>
         </Section>
 
@@ -586,16 +777,51 @@ export function PtForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_notice}
+            disabled={!form.agreed_notice || (isDajim && !signature)}
           >
             신청서 제출
           </Button>
         </div>
       </form>
 
-      {noticeOpen && (
-        <TermsDialog content={PT_NOTICE} onClose={() => setNoticeOpen(false)} />
+      {/* 다짐 지점 — 종이 계약서: 약관 + 동의 + 서명 한 모달에서 처리 */}
+      {isDajim && (
+        <ContractDialog
+          open={signatureOpen}
+          kind="pt"
+          branchName={branchShort}
+          terms={terms}
+          memberName={form.name.trim()}
+          memberInfo={contractMemberInfo}
+          productInfo={contractProductInfo}
+          onConfirm={(blob) => {
+            setSignature(blob);
+            set({ agreed_notice: true });
+            setSignatureOpen(false);
+            setErrors((prev) => {
+              if (!prev.signature && !prev.agreed_notice) return prev;
+              const next = { ...prev };
+              delete next.signature;
+              delete next.agreed_notice;
+              return next;
+            });
+          }}
+          onClose={() => setSignatureOpen(false)}
+        />
       )}
+      {/* 일반 지점 — 기존 유의사항 보기 모달 */}
+      {!isDajim && noticeOpen && (
+        <TermsDialog content={terms} onClose={() => setNoticeOpen(false)} />
+      )}
+      {/* 같은 이름+전화로 이미 PT 신청 이력이 있으면 재등록 페이지로 안내 */}
+      <ConfirmDialog
+        open={duplicateOpen}
+        title="이미 신청한 이력이 있습니다"
+        message="입력하신 이름·전화번호로 등록된 PT 신청 정보가 있어요. 재등록 페이지로 이동하시겠습니까?"
+        confirmLabel="재등록 페이지로 이동"
+        onConfirm={goRenewal}
+        onCancel={dismissDuplicate}
+      />
     </main>
   );
 }

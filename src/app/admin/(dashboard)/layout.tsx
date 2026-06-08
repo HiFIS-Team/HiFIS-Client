@@ -8,6 +8,12 @@ import { getMe } from "@/lib/api/auth";
 import { getAccessToken } from "@/lib/api/tokenStore";
 import { useHeartbeat } from "@/lib/hooks/useHeartbeat";
 import { useNotificationNavigate } from "@/lib/hooks/useNotificationNavigate";
+import {
+  RELEASE_NOTES,
+  semverCompare,
+  type ReleaseNote,
+} from "@/lib/releaseNotes";
+import { ReleaseNotesDialog } from "@/components/ReleaseNotesDialog";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 
@@ -47,6 +53,40 @@ export default function DashboardLayout({
       .then((reg) => reg?.update())
       .catch(() => {});
   }, []);
+
+  // 릴리스 노트 모달 — 새 버전 배포 후 첫 진입 시 변경사항 안내.
+  // localStorage 의 lastSeen 과 현재 NEXT_PUBLIC_APP_VERSION 비교 → 더 큰 버전이면 노트 모음.
+  // 첫 진입(localStorage 없음)엔 모달 없이 현재 버전만 저장 (신규 사용자에 불필요한 노출 방지).
+  const VERSION_STORAGE_KEY = "hifis-last-seen-version";
+  const [pendingNotes, setPendingNotes] = useState<ReleaseNote[] | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const current = process.env.NEXT_PUBLIC_APP_VERSION;
+    if (!current) return;
+    const lastSeen = window.localStorage.getItem(VERSION_STORAGE_KEY);
+    if (!lastSeen) {
+      window.localStorage.setItem(VERSION_STORAGE_KEY, current);
+      return;
+    }
+    if (semverCompare(current, lastSeen) <= 0) return;
+    const newNotes = RELEASE_NOTES.filter(
+      (n) => semverCompare(n.version, lastSeen) > 0,
+    ).sort((a, b) => semverCompare(b.version, a.version));
+    if (newNotes.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPendingNotes(newNotes);
+    } else {
+      // 노트 항목이 없는 버전이면 조용히 저장
+      window.localStorage.setItem(VERSION_STORAGE_KEY, current);
+    }
+  }, []);
+  function dismissReleaseNotes() {
+    const current = process.env.NEXT_PUBLIC_APP_VERSION;
+    if (current && typeof window !== "undefined") {
+      window.localStorage.setItem(VERSION_STORAGE_KEY, current);
+    }
+    setPendingNotes(null);
+  }
 
   // 토큰이 아예 없으면 즉시 로그인 화면으로
   useEffect(() => {
@@ -104,6 +144,12 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      {pendingNotes && (
+        <ReleaseNotesDialog
+          notes={pendingNotes}
+          onClose={dismissReleaseNotes}
+        />
+      )}
     </div>
   );
 }

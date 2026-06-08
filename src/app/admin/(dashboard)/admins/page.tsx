@@ -19,13 +19,42 @@ import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
 import { adminRoleLabel, formatDate, timeAgo } from "@/lib/format";
-import type { Admin } from "@/lib/api/types";
+import type { Admin, Branch } from "@/lib/api/types";
 
 // 대표(SUPER_ADMIN) 표시 순서 — 운영진 우선순위. 목록에 없는 이름은 뒤로.
 const SUPER_ADMIN_ORDER = ["이준경", "이준승", "문명진", "김은후"];
 function superAdminRank(name: string): number {
   const idx = SUPER_ADMIN_ORDER.indexOf(name);
   return idx === -1 ? SUPER_ADMIN_ORDER.length : idx;
+}
+
+// SUPER_ADMIN 라벨 그룹 순서 — 대표 → 관리자 → (그 외).
+// 라벨은 adminRoleLabel 의 override 결과를 사용 (현재: 대표 / 관리자).
+const SUPER_ADMIN_LABEL_ORDER = ["대표", "관리자"];
+function superAdminLabelRank(label: string): number {
+  const idx = SUPER_ADMIN_LABEL_ORDER.indexOf(label);
+  return idx === -1 ? SUPER_ADMIN_LABEL_ORDER.length : idx;
+}
+
+// FC 지점 표시 순서 — 사장님이 요청한 운영 우선순위.
+// 지점명에 키워드가 포함되는지로 매칭(full name 예: "피트니스스타 화순점").
+// 목록에 없는 지점은 뒤로.
+const BRANCH_ORDER = ["화순", "첨단", "동광주"];
+function branchRank(branchId: string | null, branches: Branch[]): number {
+  if (!branchId) return BRANCH_ORDER.length;
+  const branch = branches.find((b) => b.id === branchId);
+  if (!branch) return BRANCH_ORDER.length;
+  const idx = BRANCH_ORDER.findIndex((kw) => branch.name.includes(kw));
+  return idx === -1 ? BRANCH_ORDER.length : idx;
+}
+
+// FC 직책 표시 순서 — 점장 → 팀장 → 트레이너 → FC.
+// position 코드가 null 이거나 목록에 없으면 뒤로.
+const POSITION_ORDER = ["MANAGER", "TEAM_LEADER", "TRAINER", "FC"];
+function positionRank(position: string | null): number {
+  if (!position) return POSITION_ORDER.length;
+  const idx = POSITION_ORDER.indexOf(position);
+  return idx === -1 ? POSITION_ORDER.length : idx;
 }
 
 // 관리자 계정 상태 배지
@@ -126,10 +155,10 @@ export default function AdminAdminsPage() {
   const admins = adminsQuery.data ?? [];
   // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
   // 정렬 규칙:
-  //   1) 대표(SUPER_ADMIN) 가 항상 맨 위
-  //   2) 대표끼리는 운영진 우선순위 (이준경 → 이준승 → 문명진 → 김은후),
-  //      목록에 없는 대표는 그 뒤에 created_at 순으로
-  //   3) FC 는 가입(created_at) 오름차순
+  //   1) SUPER_ADMIN 이 항상 맨 위
+  //   2) SUPER_ADMIN 끼리는 라벨(대표 → 관리자 → 기타) → 운영진 우선순위 → 가입순
+  //   3) FC 는 지점(화순 → 첨단 → 동광주) → 직책(점장 → 팀장 → 트레이너 → FC) → 가입순
+  const branches = branchesQuery.data ?? [];
   const visibleAdmins = admins
     .filter(
       (a) =>
@@ -142,10 +171,21 @@ export default function AdminAdminsPage() {
       if (a.role === "SUPER_ADMIN" && b.role !== "SUPER_ADMIN") return -1;
       if (a.role !== "SUPER_ADMIN" && b.role === "SUPER_ADMIN") return 1;
       if (a.role === "SUPER_ADMIN" && b.role === "SUPER_ADMIN") {
+        const la = superAdminLabelRank(adminRoleLabel(a));
+        const lb = superAdminLabelRank(adminRoleLabel(b));
+        if (la !== lb) return la - lb;
         const ra = superAdminRank(a.name);
         const rb = superAdminRank(b.name);
         if (ra !== rb) return ra - rb;
+        return a.created_at.localeCompare(b.created_at);
       }
+      // FC 끼리 — 지점 → 직책 → 가입순
+      const ba = branchRank(a.branch_id, branches);
+      const bb = branchRank(b.branch_id, branches);
+      if (ba !== bb) return ba - bb;
+      const pa = positionRank(a.position);
+      const pb = positionRank(b.position);
+      if (pa !== pb) return pa - pb;
       return a.created_at.localeCompare(b.created_at);
     });
 

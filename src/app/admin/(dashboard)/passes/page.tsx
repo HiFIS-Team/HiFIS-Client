@@ -36,7 +36,7 @@ import { Select } from "@/components/Select";
 import { TableMessage, TableSkeleton } from "@/components/Table";
 import { formatWon, josaEulReul, josaIGa } from "@/lib/format";
 import type { Pass } from "@/lib/api/types";
-import { sortPassesForUI } from "@/lib/passDuration";
+import { sortPassesForUI, passDuration } from "@/lib/passDuration";
 import { PassFormDialog } from "./PassFormDialog";
 
 const TABS: {
@@ -49,6 +49,16 @@ const TABS: {
   { type: "locker", label: "락커", icon: LockClosedIcon },
   { type: "clothes", label: "운동복", icon: ShoppingBagIcon },
 ];
+
+// 카드 칩에 띄울 기간 — 채워진 컬럼 기준 단위 ("3개월" / "7일" / "3시간"),
+// 셋 다 null 이면 이름에서 추출 (passDuration fallback). 추출도 실패하면 "기간 미지정".
+function formatPassDuration(p: Pass): string {
+  const d = passDuration(p);
+  if (!d) return "기간 미지정";
+  if ("months" in d) return `${d.months}개월`;
+  if ("days" in d) return `${d.days}일`;
+  return `${d.hours}시간`;
+}
 
 // 카드 하단 정보 칩 — 이용자 수·기간·락커/운동복 제공 모두 같은 디자인.
 // accent 면 보라(활성 옵션), 아니면 회색(메타).
@@ -302,13 +312,13 @@ export default function AdminPassesPage() {
                   </div>
                 </div>
                 {/* 카드 하단 정보 칩 — 같은 디자인의 chip 들을 가운데 정렬로 한 줄에.
-                    이용자 N명 · N개월 · 락커 제공 · 운동복 제공.
-                    개월은 안 받은 패스(null)도 표시상 "0개월" — 신청서 계산엔 무관
-                    (passDuration 헬퍼가 null 이면 이름에서 추출하던 fallback 그대로).
+                    이용자 N명 · N개월/일/시간 · 락커 제공 · 운동복 제공.
+                    기간은 채워진 컬럼 기준 단위로 표시, 셋 다 비어있으면 이름에서
+                    추출 fallback (passDuration 헬퍼 — 신청서 계산과 동일).
                     제공 칩은 off 면 회색, 자기 자신 종류(락커 카드의 "락커 제공") 는 숨김. */}
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
                   <Chip>이용자 {userCountFor(p.id)}명</Chip>
-                  <Chip>{p.duration_months ?? 0}개월</Chip>
+                  <Chip>{formatPassDuration(p)}</Chip>
                   {activeType !== "locker" && (
                     <Chip accent={!!p.provides_locker}>락커 제공</Chip>
                   )}

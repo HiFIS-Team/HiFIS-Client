@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type FormEvent,
@@ -15,6 +17,7 @@ import {
   TicketIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import {
@@ -41,8 +44,11 @@ import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
+import { ContractDialog } from "@/components/ContractDialog";
+import { DAJIM_MEMBER_TERMS, DAJIM_PT_TERMS } from "@/lib/dajimTerms";
 import {
   passDuration,
+  ptDurationDays,
   sortPassesForUI,
   type PassDuration,
 } from "@/lib/passDuration";
@@ -72,10 +78,13 @@ function addDays(dateStr: string, days: number): string {
   const dd = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${mm}-${dd}`;
 }
+// 종료일은 "마지막 유효일"(포함) — 백엔드 만기 기준 end_date < today.
+// 일권/주권은 -1 적용 (1일권 → end=start). 개월권은 관례상 같은 날짜 다음달 유지.
+// 시간권은 당일 만료 (end=start).
 function applyDuration(startDate: string, duration: PassDuration): string {
-  return "months" in duration
-    ? addMonths(startDate, duration.months)
-    : addDays(startDate, duration.days);
+  if ("months" in duration) return addMonths(startDate, duration.months);
+  if ("days" in duration) return addDays(startDate, duration.days - 1);
+  return startDate; // hours — 당일
 }
 // 활성 상태(현재 이용 중)이면 기존 종료일 다음 날부터, 만료면 오늘부터.
 function nextStartDate(prev: { status: string; end_date: string }): string {
@@ -85,8 +94,6 @@ function nextStartDate(prev: { status: string; end_date: string }): string {
   }
   return today;
 }
-
-const PT_DURATION_DAYS = 40;
 
 // ─────────── Select 옵션 헬퍼 ───────────
 function enumOpts(arr: EnumOption[]): SelectOption[] {
@@ -126,13 +133,25 @@ type Stage =
 // ═══════════════════════════════════════════
 // 최상위 — 단계별 화면 분기
 // ═══════════════════════════════════════════
-export function RenewalForm({ branchId }: { branchId: string }) {
+export function RenewalForm({
+  branchId,
+  initialName,
+  initialPhone,
+}: {
+  branchId: string;
+  // 신규 신청서에서 같은 전화번호 발견 시 prefill — IdentifyStep 이 자동으로 lookup 실행.
+  initialName?: string;
+  initialPhone?: string;
+}) {
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
   });
-  const branchName =
-    branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
+  const branch = branchesQuery.data?.find((b) => b.id === branchId);
+  const branchName = branch?.name ?? "";
+  const branchShort = branchName.replace(/^피트니스스타\s*/, "");
+  // 다짐 지점(첨단·동광주)만 재등록 시에도 새 약관에 전자서명 받음.
+  const isDajim = !!branch?.dajim_enabled;
   const [stage, setStage] = useState<Stage>({ kind: "identify" });
 
   return (
@@ -148,7 +167,12 @@ export function RenewalForm({ branchId }: { branchId: string }) {
       </header>
 
       {stage.kind === "identify" && (
-        <IdentifyStep branchId={branchId} onResult={setStage} />
+        <IdentifyStep
+          branchId={branchId}
+          initialName={initialName}
+          initialPhone={initialPhone}
+          onResult={setStage}
+        />
       )}
       {stage.kind === "choose" && (
         <ChooseStep
@@ -175,6 +199,8 @@ export function RenewalForm({ branchId }: { branchId: string }) {
       {stage.kind === "form-member" && (
         <MemberRenewalForm
           branchId={branchId}
+          isDajim={isDajim}
+          branchShort={branchShort}
           member={stage.member}
           name={stage.name}
           phone={stage.phone}
@@ -184,6 +210,8 @@ export function RenewalForm({ branchId }: { branchId: string }) {
       {stage.kind === "form-pt" && (
         <PtRenewalForm
           branchId={branchId}
+          isDajim={isDajim}
+          branchShort={branchShort}
           pt={stage.pt}
           name={stage.name}
           phone={stage.phone}
@@ -199,13 +227,17 @@ export function RenewalForm({ branchId }: { branchId: string }) {
 // ═══════════════════════════════════════════
 function IdentifyStep({
   branchId,
+  initialName,
+  initialPhone,
   onResult,
 }: {
   branchId: string;
+  initialName?: string;
+  initialPhone?: string;
   onResult: (s: Stage) => void;
 }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(initialName ?? "");
+  const [phone, setPhone] = useState(initialPhone ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const lookupMutation = useMutation({
@@ -241,6 +273,18 @@ function IdentifyStep({
       });
     },
   });
+
+  // prefill (신규 신청서에서 같은 전화번호 발견 후 넘어온 경우) → 자동 조회 1회.
+  // 마운트 시점에 initialName/Phone 양쪽 다 있고 전화 형식 OK 면 바로 lookup.
+  const lookupMutate = lookupMutation.mutate;
+  useEffect(() => {
+    if (!initialName || !initialPhone) return;
+    const digits = initialPhone.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 12) return;
+    lookupMutate();
+    // 마운트 1회 only — prefill 변화는 새 페이지 진입이라 라우터가 알아서 새 컴포넌트.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -411,12 +455,16 @@ function statusLabel(s: string): string {
 // ═══════════════════════════════════════════
 function MemberRenewalForm({
   branchId,
+  isDajim,
+  branchShort,
   member,
   name,
   phone,
   onBack,
 }: {
   branchId: string;
+  isDajim: boolean;
+  branchShort: string;
   member: MemberLookup;
   name: string;
   phone: string;
@@ -455,6 +503,17 @@ function MemberRenewalForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
     setForm((f) => ({ ...f, ...patch }));
+  // 전자서명 — 재등록도 새 약관에 동의 받음 (회원·PT 공통 패턴).
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
 
   const isLoading =
     enumsQuery.isLoading ||
@@ -477,7 +536,7 @@ function MemberRenewalForm({
   // 회원권 기간 → 종료일 미세팅 시 처음 한 번 채움 (render 중 derive)
   const durationOf = (id: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === id);
-    return p ? passDuration(p.name, p.duration_months) : null;
+    return p ? passDuration(p) : null;
   };
   if (form.end_date === "" && form.membership_pass_id) {
     const d = durationOf(form.membership_pass_id);
@@ -539,6 +598,54 @@ function MemberRenewalForm({
       ? "락커에 포함 (무료 제공)"
       : "포함 (무료 제공)";
 
+  // 종이 계약서용 회원·상품 정보 — 다짐 지점만 사용.
+  // 재등록은 성별이 lookup 에 없어 생략, 이름·전화는 props 그대로.
+  const contractMemberInfo = [
+    { label: "이름", value: name },
+    { label: "연락처", value: phone },
+  ];
+  const contractProductInfo = [
+    { label: "회원권", value: selected?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : lockerProvidedLabel
+        : (selectedLocker?.name ?? "선택 안 함"),
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : clothesProvidedLabel
+        : (selectedClothes?.name ?? "선택 안 함"),
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && form.end_date
+          ? `${form.start_date} ~ ${form.end_date}`
+          : "",
+    },
+    {
+      label: "결제 방식",
+      value:
+        form.payment_method === "CARD"
+          ? "카드"
+          : form.payment_method === "CASH"
+            ? "현금"
+            : "",
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
+
   const onMembershipChange = (id: string) => {
     const next = membershipPasses.find((x) => x.id === id);
     setForm((f) => {
@@ -552,7 +659,7 @@ function MemberRenewalForm({
         base.clothes_opt_out = false;
       }
       base.final_price = String(totalFor(base));
-      const d = next ? passDuration(next.name, next.duration_months) : null;
+      const d = next ? passDuration(next) : null;
       if (d == null) return base;
       const start = base.start_date || todayStr();
       return { ...base, start_date: start, end_date: applyDuration(start, d) };
@@ -622,18 +729,23 @@ function MemberRenewalForm({
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
+    // 다짐만 서명 필요. 일반 지점은 서명 없이 JSON 으로 제출 (기존 동작).
+    if (isDajim && !signature) return;
     mutation.mutate({
-      branch_id: branchId,
-      name,
-      phone,
-      membership_pass_id: form.membership_pass_id,
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: form.end_date,
-      agreed_marketing: form.agreed_marketing ? true : null,
+      payload: {
+        branch_id: branchId,
+        name,
+        phone,
+        membership_pass_id: form.membership_pass_id,
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        agreed_marketing: form.agreed_marketing ? true : null,
+      },
+      signature: isDajim ? signature : undefined,
     });
   }
 
@@ -644,6 +756,7 @@ function MemberRenewalForm({
   ];
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
       <PrefilledBanner
         name={name}
@@ -761,6 +874,15 @@ function MemberRenewalForm({
         />
       </Section>
 
+      {isDajim && (
+        <ContractAgreement
+          signature={signature}
+          signaturePreview={signaturePreview}
+          onOpen={() => setSignatureOpen(true)}
+          error={errors.signature}
+        />
+      )}
+
       <MarketingAgreement
         checked={form.agreed_marketing}
         onChange={(v) => set({ agreed_marketing: v })}
@@ -776,8 +898,32 @@ function MemberRenewalForm({
         loading={mutation.isPending}
         onCancel={onBack}
         label="재등록 신청"
+        disabled={isDajim && !signature}
       />
     </form>
+    {isDajim && (
+      <ContractDialog
+        open={signatureOpen}
+        kind="member"
+        branchName={branchShort}
+        terms={DAJIM_MEMBER_TERMS}
+        memberName={name}
+        memberInfo={contractMemberInfo}
+        productInfo={contractProductInfo}
+        onConfirm={(blob) => {
+          setSignature(blob);
+          setSignatureOpen(false);
+          setErrors((prev) => {
+            if (!prev.signature) return prev;
+            const next = { ...prev };
+            delete next.signature;
+            return next;
+          });
+        }}
+        onClose={() => setSignatureOpen(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -786,12 +932,16 @@ function MemberRenewalForm({
 // ═══════════════════════════════════════════
 function PtRenewalForm({
   branchId,
+  isDajim,
+  branchShort,
   pt,
   name,
   phone,
   onBack,
 }: {
   branchId: string;
+  isDajim: boolean;
+  branchShort: string;
   pt: PTLookup;
   name: string;
   phone: string;
@@ -812,6 +962,8 @@ function PtRenewalForm({
   });
   const mutation = useMutation({ mutationFn: reRegisterPtApplication });
 
+  // PT 재등록 — end_date 는 시작일·선택 수강권에서 derive (회수 × 4일).
+  // 별도 state 로 갖지 않아 ptPasses 로딩과의 race·set-state-in-effect 회피.
   const initialStart = nextStartDate(pt);
   const [form, setForm] = useState({
     pt_pass_id: pt.pt_pass_id,
@@ -820,7 +972,6 @@ function PtRenewalForm({
     payment_method: pt.payment_method ?? "",
     final_price: pt.final_price != null ? String(pt.final_price) : "",
     start_date: initialStart,
-    end_date: addDays(initialStart, PT_DURATION_DAYS),
     agreed_marketing: false,
     locker_opt_out: false,
     clothes_opt_out: false,
@@ -828,6 +979,17 @@ function PtRenewalForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<typeof form>) =>
     setForm((f) => ({ ...f, ...patch }));
+  // 전자서명 — 재등록도 새 약관에 동의 받음 (회원·PT 공통 패턴).
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
 
   const isLoading =
     enumsQuery.isLoading ||
@@ -874,16 +1036,65 @@ function PtRenewalForm({
     });
   };
   const onStartDateChange = (value: string) => {
-    setForm((f) => ({
-      ...f,
-      start_date: value,
-      end_date: value ? addDays(value, PT_DURATION_DAYS) : "",
-    }));
+    setForm((f) => ({ ...f, start_date: value }));
   };
 
   const selected = ptPasses.find((x) => x.id === form.pt_pass_id);
   const lockerProvided = !!selected?.provides_locker;
   const clothesProvided = !!selected?.provides_clothes;
+  // 종료일 derive — 시작일·선택 수강권 둘 다 있어야 계산.
+  const endDate =
+    form.start_date && selected
+      ? addDays(
+          form.start_date,
+          ptDurationDays(selected) - 1,
+        )
+      : "";
+
+  // 종이 계약서용 정보 — 다짐 지점만 사용. 재등록은 성별 lookup 없어 생략.
+  const contractMemberInfo = [
+    { label: "이름", value: name },
+    { label: "연락처", value: phone },
+  ];
+  const contractProductInfo = [
+    { label: "수강권", value: selected?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : "수강권에 포함 (무료 제공)"
+        : "선택 안 함",
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && endDate ? `${form.start_date} ~ ${endDate}` : "",
+    },
+    {
+      label: "결제 방식",
+      value:
+        form.payment_method === "CARD"
+          ? "카드"
+          : form.payment_method === "CASH"
+            ? "현금"
+            : "",
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
 
   if (mutation.isSuccess) {
     return (
@@ -913,24 +1124,29 @@ function PtRenewalForm({
   function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
     if (!validate()) return;
+    if (isDajim && !signature) return;
     mutation.mutate({
-      branch_id: branchId,
-      name,
-      phone,
-      pt_pass_id: form.pt_pass_id,
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: form.end_date,
-      agreed_marketing: form.agreed_marketing ? true : null,
+      payload: {
+        branch_id: branchId,
+        name,
+        phone,
+        pt_pass_id: form.pt_pass_id,
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: endDate,
+        agreed_marketing: form.agreed_marketing ? true : null,
+      },
+      signature: isDajim ? signature : undefined,
     });
   }
 
   const submitError = errorMessage(mutation);
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="mt-8 space-y-8" noValidate>
       <PrefilledBanner
         name={name}
@@ -1034,10 +1250,12 @@ function PtRenewalForm({
             이용 종료일
           </p>
           <div className="mt-2 rounded-md bg-gray-100 px-3 py-2.5 text-base text-gray-600">
-            {form.end_date ? formatDate(form.end_date) : "—"}
+            {endDate ? formatDate(endDate) : "—"}
           </div>
           <p className="mt-1.5 text-sm text-gray-500">
-            PT 회원은 헬스권 40일이 제공돼요. 시작일 기준 자동 설정됩니다.
+            {selected
+              ? `PT 회원은 헬스권 ${ptDurationDays(selected)}일이 제공돼요. 시작일 기준 자동 설정됩니다.`
+              : "수강권을 선택하면 헬스권 이용 기간이 자동 설정돼요. (회수 × 4일)"}
           </p>
         </div>
       </Section>
@@ -1065,6 +1283,15 @@ function PtRenewalForm({
         />
       </Section>
 
+      {isDajim && (
+        <ContractAgreement
+          signature={signature}
+          signaturePreview={signaturePreview}
+          onOpen={() => setSignatureOpen(true)}
+          error={errors.signature}
+        />
+      )}
+
       <MarketingAgreement
         checked={form.agreed_marketing}
         onChange={(v) => set({ agreed_marketing: v })}
@@ -1080,8 +1307,32 @@ function PtRenewalForm({
         loading={mutation.isPending}
         onCancel={onBack}
         label="재등록 신청"
+        disabled={isDajim && !signature}
       />
     </form>
+    {isDajim && (
+      <ContractDialog
+        open={signatureOpen}
+        kind="pt"
+        branchName={branchShort}
+        terms={DAJIM_PT_TERMS}
+        memberName={name}
+        memberInfo={contractMemberInfo}
+        productInfo={contractProductInfo}
+        onConfirm={(blob) => {
+          setSignature(blob);
+          setSignatureOpen(false);
+          setErrors((prev) => {
+            if (!prev.signature) return prev;
+            const next = { ...prev };
+            delete next.signature;
+            return next;
+          });
+        }}
+        onClose={() => setSignatureOpen(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -1150,10 +1401,12 @@ function SubmitRow({
   loading,
   onCancel,
   label,
+  disabled,
 }: {
   loading: boolean;
   onCancel: () => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex gap-3">
@@ -1164,10 +1417,67 @@ function SubmitRow({
       >
         취소
       </button>
-      <Button type="submit" className="flex-1" loading={loading}>
+      <Button type="submit" className="flex-1" loading={loading} disabled={disabled}>
         {label}
       </Button>
     </div>
+  );
+}
+
+// 재등록 폼의 약관 동의 + 전자서명 섹션 — 회원·PT 공통.
+// 빈 상태: 큰 버튼, 서명 후: 미리보기 + "다시 동의" — 폼 안에서 새 약관에 다시 동의 받음.
+function ContractAgreement({
+  signature,
+  signaturePreview,
+  onOpen,
+  error,
+}: {
+  signature: Blob | null;
+  signaturePreview: string | null;
+  onOpen: () => void;
+  error?: string;
+}) {
+  return (
+    <Section title="이용약관 동의" icon={ArrowPathIcon}>
+      {signature && signaturePreview ? (
+        <div className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5 sm:gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={signaturePreview}
+            alt="신청서 미리보기"
+            className="h-16 w-12 shrink-0 rounded-lg border border-violet-100 bg-white object-cover object-top"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="flex items-start gap-1.5 text-sm font-semibold text-primary">
+              <CheckCircleIcon
+                aria-hidden="true"
+                className="size-5 shrink-0"
+              />
+              <span>약관 동의 + 전자서명 완료</span>
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              내용을 바꾸려면 다시 동의해 주세요.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpen}
+            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            다시 동의
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-base font-semibold text-primary hover:border-primary hover:bg-violet-50"
+        >
+          📄 이용약관 동의 + 전자서명
+        </button>
+      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+    </Section>
   );
 }
 

@@ -7,17 +7,39 @@ import type {
   Page,
 } from "./types";
 
-// POST /members — 회원가입 신청 (공개)
-export function createMember(payload: MemberCreate): Promise<Member> {
-  return apiFetch<Member>("/members", { method: "POST", body: payload });
+// POST /members — 회원가입 신청 (공개).
+// signature 가 있으면 multipart/form-data (payload JSON 문자열 + PNG 파일),
+// 없으면 기존 JSON. 다짐 지점(첨단·동광주)만 서명 → multipart 사용, 그 외는 JSON.
+export function createMember(args: {
+  payload: MemberCreate;
+  signature?: Blob | null;
+}): Promise<Member> {
+  if (args.signature) {
+    const fd = new FormData();
+    fd.append("payload", JSON.stringify(args.payload));
+    fd.append("signature", args.signature, "signature.png");
+    return apiFetch<Member>("/members", { method: "POST", body: fd });
+  }
+  return apiFetch<Member>("/members", { method: "POST", body: args.payload });
 }
 
-// POST /members/re-register — 재등록 (공개).
-// branch_id+name+phone 으로 기존 회원 식별 → 404 면 본인 확인 실패 안내.
-export function reRegisterMember(payload: MemberReRegister): Promise<Member> {
+// POST /members/re-register — 재등록 (공개). 신규와 동일한 분기.
+export function reRegisterMember(args: {
+  payload: MemberReRegister;
+  signature?: Blob | null;
+}): Promise<Member> {
+  if (args.signature) {
+    const fd = new FormData();
+    fd.append("payload", JSON.stringify(args.payload));
+    fd.append("signature", args.signature, "signature.png");
+    return apiFetch<Member>("/members/re-register", {
+      method: "POST",
+      body: fd,
+    });
+  }
   return apiFetch<Member>("/members/re-register", {
     method: "POST",
-    body: payload,
+    body: args.payload,
   });
 }
 

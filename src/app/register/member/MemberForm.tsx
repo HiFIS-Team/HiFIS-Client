@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type FormEvent,
   type ReactNode,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CheckBadgeIcon,
@@ -15,6 +18,7 @@ import {
   TicketIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import {
@@ -23,6 +27,7 @@ import {
   getMembershipPasses,
 } from "@/lib/api/passes";
 import { createMember } from "@/lib/api/members";
+import { getRegistrationLookup } from "@/lib/api/registrations";
 import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
 import { TextField } from "@/components/TextField";
@@ -32,7 +37,10 @@ import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
+import { ContractDialog } from "@/components/ContractDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { OPERATING_RULES, MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
+import { DAJIM_MEMBER_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
 import { referralOptions, resolveReferralForSubmit } from "@/lib/referral";
 import {
   passDuration,
@@ -73,10 +81,14 @@ function addDays(dateStr: string, days: number): string {
 }
 
 // 기간 객체를 적용해 종료일 계산.
+// 종료일은 "마지막 유효일"(포함) 의미 — 백엔드 만기 처리가 end_date < today 기준.
+// 일권/주권: 1일권 → end=start, 7일권 → start+6, 2주권 → start+13.
+// 개월권은 관례상 "같은 날짜 다음달" 그대로 (예: 1개월 6/5 → 7/5, 31일 유효).
+// 시간권(3시간권 등): 당일 만료 → end=start.
 function applyDuration(startDate: string, duration: PassDuration): string {
-  return "months" in duration
-    ? addMonths(startDate, duration.months)
-    : addDays(startDate, duration.days);
+  if ("months" in duration) return addMonths(startDate, duration.months);
+  if ("days" in duration) return addDays(startDate, duration.days - 1);
+  return startDate; // hours — 당일
 }
 
 // enum 옵션 → Select 옵션
@@ -117,6 +129,8 @@ const INITIAL = {
   // "기타" 선택 시 사용자 자유 입력 — 제출 직전 enum 자동 매핑 + 백엔드에 detail 로 전송
   referral_detail: "",
   motivation: "",
+  // 일반 지점: 체크박스로 동의 받음.
+  // 다짐 지점(첨단·동광주): 체크박스 대신 전자서명 받음 → 제출 시 자동 true.
   agreed_terms: false,
   // 마케팅 정보 수신 동의 (선택) — 만기 알림톡 등 마케팅성 트리거에만 영향
   agreed_marketing: false,
@@ -129,6 +143,7 @@ const INITIAL = {
 type FormState = typeof INITIAL;
 
 export function MemberForm({ branchId }: { branchId: string }) {
+  const router = useRouter();
   // 신청서 진입 시 필요한 데이터 (지점·enum·상품)
   const branchesQuery = useQuery({
     queryKey: ["branches"],
@@ -151,6 +166,73 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [termsOpen, setTermsOpen] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  // 중복 가입 감지 모달 — 같은 이름+전화로 이미 회원 이력이 있을 때 1회 표시.
+  // 한 번 닫으면 같은 (이름,전화) 조합엔 다시 안 띄움 (dismissedKey).
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
+
+  // 이름+전화 디바운스 — 입력 멈춘 뒤 500ms 지나면 lookup query key 갱신.
+  const [debouncedName, setDebouncedName] = useState("");
+  const [debouncedPhone, setDebouncedPhone] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedName(form.name.trim());
+      setDebouncedPhone(form.phone.replace(/\D/g, ""));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.name, form.phone]);
+
+  const lookupEnabled =
+    !!debouncedName &&
+    debouncedPhone.length >= 9 &&
+    debouncedPhone.length <= 12;
+  const lookupQuery = useQuery({
+    queryKey: ["registration-lookup", branchId, debouncedName, debouncedPhone],
+    queryFn: () =>
+      getRegistrationLookup({
+        branchId,
+        name: debouncedName,
+        phone: debouncedPhone,
+      }),
+    enabled: lookupEnabled,
+    retry: false,
+  });
+
+  // lookup 응답에 MEMBER 가 있으면 모달 트리거 (단, 같은 조합으로 이미 닫은 적 있으면 skip)
+  const currentKey = `${debouncedName}|${debouncedPhone}`;
+  useEffect(() => {
+    if (!lookupQuery.data) return;
+    if (!lookupQuery.data.kinds.includes("MEMBER")) return;
+    if (currentKey === dismissedKey) return;
+    setDuplicateOpen(true);
+  }, [lookupQuery.data, currentKey, dismissedKey]);
+
+  function goRenewal() {
+    setDuplicateOpen(false);
+    const qs = new URLSearchParams({
+      branch_id: branchId,
+      prefill_name: form.name.trim(),
+      prefill_phone: form.phone.trim(),
+    }).toString();
+    router.push(`/register/renewal?${qs}`);
+  }
+
+  function dismissDuplicate() {
+    setDuplicateOpen(false);
+    setDismissedKey(currentKey);
+  }
+  // 전자서명 PNG Blob — 동의의 근거 (체크박스 대체).
+  // 미리보기 URL 은 Blob 에서 derive + cleanup-only effect 로 revoke (React 19 권장).
+  const [signature, setSignature] = useState<Blob | null>(null);
+  const signaturePreview = useMemo(
+    () => (signature ? URL.createObjectURL(signature) : null),
+    [signature],
+  );
+  useEffect(() => {
+    if (!signaturePreview) return;
+    return () => URL.revokeObjectURL(signaturePreview);
+  }, [signaturePreview]);
   const mutation = useMutation({ mutationFn: createMember });
 
   const set = (patch: Partial<FormState>) =>
@@ -184,8 +266,15 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const membershipPasses = membershipQuery.data ?? [];
   const lockerPasses = lockerQuery.data ?? [];
   const clothesPasses = clothesQuery.data ?? [];
-  const branchName =
-    branchesQuery.data?.find((b) => b.id === branchId)?.name ?? "";
+  const branch = branchesQuery.data?.find((b) => b.id === branchId);
+  const branchName = branch?.name ?? "";
+  // 종이 계약서 헤더에 들어가는 "동광주점" 같은 짧은 지점명
+  const branchShort = branchName.replace(/^피트니스스타\s*/, "");
+  // 다짐 지점(첨단·동광주)은 별도 이용약관 — Branch.dajim_enabled 로 판정
+  const isDajim = !!branch?.dajim_enabled;
+  const terms = isDajim ? DAJIM_MEMBER_TERMS : OPERATING_RULES;
+  const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
+  const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "운영 회칙 전문 보기";
 
   // 선택한 상품 가격 합계 — 결제수단이 카드면 카드가, 그 외엔 현금가 적용.
   // 회원권/락커/운동복 중 하나가 다른 종류를 무료 제공하면 그 가격은 합산에서 제외.
@@ -222,7 +311,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
   // 선택된 회원권의 이용 기간 (이름에서 추출, 없으면 null) — months 또는 days
   const durationOf = (passId: string): PassDuration | null => {
     const p = membershipPasses.find((x) => x.id === passId);
-    return p ? passDuration(p.name, p.duration_months) : null;
+    return p ? passDuration(p) : null;
   };
   // 선택된 회원권·락커·운동복 — 교차 무료 제공 판단용
   const selectedMembership = membershipPasses.find(
@@ -253,6 +342,52 @@ export function MemberForm({ branchId }: { branchId: string }) {
     : selectedLocker?.provides_clothes
       ? "락커에 포함 (무료 제공)"
       : "포함 (무료 제공)";
+
+  // 종이 계약서에 띄울 회원·상품 정보 — 폼 state + enum 라벨 + pass lookup 으로 조립.
+  // 빈 값은 ContractDialog 가 "—" 로 표시. 다짐 지점만 사용.
+  const enumLabel = (arr: EnumOption[], code: string) =>
+    arr.find((o) => o.code === code)?.label ?? "";
+  const contractMemberInfo = [
+    { label: "이름", value: form.name.trim() },
+    { label: "성별", value: enumLabel(enums.gender, form.gender) },
+    { label: "연락처", value: form.phone.trim() },
+  ];
+  const contractProductInfo = [
+    { label: "회원권", value: selectedMembership?.name ?? "" },
+    {
+      label: "락커",
+      value: lockerProvided
+        ? form.locker_opt_out
+          ? "선택 안 함"
+          : lockerProvidedLabel
+        : (selectedLocker?.name ?? "선택 안 함"),
+    },
+    {
+      label: "운동복",
+      value: clothesProvided
+        ? form.clothes_opt_out
+          ? "선택 안 함"
+          : clothesProvidedLabel
+        : (selectedClothes?.name ?? "선택 안 함"),
+    },
+    {
+      label: "이용 기간",
+      value:
+        form.start_date && form.end_date
+          ? `${form.start_date} ~ ${form.end_date}`
+          : "",
+    },
+    {
+      label: "결제 방식",
+      value: enumLabel(enums.payment_method, form.payment_method),
+    },
+    {
+      label: "결제 금액",
+      value: form.final_price
+        ? `${Number(form.final_price).toLocaleString()}원`
+        : "",
+    },
+  ];
   // 회원권 선택 — 가격 + 이용 기간 자동 설정
   // (시작일은 비어 있으면 등록일=오늘, 종료일은 시작일 + 회원권 기간)
   // 새 회원권이 락커·운동복을 무료 제공하면 기존 별도 선택을 비우고 opt-out 상태도 리셋
@@ -353,7 +488,12 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
-    if (!form.agreed_terms) e.agreed_terms = "운영 회칙에 동의해 주세요.";
+    // 동의 — 모든 지점: 체크박스 필수. 다짐 지점은 전자서명까지 추가로 필수.
+    const termsErrorMsg = isDajim
+      ? "이용약관에 동의해 주세요."
+      : "운영 회칙에 동의해 주세요.";
+    if (!form.agreed_terms) e.agreed_terms = termsErrorMsg;
+    if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -369,25 +509,30 @@ export function MemberForm({ branchId }: { branchId: string }) {
       enums.referral,
     );
     mutation.mutate({
-      branch_id: branchId,
-      membership_pass_id: form.membership_pass_id,
-      name: form.name.trim(),
-      gender: form.gender,
-      birth_date: form.birth_date,
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      referral,
-      referral_detail,
-      payment_method: form.payment_method,
-      final_price: Number(form.final_price),
-      start_date: form.start_date,
-      end_date: form.end_date,
-      // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
-      locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
-      clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
-      motivation: form.motivation,
-      agreed_terms: form.agreed_terms,
-      agreed_marketing: form.agreed_marketing,
+      payload: {
+        branch_id: branchId,
+        membership_pass_id: form.membership_pass_id,
+        name: form.name.trim(),
+        gender: form.gender,
+        birth_date: form.birth_date,
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        referral,
+        referral_detail,
+        payment_method: form.payment_method,
+        final_price: Number(form.final_price),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        // 회원권이 무료 제공하면 백엔드가 별도 선택을 400으로 막음 — 무조건 null
+        locker_pass_id: lockerProvided ? null : form.locker_pass_id || null,
+        clothes_pass_id: clothesProvided ? null : form.clothes_pass_id || null,
+        motivation: form.motivation,
+        // 모든 지점에서 체크박스로 동의 받음 (다짐은 서명까지 추가).
+        agreed_terms: form.agreed_terms,
+        agreed_marketing: form.agreed_marketing,
+      },
+      // signature 는 다짐 지점에서만 전달 (래퍼가 없으면 JSON 으로 보냄)
+      signature: isDajim ? signature : undefined,
     });
   }
 
@@ -619,35 +764,78 @@ export function MemberForm({ branchId }: { branchId: string }) {
         </Section>
 
         <Section title="동의" icon={CheckBadgeIcon}>
-          <div>
-            {/* 준수 서약문 — 동의 대상 */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
-              <p className="text-base/7 text-gray-700">
-                {MEMBERSHIP_PLEDGE}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setTermsOpen(true)}
-              className="mt-3 rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-            >
-              운영 회칙 전문 보기
-            </button>
-            <div className="mt-4 space-y-3">
-              <Checkbox
-                id="agreed-terms"
-                label="위 내용에 동의합니다. (필수)"
-                checked={form.agreed_terms}
-                onChange={(e) => set({ agreed_terms: e.target.checked })}
-                error={errors.agreed_terms}
-              />
-              <Checkbox
-                id="agreed-marketing"
-                label="마케팅 정보 수신에 동의합니다. (선택)"
-                checked={form.agreed_marketing}
-                onChange={(e) => set({ agreed_marketing: e.target.checked })}
-              />
-            </div>
+          <div className="space-y-4">
+            {isDajim ? (
+              /* 다짐 지점(첨단·동광주) — 종이 계약서 다이얼로그 하나로 동의·서명 동시 처리 */
+              signature && signaturePreview ? (
+                <div className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5 sm:gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={signaturePreview}
+                    alt="신청서 미리보기"
+                    className="h-16 w-12 shrink-0 rounded-lg border border-violet-100 bg-white object-cover object-top"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-start gap-1.5 text-sm font-semibold text-primary">
+                      <CheckCircleIcon
+                        aria-hidden="true"
+                        className="size-5 shrink-0"
+                      />
+                      <span>약관 동의 + 전자서명 완료</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      내용을 바꾸려면 다시 동의해 주세요.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSignatureOpen(true)}
+                    className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    다시 동의
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSignatureOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-base font-semibold text-primary hover:border-primary hover:bg-violet-50"
+                >
+                  📄 이용약관 동의 + 전자서명
+                </button>
+              )
+            ) : (
+              /* 화순 등 일반 지점 — 기존 흐름: 서약문 + 약관 보기 + 체크박스 */
+              <>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5">
+                  <p className="text-base/7 text-gray-700">{pledge}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen(true)}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  {termsButtonLabel}
+                </button>
+                <Checkbox
+                  id="agreed-terms"
+                  label="위 내용에 동의합니다. (필수)"
+                  checked={form.agreed_terms}
+                  onChange={(e) => set({ agreed_terms: e.target.checked })}
+                  error={errors.agreed_terms}
+                />
+              </>
+            )}
+            {isDajim && errors.signature && (
+              <p className="text-sm text-red-600">{errors.signature}</p>
+            )}
+
+            <Checkbox
+              id="agreed-marketing"
+              label="마케팅 정보 수신에 동의합니다. (선택)"
+              checked={form.agreed_marketing}
+              onChange={(e) => set({ agreed_marketing: e.target.checked })}
+            />
           </div>
         </Section>
 
@@ -668,19 +856,52 @@ export function MemberForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_terms}
+            disabled={!form.agreed_terms || (isDajim && !signature)}
           >
             신청서 제출
           </Button>
         </div>
       </form>
 
-      {termsOpen && (
-        <TermsDialog
-          content={OPERATING_RULES}
-          onClose={() => setTermsOpen(false)}
+      {/* 다짐 지점 — 종이 계약서: 약관 + 동의 + 서명 한 모달에서 처리 */}
+      {isDajim && (
+        <ContractDialog
+          open={signatureOpen}
+          kind="member"
+          branchName={branchShort}
+          terms={terms}
+          memberName={form.name.trim()}
+          memberInfo={contractMemberInfo}
+          productInfo={contractProductInfo}
+          onConfirm={(blob) => {
+            setSignature(blob);
+            // 종이 안에서 "동의합니다" 받았으므로 agreed_terms 도 true 로
+            set({ agreed_terms: true });
+            setSignatureOpen(false);
+            setErrors((prev) => {
+              if (!prev.signature && !prev.agreed_terms) return prev;
+              const next = { ...prev };
+              delete next.signature;
+              delete next.agreed_terms;
+              return next;
+            });
+          }}
+          onClose={() => setSignatureOpen(false)}
         />
       )}
+      {/* 화순 등 일반 지점 — 기존 약관 전문 보기 모달 */}
+      {!isDajim && termsOpen && (
+        <TermsDialog content={terms} onClose={() => setTermsOpen(false)} />
+      )}
+      {/* 같은 이름+전화로 이미 회원 이력이 있으면 재등록 페이지로 안내 */}
+      <ConfirmDialog
+        open={duplicateOpen}
+        title="이미 가입한 이력이 있습니다"
+        message="입력하신 이름·전화번호로 등록된 회원 정보가 있어요. 재등록 페이지로 이동하시겠습니까?"
+        confirmLabel="재등록 페이지로 이동"
+        onConfirm={goRenewal}
+        onCancel={dismissDuplicate}
+      />
     </main>
   );
 }
