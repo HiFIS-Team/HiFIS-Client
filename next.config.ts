@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
   // Serwist가 webpack 설정을 주입 → dev의 Turbopack이 충돌로 보지 않도록
   // 빈 turbopack 설정을 명시 (Next.js 16 권장 해법)
   turbopack: {},
+  // dev 한정 — /api/* 호출을 same-origin으로 백엔드(localhost:8000)에 프록시.
+  // 폰에서 dev.hifis.app 으로 보면 CORS·LAN IP 셋업 없이 바로 동작.
+  // 프로덕션은 output:"export"라 정적 파일 + 친구 nginx 라우팅이라 rewrites 자동 무시.
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:8000/:path*",
+      },
+    ];
+  },
 };
 
 export default withSerwist(nextConfig);

@@ -17,6 +17,7 @@ import {
   CreditCardIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import {
@@ -630,24 +631,22 @@ export function PtForm({ branchId }: { branchId: string }) {
             {isDajim ? (
               /* 다짐 지점 — 종이 계약서 다이얼로그 하나로 동의·서명 동시 처리 */
               signature && signaturePreview ? (
-                <div className="flex items-center gap-4 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5">
+                <div className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5 sm:gap-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={signaturePreview}
-                    alt="입력한 서명 미리보기"
-                    className="h-16 w-32 shrink-0 rounded-lg border border-violet-100 bg-white object-contain"
+                    alt="신청서 미리보기"
+                    className="h-16 w-12 shrink-0 rounded-lg border border-violet-100 bg-white object-cover object-top"
                   />
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p className="flex items-center gap-1.5 text-sm font-semibold text-primary">
-                      <span
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-start gap-1.5 text-sm font-semibold text-primary">
+                      <CheckCircleIcon
                         aria-hidden="true"
-                        className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-white"
-                      >
-                        ✓
-                      </span>
-                      약관 동의 + 전자서명 완료
+                        className="size-5 shrink-0"
+                      />
+                      <span>약관 동의 + 전자서명 완료</span>
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-gray-500">
                       내용을 바꾸려면 다시 동의해 주세요.
                     </p>
                   </div>
