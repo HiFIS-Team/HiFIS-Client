@@ -37,6 +37,7 @@ import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { TermsDialog } from "@/components/TermsDialog";
 import { SignatureDialog } from "@/components/SignatureDialog";
+import { SignatureField } from "@/components/SignatureField";
 import { PT_NOTICE } from "@/lib/ptNotice";
 import { MEMBERSHIP_PLEDGE } from "@/lib/operatingRules";
 import { DAJIM_PT_TERMS, DAJIM_PLEDGE } from "@/lib/dajimTerms";
@@ -291,12 +292,9 @@ export function PtForm({ branchId }: { branchId: string }) {
 
     if (!form.referral) e.referral = "유입 경로를 선택해 주세요.";
     if (!form.motivation) e.motivation = "방문 목적을 선택해 주세요.";
-    // 동의 — 다짐 지점: 전자서명 / 그 외: 체크박스
-    if (isDajim) {
-      if (!signature) e.signature = "전자서명을 입력해 주세요.";
-    } else {
-      if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
-    }
+    // 동의 — 모든 지점: 체크박스 필수. 다짐 지점은 전자서명까지 추가로 필수.
+    if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
+    if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -330,8 +328,8 @@ export function PtForm({ branchId }: { branchId: string }) {
         start_date: form.start_date,
         end_date: form.end_date,
         notes: form.notes.trim() || null,
-        // 다짐은 서명이 곧 동의 → true. 일반은 체크박스 값.
-        agreed_notice: isDajim ? true : form.agreed_notice,
+        // 모든 지점에서 체크박스로 동의 받음 (다짐은 서명까지 추가).
+        agreed_notice: form.agreed_notice,
         agreed_marketing: form.agreed_marketing,
       },
       signature: isDajim ? signature : undefined,
@@ -595,60 +593,31 @@ export function PtForm({ branchId }: { branchId: string }) {
             >
               {termsButtonLabel}
             </button>
-            <div className="mt-4">
-              {isDajim ? (
-                /* 다짐 지점(첨단·동광주): 전자서명 */
-                signaturePreview ? (
-                  <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={signaturePreview}
-                      alt="입력한 서명 미리보기"
-                      className="h-16 max-w-full flex-1 rounded bg-white object-contain"
-                    />
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <p className="text-sm font-semibold text-green-700">
-                        ✓ 서명 완료
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setSignatureOpen(true)}
-                        className="text-sm font-medium text-primary hover:underline"
-                      >
-                        다시 서명
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setSignatureOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-4 text-base font-medium text-gray-600 hover:border-primary hover:bg-violet-50/40"
-                  >
-                    ✍️ 전자서명
-                  </button>
-                )
-              ) : (
-                /* 일반 지점: 체크박스 — 기존 흐름 그대로 */
-                <Checkbox
-                  id="agreed-notice"
-                  label="위 내용에 동의합니다. (필수)"
-                  checked={form.agreed_notice}
-                  onChange={(e) => set({ agreed_notice: e.target.checked })}
-                  error={errors.agreed_notice}
+            <div className="mt-4 space-y-4">
+              {/* 동의 체크 — 모든 지점 공통 */}
+              <Checkbox
+                id="agreed-notice"
+                label="위 내용에 동의합니다. (필수)"
+                checked={form.agreed_notice}
+                onChange={(e) => set({ agreed_notice: e.target.checked })}
+                error={errors.agreed_notice}
+              />
+
+              {/* 다짐 지점만 — 체크박스에 더해 전자서명까지 */}
+              {isDajim && (
+                <SignatureField
+                  preview={signaturePreview}
+                  onOpen={() => setSignatureOpen(true)}
+                  error={errors.signature}
                 />
               )}
-              {isDajim && errors.signature && (
-                <p className="mt-2 text-sm text-red-600">{errors.signature}</p>
-              )}
-              <div className="mt-4">
-                <Checkbox
-                  id="agreed-marketing"
-                  label="마케팅 정보 수신에 동의합니다. (선택)"
-                  checked={form.agreed_marketing}
-                  onChange={(e) => set({ agreed_marketing: e.target.checked })}
-                />
-              </div>
+
+              <Checkbox
+                id="agreed-marketing"
+                label="마케팅 정보 수신에 동의합니다. (선택)"
+                checked={form.agreed_marketing}
+                onChange={(e) => set({ agreed_marketing: e.target.checked })}
+              />
             </div>
           </div>
         </Section>
@@ -670,7 +639,7 @@ export function PtForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={isDajim ? !signature : !form.agreed_notice}
+            disabled={!form.agreed_notice || (isDajim && !signature)}
           >
             신청서 제출
           </Button>

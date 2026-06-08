@@ -44,6 +44,7 @@ import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
 import { SignatureDialog } from "@/components/SignatureDialog";
+import { SignatureField } from "@/components/SignatureField";
 import {
   passDuration,
   ptDurationDays,
@@ -1282,7 +1283,7 @@ function SubmitRow({
 }
 
 // 재등록 폼의 전자서명 섹션 — 회원·PT 공통.
-// 서명 후 제출 가능. 미리보기 + 다시 서명. 에러는 부모에서 errors.signature 로 전달.
+// 서명 후 제출 가능. SignatureField 가 미리보기/다시 서명까지 다룸.
 function SignatureAgreement({
   signaturePreview,
   onOpen,
@@ -1294,38 +1295,10 @@ function SignatureAgreement({
 }) {
   return (
     <Section title="전자서명" icon={ArrowPathIcon}>
-      <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm/6 text-gray-700">
+      <p className="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-3 text-sm/6 text-gray-700">
         새 약관에 동의하신다는 확인으로 전자서명을 입력해 주세요.
       </p>
-      {signaturePreview ? (
-        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={signaturePreview}
-            alt="입력한 서명 미리보기"
-            className="h-16 max-w-full flex-1 rounded bg-white object-contain"
-          />
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <p className="text-sm font-semibold text-green-700">✓ 서명 완료</p>
-            <button
-              type="button"
-              onClick={onOpen}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              다시 서명
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={onOpen}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-4 text-base font-medium text-gray-600 hover:border-primary hover:bg-violet-50/40"
-        >
-          ✍️ 전자서명
-        </button>
-      )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <SignatureField preview={signaturePreview} onOpen={onOpen} error={error} />
     </Section>
   );
 }
