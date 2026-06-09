@@ -11,6 +11,7 @@ import {
   ClockIcon,
   CubeIcon,
   HeartIcon,
+  NewspaperIcon,
   ScaleIcon,
   SparklesIcon,
   Squares2X2Icon,
@@ -36,6 +37,7 @@ export const NAV_ICONS: Record<
   "/admin/membership-expiry": ClockIcon,
   "/admin/messages": ChatBubbleLeftRightIcon,
   "/admin/admins": UserGroupIcon,
+  "/admin/release-notes": NewspaperIcon,
   // 직원 관리 — 준비중 메뉴들. 실제 페이지는 아직 없음.
   "/admin/staff/facility-care": SparklesIcon,
   "/admin/staff/peer-review": ScaleIcon,

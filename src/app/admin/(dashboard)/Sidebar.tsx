@@ -86,7 +86,10 @@ const NAV: NavGroup[] = [
   },
   {
     label: "계정",
-    items: [{ href: "/admin/admins", label: "관리자 관리", superOnly: true }],
+    items: [
+      { href: "/admin/admins", label: "관리자 관리", superOnly: true },
+      { href: "/admin/release-notes", label: "패치 노트" },
+    ],
   },
 ];
 
