@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "./PageTitle";
-import type { ComponentType } from "react";
+import { useRef, useState, type ComponentType, type TouchEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
@@ -10,6 +10,7 @@ import {
   CalendarIcon,
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
+  ChevronRightIcon,
   ClockIcon,
   HandThumbUpIcon,
   HeartIcon,
@@ -385,7 +386,8 @@ function AgeRangeCard({
 }
 
 // 이달의 우수사원 — 피드백왕/친절왕/종합왕. 점수 데이터가 아직 없어 준비중 표시.
-// 지점별 1위를 줄 단위로 — 데이터 들어오면 우측에 이름이 채워짐.
+// 카드 안에서 지점별 1명을 한 번에 한 명씩 — < > 버튼 또는 좌우 스와이프로 전환.
+// 카드별 독립 (피드백왕은 화순 보고 친절왕은 첨단 봐도 됨).
 function MonthlyAwardCard({
   label,
   description,
@@ -401,39 +403,99 @@ function MonthlyAwardCard({
   iconTextClass: string;
   branches: Branch[];
 }) {
+  const [idx, setIdx] = useState(0);
+  const total = branches.length;
+  const safeIdx = total > 0 ? idx % total : 0;
+  const current = total > 0 ? branches[safeIdx] : null;
+
+  function go(delta: number) {
+    if (total === 0) return;
+    setIdx((i) => (i + delta + total) % total);
+  }
+
+  // 가벼운 가로 스와이프 — touchstart x 좌표 저장 후 touchend 와 비교.
+  // |dx| > 40px 면 한 칸 이동. 라이브러리 없이 가볍게.
+  const touchStartX = useRef<number | null>(null);
+  function onTouchStart(e: TouchEvent<HTMLElement>) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function onTouchEnd(e: TouchEvent<HTMLElement>) {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+    touchStartX.current = null;
+  }
+
   return (
-    <section className="rounded-xl border border-violet-200 p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    // key 로 지점 전환 시 section 자체를 재마운트 → 카드 박스 전체가 우측에서
+    // 슬라이드 인 (글씨가 아니라 네모칸 자체가 이동되는 느낌).
+    <section
+      key={current?.id ?? "empty"}
+      className="animate-slide-in-right relative rounded-xl border border-violet-200 p-5"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <span
-            className={`flex size-8 items-center justify-center rounded-lg ${iconBgClass}`}
+            className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${iconBgClass}`}
           >
             <Icon className={`size-5 ${iconTextClass}`} />
           </span>
-          <h3 className="text-base font-semibold text-gray-900">{label}</h3>
+          <h3 className="truncate text-base font-semibold text-gray-900">
+            {label}
+          </h3>
+          {/* 라벨 옆 지점명 — 현재 보고 있는 지점 */}
+          <span className="shrink-0 text-sm text-gray-500">
+            {current ? branchShortName(current.name) : "—"}
+          </span>
         </div>
-        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+        <span className="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
           준비중
         </span>
       </div>
-      <div className="mt-4 space-y-1.5">
-        {branches.length === 0 ? (
-          <p className="text-2xl font-bold text-gray-400">—</p>
-        ) : (
-          branches.map((b) => (
-            <div
-              key={b.id}
-              className="flex items-center justify-between text-sm"
-            >
-              <span className="text-gray-500">{b.name}</span>
-              <span className="font-medium text-gray-400">—</span>
-            </div>
-          ))
-        )}
+
+      {/* 본문 — 사람 이름만 큰 글씨로. 데이터 들어오면 채워짐. */}
+      <div className="mt-4 min-h-[3.5rem] pr-10">
+        <p className="text-2xl font-bold text-gray-400">—</p>
       </div>
+
+      {/* 우측 가운데 화살표 — 누르면 다음 지점으로 (rotate). 좌측 스와이프도 동일. */}
+      {total > 1 && (
+        <button
+          type="button"
+          onClick={() => go(1)}
+          aria-label="다음 지점"
+          className="absolute top-1/2 right-3 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700"
+        >
+          <ChevronRightIcon className="size-4" />
+        </button>
+      )}
+
       <p className="mt-3 text-xs text-gray-500">{description}</p>
     </section>
   );
+}
+
+// "피트니스스타 화순점" → "화순점" — 신청서 폼과 동일한 prefix strip.
+function branchShortName(name: string): string {
+  return name.replace(/^피트니스스타\s*/, "");
+}
+
+// 대시보드 우수사원 카드의 지점 순서 — 화순 → 첨단 → 동광주 → 그 외.
+// 사용자가 가장 자주 보는 화순부터 시작하기 위한 prefer-list 정렬.
+function sortBranchesForDashboard(arr: Branch[]): Branch[] {
+  const order = ["화순", "첨단", "동광주"];
+  const rank = (name: string) => {
+    const i = order.findIndex((k) => name.includes(k));
+    return i === -1 ? order.length : i;
+  };
+  return arr.slice().sort((a, b) => {
+    const ra = rank(a.name);
+    const rb = rank(b.name);
+    if (ra !== rb) return ra - rb;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export default function AdminDashboardPage() {
@@ -461,7 +523,8 @@ export default function AdminDashboardPage() {
     queryKey: ["branches"],
     queryFn: getBranches,
   });
-  const branches = branchesQuery.data ?? [];
+  // 화순 → 첨단 → 동광주 순서로 정렬해 카드 첫 화면에 화순이 먼저 보이게.
+  const branches = sortBranchesForDashboard(branchesQuery.data ?? []);
 
   const summary = summaryQuery.data;
   const m = summary?.members;
