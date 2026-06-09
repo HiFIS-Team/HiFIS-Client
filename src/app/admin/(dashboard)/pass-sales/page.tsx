@@ -31,86 +31,26 @@ function sortStatItems(items: StatItem[]): StatItem[] {
     .sort((a, b) => comparePassOrderByName(a.label, b.label));
 }
 
-// 4종(회원권/PT/락커/운동복) 탭 전환. 한 번에 한 차트만 보여 화면을 짧게 유지.
-// 탭 라벨 옆에 그 종류의 총 건수를 같이 표시해 4종 비교는 탭 줄에서 한 번에.
-function PassSalesTabs({ data }: { data: PassSalesResponse }) {
-  type TabKey = "membership" | "pt" | "locker" | "clothes";
-  // items 는 상품관리·신청서 Select 와 같은 순서로 정렬해서 표시.
-  const tabs: {
-    key: TabKey;
-    label: string;
-    icon: ComponentType<{ className?: string }>;
-    data: { items: StatItem[]; total: number };
-  }[] = [
-    {
-      key: "membership",
-      label: "회원권",
-      icon: TicketIcon,
-      data: { items: sortStatItems(data.membership.items), total: data.membership.total },
-    },
-    {
-      key: "pt",
-      label: "수강권",
-      icon: BoltIcon,
-      data: { items: sortStatItems(data.pt.items), total: data.pt.total },
-    },
-    {
-      key: "locker",
-      label: "락커",
-      icon: LockClosedIcon,
-      data: { items: sortStatItems(data.locker.items), total: data.locker.total },
-    },
-    {
-      key: "clothes",
-      label: "운동복",
-      icon: ShoppingBagIcon,
-      data: { items: sortStatItems(data.clothes.items), total: data.clothes.total },
-    },
-  ];
-  const [active, setActive] = useState<TabKey>("membership");
-  const activeTab = tabs.find((t) => t.key === active)!;
+type PassTabKey = "membership" | "pt" | "locker" | "clothes";
+interface PassTab {
+  key: PassTabKey;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  items: StatItem[];
+  total: number;
+}
 
-  return (
-    <div>
-      {/* 좁은 화면에서 라벨이 잘리지 않게 가로 스크롤은 유지하되 스크롤바는 숨김 —
-          Tailwind v4 arbitrary variants 로 Webkit / Firefox / IE 한 번에 처리 */}
-      <div className="flex gap-4 overflow-x-auto border-b border-gray-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {tabs.map((t) => {
-          const isActive = t.key === active;
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setActive(t.key)}
-              className={`flex shrink-0 items-center gap-1.5 border-b-2 px-1 pb-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "border-primary text-primary"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Icon className="size-4" />
-              {t.label}
-              <span
-                className={`text-xs ${
-                  isActive ? "text-primary/80" : "text-gray-500"
-                }`}
-              >
-                {t.data.total}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {/* 탭 라벨 옆에 총 건수가 이미 표시되므로 카드 헤더·테두리 없이 막대만 — 중복 제거 + 위쪽 선 사라짐 */}
-      <div className="mt-5">
-        <StatBars
-          items={activeTab.data.items}
-          total={activeTab.data.total}
-        />
-      </div>
-    </div>
-  );
+// 응답을 탭 모양으로 변환 — 상품관리·신청서 Select 와 같은 순서로 정렬한 items 포함.
+// 응답 없을 땐 모두 0 건으로 채워 탭 줄은 항상 표시.
+function buildPassTabs(data: PassSalesResponse | undefined): PassTab[] {
+  const get = (key: keyof PassSalesResponse) =>
+    data ? data[key] : { items: [], total: 0 };
+  return [
+    { key: "membership", label: "회원권", icon: TicketIcon, ...get("membership"), items: sortStatItems(get("membership").items) },
+    { key: "pt", label: "수강권", icon: BoltIcon, ...get("pt"), items: sortStatItems(get("pt").items) },
+    { key: "locker", label: "락커", icon: LockClosedIcon, ...get("locker"), items: sortStatItems(get("locker").items) },
+    { key: "clothes", label: "운동복", icon: ShoppingBagIcon, ...get("clothes"), items: sortStatItems(get("clothes").items) },
+  ];
 }
 
 export default function AdminPassSalesPage() {
@@ -147,6 +87,11 @@ export default function AdminPassSalesPage() {
     enabled: !isSuper || !!branchId,
   });
 
+  // 탭 상태와 변환된 탭 목록 — 응답이 없어도 0건으로 채워 탭 줄은 항상 표시.
+  const [passTab, setPassTab] = useState<PassTabKey>("membership");
+  const passTabs = buildPassTabs(passSalesQuery.data);
+  const activePassTab = passTabs.find((t) => t.key === passTab)!;
+
   return (
     <div>
       <PageTitle title="상품별 판매" />
@@ -175,7 +120,39 @@ export default function AdminPassSalesPage() {
         )}
       </div>
 
-      <div className="mt-6">
+      {/* 탭 줄 — 카드 밖. 상품 관리와 동일한 underline 탭 스타일.
+          좁은 화면에서 라벨이 잘리지 않게 가로 스크롤은 유지하되 스크롤바는 숨김. */}
+      <div className="mt-6 flex gap-1 overflow-x-auto border-b border-gray-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {passTabs.map((t) => {
+          const isActive = t.key === passTab;
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setPassTab(t.key)}
+              className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap ${
+                isActive
+                  ? "border-primary text-primary"
+                  : "border-transparent text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              <Icon className="size-4" />
+              {t.label}
+              <span
+                className={`text-xs ${
+                  isActive ? "text-primary/80" : "text-gray-500"
+                }`}
+              >
+                {t.total}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 통계 — 카드 안에 막대만 (헤더는 탭에 이미 있음) */}
+      <div className="mt-4">
         {passSalesQuery.isLoading ? (
           <p className="text-sm text-gray-500">불러오는 중…</p>
         ) : passSalesQuery.isError ? (
@@ -183,7 +160,9 @@ export default function AdminPassSalesPage() {
             상품 판매 통계를 불러오지 못했습니다.
           </p>
         ) : passSalesQuery.data ? (
-          <PassSalesTabs data={passSalesQuery.data} />
+          <section className="rounded-xl border border-gray-200 p-5">
+            <StatBars items={activePassTab.items} total={activePassTab.total} />
+          </section>
         ) : null}
       </div>
     </div>
