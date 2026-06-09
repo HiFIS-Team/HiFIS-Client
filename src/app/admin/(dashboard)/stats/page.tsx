@@ -135,7 +135,7 @@ export default function AdminStatsPage() {
 
   return (
     <div>
-      <PageTitle title="통계" />
+      <PageTitle title="유입·방문" />
       <p className="mt-1 text-sm text-gray-500">
         선택한 달 신청 기준 집계입니다.
       </p>
