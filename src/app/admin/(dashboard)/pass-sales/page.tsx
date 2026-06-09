@@ -120,9 +120,9 @@ export default function AdminPassSalesPage() {
         )}
       </div>
 
-      {/* 탭 줄 — 카드 밖. 상품 관리와 동일한 underline 탭 스타일.
-          좁은 화면에서 라벨이 잘리지 않게 가로 스크롤은 유지하되 스크롤바는 숨김. */}
-      <div className="mt-6 flex gap-1 overflow-x-auto border-b border-gray-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* 탭 줄 — 카드 밖. 4개를 flex-1 로 균등 분할해 폭에 맞춰 줄어들게.
+          모바일에서는 패딩만 좁혀(px-2) 한 줄에 다 들어가고 가로 스크롤 불필요. */}
+      <div className="mt-6 flex border-b border-gray-200">
         {passTabs.map((t) => {
           const isActive = t.key === passTab;
           const Icon = t.icon;
@@ -131,7 +131,7 @@ export default function AdminPassSalesPage() {
               key={t.key}
               type="button"
               onClick={() => setPassTab(t.key)}
-              className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap ${
+              className={`-mb-px flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-sm font-medium whitespace-nowrap sm:px-4 ${
                 isActive
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-800"
