@@ -2,23 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { PageTitle } from "../PageTitle";
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import {
-  BuildingOffice2Icon,
-  TagIcon,
-} from "@heroicons/react/24/outline";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { TagIcon } from "@heroicons/react/24/outline";
 import {
   getAlimtalkTemplates,
   updateAlimtalkTemplate,
   type AlimtalkTemplate,
 } from "@/lib/api/alimtalkTemplates";
-import { getMe } from "@/lib/api/auth";
-import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import { getErrorMessage } from "@/lib/api/client";
 import { Select } from "@/components/Select";
@@ -27,45 +17,28 @@ import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { RowActionButton } from "@/components/RowActionButton";
 import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
+import { AlimtalkTemplateDialog } from "./AlimtalkTemplateDialog";
 
-// 알림톡 종류별 ON/OFF (1단계). 본문 편집·조건 필터는 추후 단계.
-// 전역 알림톡 발송 + 지점 토글과 AND 동작.
+// 알림톡 종류별 본문/ON·OFF 관리. SUPER_ADMIN 전용 (백엔드 require_super_admin).
+// 전역 / 지점별 토글과 AND 동작 — 한 곳이라도 꺼져 있으면 발송 X.
 export default function AdminAlimtalkTemplatesPage() {
   const toast = useToast();
   const qc = useQueryClient();
 
-  const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: getMe,
-    retry: false,
-  });
-  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
-
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-    enabled: isSuper,
-  });
-
-  // 지점 필터 — "전체 지점" 옵션 없음. SUPER_ADMIN 기본값은 화순점.
-  // FC 는 토큰 기반 자동 분기라 셀렉터 자체를 숨김.
-  const [branchFilter, setBranchFilter] = useState("");
-  const branches = branchesQuery.data ?? [];
-  const defaultBranch =
-    branches.find((b) => b.name.includes("화순")) ?? branches[0];
-  const branchId = isSuper ? branchFilter || defaultBranch?.id : undefined;
-
-  // 종류 필터 — "" = 전체 종류. 클라이언트 측 필터 (그 지점의 row 가 15개 정도라 부담 없음).
-  const [typeFilter, setTypeFilter] = useState("");
-
   const templatesQuery = useQuery({
-    queryKey: ["admin", "alimtalk-templates", branchId ?? "self"],
-    queryFn: () => getAlimtalkTemplates(branchId),
-    placeholderData: keepPreviousData,
-    // SUPER_ADMIN 은 branchId 정해진 뒤에만 호출 (브랜치 로드 전 한 번 비호출).
-    enabled: !isSuper || !!branchId,
+    queryKey: ["admin", "alimtalk-templates"],
+    queryFn: getAlimtalkTemplates,
   });
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
+
+  // 종류 필터 ("" = 전체)
+  const [typeFilter, setTypeFilter] = useState("");
+
+  // 보기/수정 다이얼로그 타깃
+  const [dialog, setDialog] = useState<{
+    template: AlimtalkTemplate;
+    mode: "view" | "edit";
+  } | null>(null);
 
   const triggerLabel = useMemo(() => {
     const map = new Map<string, string>();
@@ -75,39 +48,13 @@ export default function AdminAlimtalkTemplatesPage() {
     return (code: string) => map.get(code) ?? code;
   }, [enumsQuery.data]);
 
-  const toggleMutation = useMutation({
-    mutationFn: (vars: { id: string; next: boolean }) =>
-      updateAlimtalkTemplate(vars.id, { is_enabled: vars.next }),
-    onSuccess: (updated) => {
-      qc.setQueryData<AlimtalkTemplate[]>(
-        ["admin", "alimtalk-templates"],
-        (prev) =>
-          prev?.map((t) => (t.id === updated.id ? updated : t)) ?? prev,
-      );
-      toast.success(
-        updated.is_enabled
-          ? "알림톡 발송을 켰어요."
-          : "알림톡 발송을 껐어요.",
-      );
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
-  // 본문 편집/상세 보기는 2단계 — 일단 자리만, 클릭 시 "준비 중" 안내.
-  function notReadyYet() {
-    toast.success("준비 중인 기능이에요.");
-  }
-
-  const isLoading = templatesQuery.isLoading || enumsQuery.isLoading;
-  const isError = templatesQuery.isError || enumsQuery.isError;
-  // 카드 정렬은 종류 셀렉터(백엔드 enum)와 동일한 순서. trigger_type code → index 맵으로 정렬.
+  // 카드 정렬은 종류 셀렉터(백엔드 enum)와 동일한 순서.
   const triggerIndex = useMemo(() => {
     const map = new Map<string, number>();
     (enumsQuery.data?.trigger_type ?? []).forEach((o, i) => map.set(o.code, i));
     return map;
   }, [enumsQuery.data]);
 
-  // 종류 필터 적용 후 enum 순서대로 정렬. 매칭 안 되는 항목은 뒤로.
   const items = useMemo(() => {
     const arr = templatesQuery.data ?? [];
     const filtered = typeFilter
@@ -119,10 +66,49 @@ export default function AdminAlimtalkTemplatesPage() {
       return ia - ib;
     });
   }, [templatesQuery.data, triggerIndex, typeFilter]);
+
+  // 캐시 업데이트 — 토글 / 본문 저장 응답을 동일하게 처리.
+  function applyUpdated(updated: AlimtalkTemplate) {
+    qc.setQueryData<AlimtalkTemplate[]>(
+      ["admin", "alimtalk-templates"],
+      (prev) => prev?.map((t) => (t.id === updated.id ? updated : t)) ?? prev,
+    );
+  }
+
+  const toggleMutation = useMutation({
+    mutationFn: (vars: { id: string; next: boolean }) =>
+      updateAlimtalkTemplate(vars.id, { is_enabled: vars.next }),
+    onSuccess: (updated) => {
+      applyUpdated(updated);
+      toast.success(
+        updated.is_enabled
+          ? "알림톡 발송을 켰어요."
+          : "알림톡 발송을 껐어요.",
+      );
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const bodyMutation = useMutation({
+    mutationFn: (vars: { id: string; body: string | null }) =>
+      updateAlimtalkTemplate(vars.id, { body: vars.body }),
+    onSuccess: (updated) => {
+      applyUpdated(updated);
+      toast.success(
+        updated.body === null
+          ? "디폴트 본문으로 복원했어요."
+          : "본문을 저장했어요.",
+      );
+      setDialog(null);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const isLoading = templatesQuery.isLoading || enumsQuery.isLoading;
+  const isError = templatesQuery.isError || enumsQuery.isError;
   const isTogglePending = (id: string) =>
     toggleMutation.isPending && toggleMutation.variables?.id === id;
 
-  // 발송 중/중지 라벨 — 회원 페이지 StatusBadge 톤(작은 칩) 과 동일.
   function StatusChip({ enabled }: { enabled: boolean }) {
     return (
       <span
@@ -141,21 +127,12 @@ export default function AdminAlimtalkTemplatesPage() {
     <div>
       <PageTitle title="알림톡 관리" />
       <p className="mt-1 text-sm text-gray-500">
-        알림톡 종류별로 발송을 켜고 끌 수 있어요. 전역 알림톡 발송, 지점별
-        토글과 함께 동작해서 한 곳이라도 꺼져 있으면 발송되지 않아요.
+        알림톡 종류별로 본문을 수정하고 발송을 켜고 끌 수 있어요. 전역 알림톡
+        발송, 지점별 토글과 함께 동작해서 한 곳이라도 꺼져 있으면 발송되지
+        않아요.
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-        {isSuper && (
-          <Select
-            id="branch-filter"
-            label="지점"
-            icon={BuildingOffice2Icon}
-            options={branches.map((b) => ({ value: b.id, label: b.name }))}
-            value={branchFilter || defaultBranch?.id || ""}
-            onChange={(e) => setBranchFilter(e.target.value)}
-          />
-        )}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-md">
         <Select
           id="type-filter"
           label="종류"
@@ -183,14 +160,13 @@ export default function AdminAlimtalkTemplatesPage() {
           <TableMessage>등록된 알림톡이 없습니다.</TableMessage>
         ) : (
           <>
-            {/* 모바일: 카드 (회원/PT 페이지와 동일 패턴) */}
+            {/* 모바일: 카드 (회원/PT 패턴) */}
             <ul className="space-y-3 lg:hidden">
               {items.map((t) => (
                 <li
                   key={t.id}
                   className="rounded-xl border border-gray-200 p-4"
                 >
-                  {/* 상단: 종류 (좌) + 발송 상태 칩 (우) */}
                   <div className="flex items-start justify-between gap-2">
                     <p className="truncate font-semibold text-gray-900">
                       {triggerLabel(t.trigger_type)}
@@ -200,16 +176,21 @@ export default function AdminAlimtalkTemplatesPage() {
                   <p className="mt-1 text-xs text-gray-400">
                     마지막 수정 {formatDateTime(t.updated_at)}
                   </p>
-                  {/* 하단: 보기/수정 (좌) + 토글 (우 끝) */}
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <div className="flex flex-wrap gap-2">
                       <RowActionButton
                         variant="neutral"
-                        onClick={notReadyYet}
+                        onClick={() =>
+                          setDialog({ template: t, mode: "view" })
+                        }
                       >
                         보기
                       </RowActionButton>
-                      <RowActionButton onClick={notReadyYet}>
+                      <RowActionButton
+                        onClick={() =>
+                          setDialog({ template: t, mode: "edit" })
+                        }
+                      >
                         수정
                       </RowActionButton>
                     </div>
@@ -226,7 +207,7 @@ export default function AdminAlimtalkTemplatesPage() {
               ))}
             </ul>
 
-            {/* 데스크탑: 테이블 (회원/PT 페이지와 동일 패턴) */}
+            {/* 데스크탑: 테이블 */}
             <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
@@ -253,11 +234,17 @@ export default function AdminAlimtalkTemplatesPage() {
                         <div className="flex items-center justify-end gap-2">
                           <RowActionButton
                             variant="neutral"
-                            onClick={notReadyYet}
+                            onClick={() =>
+                              setDialog({ template: t, mode: "view" })
+                            }
                           >
                             보기
                           </RowActionButton>
-                          <RowActionButton onClick={notReadyYet}>
+                          <RowActionButton
+                            onClick={() =>
+                              setDialog({ template: t, mode: "edit" })
+                            }
+                          >
                             수정
                           </RowActionButton>
                           <Switch
@@ -278,6 +265,23 @@ export default function AdminAlimtalkTemplatesPage() {
           </>
         )}
       </div>
+
+      {dialog && (
+        <AlimtalkTemplateDialog
+          open
+          mode={dialog.mode}
+          template={dialog.template}
+          triggerLabel={triggerLabel(dialog.template.trigger_type)}
+          saving={
+            bodyMutation.isPending &&
+            bodyMutation.variables?.id === dialog.template.id
+          }
+          onSave={(body) =>
+            bodyMutation.mutate({ id: dialog.template.id, body })
+          }
+          onClose={() => setDialog(null)}
+        />
+      )}
     </div>
   );
 }

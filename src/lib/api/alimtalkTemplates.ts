@@ -1,30 +1,36 @@
 import { apiFetch } from "./client";
 
-// 알림톡 템플릿 — (지점 × trigger_type) 별로 발송 ON/OFF.
-// 본문 편집·조건 필터는 추후 단계에서 같은 모델 위에 확장.
+// 본문에 박을 수 있는 변수 한 개 (백엔드 AlimtalkVariable).
+export interface AlimtalkVariable {
+  key: string; // placeholder 키 (예: "name")
+  label: string; // 한국어 라벨 (예: "회원 이름")
+}
+
+// 알림톡 템플릿 — trigger_type 단일 PK 글로벌.
+// SUPER_ADMIN 전용 (백엔드 require_super_admin).
+// body=null 이면 코드 디폴트(default_body) 사용.
 export interface AlimtalkTemplate {
   id: string;
-  branch_id: string;
   trigger_type: string;
   is_enabled: boolean;
+  body: string | null; // 어드민 수정 본문 — null 이면 default_body
+  default_body: string; // 코드 디폴트 (참고/복원용)
+  variables: AlimtalkVariable[]; // 이 트리거에서 본문에 쓸 수 있는 변수
   updated_at: string;
 }
 
-// GET /admin/alimtalk-templates?branch_id=... — 그 지점의 모든 트리거 row.
-// SUPER_ADMIN 은 branch_id 필수. FC 는 토큰 기준 본인 지점만.
-export function getAlimtalkTemplates(
-  branchId?: string,
-): Promise<AlimtalkTemplate[]> {
-  const path = branchId
-    ? `/admin/alimtalk-templates?branch_id=${encodeURIComponent(branchId)}`
-    : "/admin/alimtalk-templates";
-  return apiFetch<AlimtalkTemplate[]>(path, { auth: true });
+// GET /admin/alimtalk-templates — 모든 트리거 row.
+export function getAlimtalkTemplates(): Promise<AlimtalkTemplate[]> {
+  return apiFetch<AlimtalkTemplate[]>("/admin/alimtalk-templates", {
+    auth: true,
+  });
 }
 
-// PATCH /admin/alimtalk-templates/{id} — 토글.
+// PATCH /admin/alimtalk-templates/{id} — is_enabled / body 부분 수정.
+// body="" 또는 null 보내면 백엔드가 디폴트 복원.
 export function updateAlimtalkTemplate(
   id: string,
-  body: { is_enabled: boolean },
+  body: { is_enabled?: boolean; body?: string | null },
 ): Promise<AlimtalkTemplate> {
   return apiFetch<AlimtalkTemplate>(
     `/admin/alimtalk-templates/${encodeURIComponent(id)}`,
