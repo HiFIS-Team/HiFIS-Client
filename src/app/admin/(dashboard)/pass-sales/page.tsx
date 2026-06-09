@@ -95,16 +95,24 @@ export default function AdminPassSalesPage() {
     enabled: isSuper,
   });
 
+  // 상품별 판매는 지점별 의미가 강해서 "전체 지점" 옵션을 두지 않음.
+  // SUPER_ADMIN 기본값은 화순점(이름에 "화순" 포함). 없으면 첫 지점으로 폴백.
+  // FC 는 토큰 기준으로 백엔드가 본인 지점만 내려줘서 셀렉터 자체를 숨김.
   const [branchFilter, setBranchFilter] = useState("");
-  const branchId = isSuper ? branchFilter || undefined : undefined;
+  const branches = branchesQuery.data ?? [];
+  const defaultBranch =
+    branches.find((b) => b.name.includes("화순")) ?? branches[0];
+  const branchId = isSuper ? branchFilter || defaultBranch?.id : undefined;
 
   const [month, setMonth] = useState<string>(currentMonthYM);
   const monthOptions = useMemo(() => buildMonthOptions(12), []);
 
   const passSalesQuery = useQuery({
-    queryKey: ["admin", "stats", "passes", branchId ?? "all", month],
+    queryKey: ["admin", "stats", "passes", branchId ?? "self", month],
     queryFn: () => getPassSalesStats(branchId, month),
     placeholderData: keepPreviousData,
+    // SUPER_ADMIN 은 branchId 가 정해진 뒤에만 호출 (브랜치 로드 전 한 번 비호출).
+    enabled: !isSuper || !!branchId,
   });
 
   return (
@@ -128,14 +136,8 @@ export default function AdminPassSalesPage() {
             id="branch"
             label="지점"
             icon={BuildingOffice2Icon}
-            options={[
-              { value: "", label: "전체 지점" },
-              ...(branchesQuery.data ?? []).map((b) => ({
-                value: b.id,
-                label: b.name,
-              })),
-            ]}
-            value={branchFilter}
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
+            value={branchFilter || defaultBranch?.id || ""}
             onChange={(e) => setBranchFilter(e.target.value)}
           />
         )}
