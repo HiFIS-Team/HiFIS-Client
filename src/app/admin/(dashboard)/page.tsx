@@ -22,9 +22,10 @@ import {
 } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getAdmins } from "@/lib/api/admins";
+import { getBranches } from "@/lib/api/branches";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { formatDate, formatPhone } from "@/lib/format";
-import type { DayCount } from "@/lib/api/types";
+import type { Branch, DayCount } from "@/lib/api/types";
 
 // 최근 신청 리스트 — 타입별 아이콘 + chip 색상 메타. 한 톤이지만 색으로 구분 가능.
 const RECENT_TYPE_META: Record<
@@ -383,19 +384,22 @@ function AgeRangeCard({
   );
 }
 
-// 이달의 FC — 피드백왕/친절왕/종합왕. 점수 데이터가 아직 없어 준비중 표시.
-function FcKingCard({
+// 이달의 우수사원 — 피드백왕/친절왕/종합왕. 점수 데이터가 아직 없어 준비중 표시.
+// 지점별 1위를 줄 단위로 — 데이터 들어오면 우측에 이름이 채워짐.
+function MonthlyAwardCard({
   label,
   description,
   icon: Icon,
   iconBgClass,
   iconTextClass,
+  branches,
 }: {
   label: string;
   description: string;
   icon: ComponentType<{ className?: string }>;
   iconBgClass: string;
   iconTextClass: string;
+  branches: Branch[];
 }) {
   return (
     <section className="rounded-xl border border-violet-200 p-5">
@@ -412,8 +416,22 @@ function FcKingCard({
           준비중
         </span>
       </div>
-      <p className="mt-4 text-2xl font-bold text-gray-400">—</p>
-      <p className="mt-1 text-xs text-gray-500">{description}</p>
+      <div className="mt-4 space-y-1.5">
+        {branches.length === 0 ? (
+          <p className="text-2xl font-bold text-gray-400">—</p>
+        ) : (
+          branches.map((b) => (
+            <div
+              key={b.id}
+              className="flex items-center justify-between text-sm"
+            >
+              <span className="text-gray-500">{b.name}</span>
+              <span className="font-medium text-gray-400">—</span>
+            </div>
+          ))
+        )}
+      </div>
+      <p className="mt-3 text-xs text-gray-500">{description}</p>
     </section>
   );
 }
@@ -438,6 +456,12 @@ export default function AdminDashboardPage() {
     queryFn: () => getAdmins(),
     enabled: isSuper,
   });
+  // 우수사원 카드의 지점별 1위 자리용 — 모든 역할에 표시 (FC 도 본인 지점 자리 보임).
+  const branchesQuery = useQuery({
+    queryKey: ["branches"],
+    queryFn: getBranches,
+  });
+  const branches = branchesQuery.data ?? [];
 
   const summary = summaryQuery.data;
   const m = summary?.members;
@@ -591,28 +615,31 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-base font-semibold text-gray-900">이달의 FC</h2>
+        <h2 className="text-base font-semibold text-gray-900">이달의 우수사원</h2>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
-          <FcKingCard
+          <MonthlyAwardCard
             label="피드백왕"
-            description="회원 피드백 점수가 가장 높은 FC"
+            description="회원 피드백 점수가 가장 높은 사원"
             icon={HandThumbUpIcon}
             iconBgClass="bg-amber-50"
             iconTextClass="text-amber-500"
+            branches={branches}
           />
-          <FcKingCard
+          <MonthlyAwardCard
             label="친절왕"
-            description="회원 친절도 점수가 가장 높은 FC"
+            description="회원 친절도 점수가 가장 높은 사원"
             icon={HeartIcon}
             iconBgClass="bg-rose-50"
             iconTextClass="text-rose-500"
+            branches={branches}
           />
-          <FcKingCard
+          <MonthlyAwardCard
             label="종합왕"
-            description="모든 지표 합산 1위 FC"
+            description="모든 지표 합산 1위 사원"
             icon={TrophyIcon}
             iconBgClass="bg-violet-50"
             iconTextClass="text-primary"
+            branches={branches}
           />
         </div>
       </section>
