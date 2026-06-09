@@ -19,7 +19,7 @@ import {
   type StatItem,
 } from "@/lib/api/stats";
 import { Select } from "@/components/Select";
-import { StatBars } from "@/components/StatChart";
+import { StatChart } from "@/components/StatChart";
 import { buildMonthOptions, currentMonthYM } from "@/lib/statsMonth";
 import { comparePassOrderByName } from "@/lib/passDuration";
 
@@ -139,19 +139,12 @@ export default function AdminPassSalesPage() {
             >
               <Icon className="size-4" />
               {t.label}
-              <span
-                className={`text-xs ${
-                  isActive ? "text-primary/80" : "text-gray-500"
-                }`}
-              >
-                {t.total}
-              </span>
             </button>
           );
         })}
       </div>
 
-      {/* 통계 — 카드 안에 막대만 (헤더는 탭에 이미 있음) */}
+      {/* 통계 — 통계 페이지의 유입경로/방문목적과 동일한 StatChart (헤더 좌: 제목, 우: 총 N건). */}
       <div className="mt-4">
         {passSalesQuery.isLoading ? (
           <p className="text-sm text-gray-500">불러오는 중…</p>
@@ -160,9 +153,11 @@ export default function AdminPassSalesPage() {
             상품 판매 통계를 불러오지 못했습니다.
           </p>
         ) : passSalesQuery.data ? (
-          <section className="rounded-xl border border-gray-200 p-5">
-            <StatBars items={activePassTab.items} total={activePassTab.total} />
-          </section>
+          <StatChart
+            title={activePassTab.label}
+            icon={activePassTab.icon}
+            data={{ items: activePassTab.items, total: activePassTab.total }}
+          />
         ) : null}
       </div>
     </div>
