@@ -47,7 +47,7 @@ export default function AdminRegistrationMixPage() {
     <div>
       <PageTitle title="신규·재등록" />
       <p className="mt-1 text-sm text-gray-500">
-        선택한 달 신청 중 신규(NEW) 와 재등록(EXISTING) 비율입니다.
+        선택한 달 신청 중 신규와 재등록 비율입니다.
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
@@ -92,7 +92,7 @@ export default function AdminRegistrationMixPage() {
               data={categoryQuery.data.member}
             />
             <StatChart
-              title="수강권"
+              title="PT"
               icon={BoltIcon}
               data={categoryQuery.data.pt}
             />
