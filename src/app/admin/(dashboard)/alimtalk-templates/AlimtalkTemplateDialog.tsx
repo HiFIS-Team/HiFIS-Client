@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AlimtalkTemplate } from "@/lib/api/alimtalkTemplates";
+import {
+  previewAlimtalkTemplate,
+  type AlimtalkTemplate,
+} from "@/lib/api/alimtalkTemplates";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 
 // 알림톡 본문 보기/수정 다이얼로그.
@@ -38,6 +41,34 @@ export function AlimtalkTemplateDialog({
   }, [template.id, template.body, template.default_body]);
 
   useEscapeKey(onClose, open);
+
+  // 미리보기 — 본문 변경 300ms 후 백엔드에 헤더+본문+푸터 조립된 전체 메시지 요청.
+  // 백엔드가 더미값(이름 "홍길동" 등) 채워서 실제 발송될 형태 그대로 보여줌.
+  const [debouncedBody, setDebouncedBody] = useState(body);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedBody(body), 300);
+    return () => clearTimeout(t);
+  }, [body]);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setPreviewing(true);
+    previewAlimtalkTemplate(template.id, { body: debouncedBody })
+      .then((res) => {
+        if (!cancelled) setPreview(res.preview);
+      })
+      .catch(() => {
+        if (!cancelled) setPreview(null);
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, template.id, debouncedBody]);
 
   const isEdit = mode === "edit";
   const isDirty = body !== initialBody;
@@ -125,6 +156,22 @@ export function AlimtalkTemplateDialog({
                   : "bg-gray-50 text-gray-700 outline-gray-200"
               }`}
             />
+          </div>
+
+          {/* 미리보기 — 헤더+본문+푸터 조립된 실제 발송 형태. 본문 변경 300ms 후 갱신. */}
+          <div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-sm font-medium text-gray-900">미리보기</p>
+              {previewing && (
+                <span className="text-xs text-gray-400">불러오는 중…</span>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500">
+              실제 발송될 형태 (헤더·푸터 포함, 더미값으로 미리 채워짐).
+            </p>
+            <div className="mt-2 min-h-[6rem] rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm whitespace-pre-wrap text-gray-700">
+              {preview ?? (previewing ? "" : "—")}
+            </div>
           </div>
 
           {/* 변수 칩 — 수정 모드에선 클릭으로 삽입 */}

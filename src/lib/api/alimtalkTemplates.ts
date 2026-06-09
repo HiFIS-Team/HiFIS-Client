@@ -41,3 +41,19 @@ export function updateAlimtalkTemplate(
     },
   );
 }
+
+// POST /admin/alimtalk-templates/{id}/preview — 헤더+본문+푸터 전체 미리보기.
+// body 미입력 시 DB 본문(없으면 코드 디폴트) 사용. branch_id 미입력 시 첫 지점.
+export function previewAlimtalkTemplate(
+  id: string,
+  payload: { body?: string | null; branch_id?: string | null },
+): Promise<{ preview: string }> {
+  return apiFetch<{ preview: string }>(
+    `/admin/alimtalk-templates/${encodeURIComponent(id)}/preview`,
+    {
+      method: "POST",
+      auth: true,
+      body: payload,
+    },
+  );
+}
