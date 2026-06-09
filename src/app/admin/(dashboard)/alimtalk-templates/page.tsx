@@ -11,10 +11,13 @@ import {
 import { getEnums } from "@/lib/api/enums";
 import { getErrorMessage } from "@/lib/api/client";
 import { Switch } from "@/components/Switch";
+import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
+import { RowActionButton } from "@/components/RowActionButton";
+import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
 
-// 알림톡 종류별 ON/OFF (1단계 — 본문 편집/조건 필터는 추후 단계).
-// 전역 알림톡 발송 + 지점 토글과 AND 동작 — 어떤 단에서든 끄면 발송 X.
+// 알림톡 종류별 ON/OFF (1단계). 본문 편집·조건 필터는 추후 단계.
+// 전역 알림톡 발송 + 지점 토글과 AND 동작.
 export default function AdminAlimtalkTemplatesPage() {
   const toast = useToast();
   const qc = useQueryClient();
@@ -23,10 +26,8 @@ export default function AdminAlimtalkTemplatesPage() {
     queryKey: ["admin", "alimtalk-templates"],
     queryFn: getAlimtalkTemplates,
   });
-  // 종류 라벨은 enums.trigger_type 으로 한국어 변환
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
 
-  // trigger_type code → 한국어 라벨 매핑
   const triggerLabel = useMemo(() => {
     const map = new Map<string, string>();
     for (const t of enumsQuery.data?.trigger_type ?? []) {
@@ -53,8 +54,31 @@ export default function AdminAlimtalkTemplatesPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  // 본문 편집/상세 보기는 2단계 — 일단 자리만, 클릭 시 "준비 중" 안내.
+  function notReadyYet() {
+    toast.success("준비 중인 기능이에요.");
+  }
+
   const isLoading = templatesQuery.isLoading || enumsQuery.isLoading;
   const isError = templatesQuery.isError || enumsQuery.isError;
+  const items = templatesQuery.data ?? [];
+  const isTogglePending = (id: string) =>
+    toggleMutation.isPending && toggleMutation.variables?.id === id;
+
+  // 발송 중/중지 라벨 — 회원 페이지 StatusBadge 톤(작은 칩) 과 동일.
+  function StatusChip({ enabled }: { enabled: boolean }) {
+    return (
+      <span
+        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+          enabled
+            ? "bg-green-50 text-green-700"
+            : "bg-gray-100 text-gray-500"
+        }`}
+      >
+        {enabled ? "발송 중" : "발송 중지"}
+      </span>
+    );
+  }
 
   return (
     <div>
@@ -66,42 +90,108 @@ export default function AdminAlimtalkTemplatesPage() {
 
       <div className="mt-6">
         {isLoading ? (
-          <p className="text-sm text-gray-500">불러오는 중…</p>
+          <TableSkeleton />
         ) : isError ? (
-          <p className="text-sm text-gray-500">
+          <TableMessage variant="error">
             목록을 불러오지 못했습니다.
-          </p>
+          </TableMessage>
+        ) : items.length === 0 ? (
+          <TableMessage>등록된 알림톡이 없습니다.</TableMessage>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(templatesQuery.data ?? []).map((t) => {
-              const pending =
-                toggleMutation.isPending &&
-                toggleMutation.variables?.id === t.id;
-              return (
-                <section
+          <>
+            {/* 모바일: 카드 (회원/PT 페이지와 동일 패턴) */}
+            <ul className="space-y-3 lg:hidden">
+              {items.map((t) => (
+                <li
                   key={t.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-5"
+                  className="rounded-xl border border-gray-200 p-4"
                 >
-                  <div className="min-w-0">
-                    <h2 className="truncate text-base font-semibold text-gray-900">
+                  {/* 상단: 종류 (좌) + 발송 상태 칩 (우) */}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate font-semibold text-gray-900">
                       {triggerLabel(t.trigger_type)}
-                    </h2>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      {t.is_enabled ? "발송 중" : "발송 중지"}
                     </p>
+                    <StatusChip enabled={t.is_enabled} />
                   </div>
-                  <Switch
-                    checked={t.is_enabled}
-                    disabled={pending}
-                    onChange={(next) =>
-                      toggleMutation.mutate({ id: t.id, next })
-                    }
-                    ariaLabel={`${triggerLabel(t.trigger_type)} 발송 토글`}
-                  />
-                </section>
-              );
-            })}
-          </div>
+                  <p className="mt-1 text-xs text-gray-400">
+                    마지막 수정 {formatDateTime(t.updated_at)}
+                  </p>
+                  {/* 하단: 보기/수정 (좌) + 토글 (우 끝) */}
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <RowActionButton
+                        variant="neutral"
+                        onClick={notReadyYet}
+                      >
+                        보기
+                      </RowActionButton>
+                      <RowActionButton onClick={notReadyYet}>
+                        수정
+                      </RowActionButton>
+                    </div>
+                    <Switch
+                      checked={t.is_enabled}
+                      disabled={isTogglePending(t.id)}
+                      onChange={(next) =>
+                        toggleMutation.mutate({ id: t.id, next })
+                      }
+                      ariaLabel={`${triggerLabel(t.trigger_type)} 발송 토글`}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* 데스크탑: 테이블 (회원/PT 페이지와 동일 패턴) */}
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
+              <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
+                  <tr>
+                    <Th>종류</Th>
+                    <Th>상태</Th>
+                    <Th>마지막 수정</Th>
+                    <Th> </Th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {items.map((t) => (
+                    <tr key={t.id} className="text-gray-800">
+                      <Td className="font-medium">
+                        {triggerLabel(t.trigger_type)}
+                      </Td>
+                      <Td>
+                        <StatusChip enabled={t.is_enabled} />
+                      </Td>
+                      <Td className="text-gray-500">
+                        {formatDateTime(t.updated_at)}
+                      </Td>
+                      <Td>
+                        <div className="flex items-center justify-end gap-2">
+                          <RowActionButton
+                            variant="neutral"
+                            onClick={notReadyYet}
+                          >
+                            보기
+                          </RowActionButton>
+                          <RowActionButton onClick={notReadyYet}>
+                            수정
+                          </RowActionButton>
+                          <Switch
+                            checked={t.is_enabled}
+                            disabled={isTogglePending(t.id)}
+                            onChange={(next) =>
+                              toggleMutation.mutate({ id: t.id, next })
+                            }
+                            ariaLabel={`${triggerLabel(t.trigger_type)} 발송 토글`}
+                          />
+                        </div>
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
