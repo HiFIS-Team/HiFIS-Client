@@ -3,12 +3,12 @@
 import { PageTitle } from "../PageTitle";
 import { useMemo, useState, type ComponentType } from "react";
 import {
+  BoltIcon,
   BuildingOffice2Icon,
   CalendarDaysIcon,
-  KeyIcon,
-  SparklesIcon,
+  LockClosedIcon,
+  ShoppingBagIcon,
   TicketIcon,
-  UserIcon,
 } from "@heroicons/react/24/outline";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
@@ -19,7 +19,7 @@ import {
   type StatItem,
 } from "@/lib/api/stats";
 import { Select } from "@/components/Select";
-import { StatChart } from "@/components/StatChart";
+import { StatBars } from "@/components/StatChart";
 import { buildMonthOptions, currentMonthYM } from "@/lib/statsMonth";
 import { comparePassOrderByName } from "@/lib/passDuration";
 
@@ -50,20 +50,20 @@ function PassSalesTabs({ data }: { data: PassSalesResponse }) {
     },
     {
       key: "pt",
-      label: "PT",
-      icon: UserIcon,
+      label: "수강권",
+      icon: BoltIcon,
       data: { items: sortStatItems(data.pt.items), total: data.pt.total },
     },
     {
       key: "locker",
       label: "락커",
-      icon: KeyIcon,
+      icon: LockClosedIcon,
       data: { items: sortStatItems(data.locker.items), total: data.locker.total },
     },
     {
       key: "clothes",
       label: "운동복",
-      icon: SparklesIcon,
+      icon: ShoppingBagIcon,
       data: { items: sortStatItems(data.clothes.items), total: data.clothes.total },
     },
   ];
@@ -100,11 +100,11 @@ function PassSalesTabs({ data }: { data: PassSalesResponse }) {
           );
         })}
       </div>
-      <div className="mt-4">
-        <StatChart
-          title={activeTab.label}
-          icon={activeTab.icon}
-          data={activeTab.data}
+      {/* 탭 라벨 옆에 총 건수가 이미 표시되므로 카드 헤더·테두리 없이 막대만 — 중복 제거 + 위쪽 선 사라짐 */}
+      <div className="mt-5">
+        <StatBars
+          items={activeTab.data.items}
+          total={activeTab.data.total}
         />
       </div>
     </div>
