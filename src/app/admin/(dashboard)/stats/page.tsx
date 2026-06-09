@@ -7,79 +7,23 @@ import {
   CalendarDaysIcon,
   ChatBubbleBottomCenterTextIcon,
   FlagIcon,
-  KeyIcon,
   MegaphoneIcon,
-  SparklesIcon,
-  TicketIcon,
-  UserIcon,
 } from "@heroicons/react/24/outline";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
   getMotivationStats,
-  getPassSalesStats,
   getReferralStats,
   type StatDetailItem,
-  type StatItem,
   type StatsResponse,
 } from "@/lib/api/stats";
 import { getEnums } from "@/lib/api/enums";
 import type { EnumOption } from "@/lib/api/types";
 import { aggregateReferralDetails } from "@/lib/referral";
 import { Select } from "@/components/Select";
-
-// 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이).
-// data 는 items + total 만 필요 — referral/motivation(StatsResponse) 와 상품 판매 통계 모두 재사용.
-function StatChart({
-  title,
-  data,
-  icon: Icon,
-}: {
-  title: string;
-  data: { items: StatItem[]; total: number };
-  icon?: ComponentType<{ className?: string }>;
-}) {
-  return (
-    <section className="rounded-xl border border-gray-200 p-5">
-      <div className="flex items-baseline justify-between">
-        <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
-          {Icon && <Icon className="size-4 text-primary" />}
-          {title}
-        </h2>
-        <span className="text-sm text-gray-500">총 {data.total}건</span>
-      </div>
-      {data.items.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-500">데이터가 없습니다.</p>
-      ) : (
-        <div className="mt-4 space-y-3">
-          {data.items.map((item) => {
-            const pct =
-              data.total > 0
-                ? Math.round((item.count / data.total) * 100)
-                : 0;
-            return (
-              <div key={item.code}>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-700">{item.label}</span>
-                  <span className="text-gray-500">
-                    {item.count}건 · {pct}%
-                  </span>
-                </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-}
+import { StatChart } from "@/components/StatChart";
+import { buildMonthOptions, currentMonthYM } from "@/lib/statsMonth";
 
 // 자유 입력 항목(referral_detail) 별 카운트 — enum 차트와 별개 섹션.
 // 백엔드가 "기타" 선택 후 자유 입력된 텍스트들을 집계해 내려준다.
@@ -146,29 +90,6 @@ function fillWithEnum(
   return { ...data, items: [...data.items, ...missing] };
 }
 
-// 이번 달 (yyyy-mm) — lazy init 용. month 셀렉터 기본값.
-function currentMonthYM(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
-}
-
-// 최근 N개월 옵션 — 이번 달부터 과거로 N-1개월. 이번 달엔 "(이번 달)" 표시.
-function buildMonthOptions(count: number): { value: string; label: string }[] {
-  const now = new Date();
-  const out: { value: string; label: string }[] = [];
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    const value = `${y}-${String(m).padStart(2, "0")}`;
-    const label = i === 0 ? `${y}년 ${m}월 (이번 달)` : `${y}년 ${m}월`;
-    out.push({ value, label });
-  }
-  return out;
-}
-
 export default function AdminStatsPage() {
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -202,11 +123,6 @@ export default function AdminStatsPage() {
   const motivationQuery = useQuery({
     queryKey: ["admin", "stats", "motivation", branchId ?? "all", month],
     queryFn: () => getMotivationStats(branchId, month),
-    placeholderData: keepPreviousData,
-  });
-  const passSalesQuery = useQuery({
-    queryKey: ["admin", "stats", "passes", branchId ?? "all", month],
-    queryFn: () => getPassSalesStats(branchId, month),
     placeholderData: keepPreviousData,
   });
 
@@ -291,46 +207,6 @@ export default function AdminStatsPage() {
         )}
       </div>
 
-      {/* 상품별 판매 — 회원권/PT/락커/운동복 4종. 별도 섹션으로 분리해서
-          이 쿼리만 실패해도 위쪽 유입·방문 통계는 정상 표시되게. */}
-      <div className="mt-10">
-        <h2 className="text-base font-semibold text-gray-900">상품별 판매</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          선택한 달에 신청·등록된 상품 종류별 건수입니다.
-        </p>
-        <div className="mt-4">
-          {passSalesQuery.isLoading ? (
-            <p className="text-sm text-gray-500">불러오는 중…</p>
-          ) : passSalesQuery.isError ? (
-            <p className="text-sm text-gray-500">
-              상품 판매 통계를 불러오지 못했습니다.
-            </p>
-          ) : passSalesQuery.data ? (
-            <div className="grid gap-5 sm:grid-cols-2">
-              <StatChart
-                title="회원권"
-                icon={TicketIcon}
-                data={passSalesQuery.data.membership}
-              />
-              <StatChart
-                title="PT"
-                icon={UserIcon}
-                data={passSalesQuery.data.pt}
-              />
-              <StatChart
-                title="락커"
-                icon={KeyIcon}
-                data={passSalesQuery.data.locker}
-              />
-              <StatChart
-                title="운동복"
-                icon={SparklesIcon}
-                data={passSalesQuery.data.clothes}
-              />
-            </div>
-          ) : null}
-        </div>
-      </div>
     </div>
   );
 }

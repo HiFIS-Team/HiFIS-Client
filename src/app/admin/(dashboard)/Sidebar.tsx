@@ -49,8 +49,12 @@ const NAV: NavGroup[] = [
     label: "분석",
     items: [
       { href: "/admin/stats", label: "통계" },
-      { href: "/admin/messages", label: "알림톡 이력" },
+      { href: "/admin/pass-sales", label: "상품별 판매" },
     ],
+  },
+  {
+    label: "알림톡",
+    items: [{ href: "/admin/messages", label: "알림톡 이력" }],
   },
   {
     label: "직원 관리",
