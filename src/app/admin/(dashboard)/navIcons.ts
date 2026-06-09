@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import {
   AcademicCapIcon,
+  ArrowsRightLeftIcon,
   BoltIcon,
   BuildingOffice2Icon,
   CalendarIcon,
@@ -30,6 +31,7 @@ export const NAV_ICONS: Record<
   "/admin/branches": BuildingOffice2Icon,
   "/admin/stats": ChartBarIcon,
   "/admin/pass-sales": ChartPieIcon,
+  "/admin/registration-mix": ArrowsRightLeftIcon,
   "/admin/messages": ChatBubbleLeftRightIcon,
   "/admin/admins": UserGroupIcon,
   // 직원 관리 — 준비중 메뉴들. 실제 페이지는 아직 없음.

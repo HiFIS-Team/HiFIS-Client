@@ -49,6 +49,24 @@ export function getMotivationStats(
   );
 }
 
+// 신규(NEW) vs 재등록(EXISTING) 비율 — 회원·수강권 묶음.
+// items 의 code/label 모양은 기존 StatItem 과 동일.
+export interface CategoryStatsResponse {
+  member: { items: StatItem[]; total: number };
+  pt: { items: StatItem[]; total: number };
+}
+
+// GET /admin/stats/category — 회원·PT 신규/재등록 월 카운트.
+export function getCategoryStats(
+  branchId?: string,
+  month?: string,
+): Promise<CategoryStatsResponse> {
+  return apiFetch<CategoryStatsResponse>(
+    statsPath("/admin/stats/category", branchId, month),
+    { auth: true },
+  );
+}
+
 // 상품별 판매 통계 — 4종(회원권/PT/락커/운동복) 묶음.
 // 각 종의 items[i].code = pass_id, label = pass_name. 기존 StatChart 재사용.
 export interface PassSalesResponse {

@@ -50,6 +50,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/admin/stats", label: "통계" },
       { href: "/admin/pass-sales", label: "상품별 판매" },
+      { href: "/admin/registration-mix", label: "신규·재등록" },
     ],
   },
   {
