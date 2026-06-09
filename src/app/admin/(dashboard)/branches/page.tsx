@@ -320,7 +320,9 @@ export default function AdminBranchesPage() {
       </section>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        {/* 합계 칩 (지점/회원/PT/예약) — 같은 카운트가 각 지점 카드 안에도 있어
+            모바일에서는 줄바꿈만 만들 뿐 정보 가치가 적음. sm+ 에서만 노출. */}
+        <div className="hidden flex-wrap items-center gap-2 text-sm sm:flex">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1">
             <BuildingOffice2Icon className="size-3.5 text-primary" />
             <span className="font-semibold text-gray-900">
