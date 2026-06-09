@@ -125,9 +125,26 @@ export function ContractDialog({
 
   // 종이 영역 전체를 한 장의 이미지로 캡처. 컨트롤(다시 그리기·서명 완료·에러문구) 은
   // data-capture-ignore 속성으로 제외해서 신청서 본문만 남게 함.
+  //
+  // prod 모바일에서 폰트(Pretendard) 가 아직 로딩 중일 때 캡처되면 fallback 폰트 메트릭으로
+  // 레이아웃이 잡혀 글자·서명이 잘려보이는 문제가 있었음. 캡처 전에 폰트 로딩 + 한 프레임
+  // 대기로 레이아웃 안정화.
   async function captureContract(): Promise<Blob | null> {
     const el = paperRef.current;
     if (!el) return null;
+    // 1) 커스텀 폰트 로딩 완료 대기 — 모바일/느린 네트워크 대비
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        // 폰트 promise 가 실패해도 진행 (fallback 폰트로 캡처)
+      }
+    }
+    // 2) 한 프레임 더 — 폰트 적용 후 레이아웃·캔버스 리사이즈 안정화
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
+    );
+
     const canvas = await html2canvas(el, {
       backgroundColor: "#ffffff",
       // scale 1.5 — 종이가 길어서 2 로 잡으면 파일/픽셀 모두 부담. 1.5 도 글자 충분히 또렷.
