@@ -1,9 +1,10 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState, type ComponentType } from "react";
+import { useMemo, useState, type ComponentType } from "react";
 import {
   BuildingOffice2Icon,
+  CalendarDaysIcon,
   ChatBubbleBottomCenterTextIcon,
   FlagIcon,
   MegaphoneIcon,
@@ -138,6 +139,29 @@ function fillWithEnum(
   return { ...data, items: [...data.items, ...missing] };
 }
 
+// 이번 달 (yyyy-mm) — lazy init 용. month 셀렉터 기본값.
+function currentMonthYM(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+// 최근 N개월 옵션 — 이번 달부터 과거로 N-1개월. 이번 달엔 "(이번 달)" 표시.
+function buildMonthOptions(count: number): { value: string; label: string }[] {
+  const now = new Date();
+  const out: { value: string; label: string }[] = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const value = `${y}-${String(m).padStart(2, "0")}`;
+    const label = i === 0 ? `${y}년 ${m}월 (이번 달)` : `${y}년 ${m}월`;
+    out.push({ value, label });
+  }
+  return out;
+}
+
 export default function AdminStatsPage() {
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -156,17 +180,21 @@ export default function AdminStatsPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
 
+  // 월 필터 — 기본값 이번 달. 최근 12개월 옵션.
+  const [month, setMonth] = useState<string>(currentMonthYM);
+  const monthOptions = useMemo(() => buildMonthOptions(12), []);
+
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
 
   const referralQuery = useQuery({
-    queryKey: ["admin", "stats", "referral", branchId ?? "all"],
-    queryFn: () => getReferralStats(branchId),
-    // 지점 변경 시 깜빡임 방지
+    queryKey: ["admin", "stats", "referral", branchId ?? "all", month],
+    queryFn: () => getReferralStats(branchId, month),
+    // 지점·월 변경 시 깜빡임 방지
     placeholderData: keepPreviousData,
   });
   const motivationQuery = useQuery({
-    queryKey: ["admin", "stats", "motivation", branchId ?? "all"],
-    queryFn: () => getMotivationStats(branchId),
+    queryKey: ["admin", "stats", "motivation", branchId ?? "all", month],
+    queryFn: () => getMotivationStats(branchId, month),
     placeholderData: keepPreviousData,
   });
 
@@ -181,11 +209,19 @@ export default function AdminStatsPage() {
     <div>
       <PageTitle title="통계" />
       <p className="mt-1 text-sm text-gray-500">
-        이번 달 신청 기준 집계입니다.
+        선택한 달 신청 기준 집계입니다.
       </p>
 
-      {isSuper && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+        <Select
+          id="month"
+          label="월"
+          icon={CalendarDaysIcon}
+          options={monthOptions}
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+        />
+        {isSuper && (
           <Select
             id="branch"
             label="지점"
@@ -200,8 +236,8 @@ export default function AdminStatsPage() {
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="mt-6">
         {isLoading ? (
