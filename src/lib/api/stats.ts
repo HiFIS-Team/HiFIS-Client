@@ -49,6 +49,23 @@ export function getMotivationStats(
   );
 }
 
+// 회원권 잔여 기간 분포 — 오늘 시점 스냅샷.
+// items 모양은 기존 StatItem 과 동일 (StatChart 재사용).
+export interface MembershipExpiryResponse {
+  items: StatItem[];
+  total: number;
+}
+
+// GET /admin/stats/membership-expiry — 유효 회원의 잔여 기간 구간별 카운트.
+export function getMembershipExpiryStats(
+  branchId?: string,
+): Promise<MembershipExpiryResponse> {
+  return apiFetch<MembershipExpiryResponse>(
+    statsPath("/admin/stats/membership-expiry", branchId),
+    { auth: true },
+  );
+}
+
 // 신규(NEW) vs 재등록(EXISTING) 비율 — 회원·수강권 묶음.
 // items 의 code/label 모양은 기존 StatItem 과 동일.
 export interface CategoryStatsResponse {

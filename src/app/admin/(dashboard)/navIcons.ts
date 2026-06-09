@@ -8,6 +8,7 @@ import {
   ChartBarIcon,
   ChartPieIcon,
   ChatBubbleLeftRightIcon,
+  ClockIcon,
   CubeIcon,
   HeartIcon,
   ScaleIcon,
@@ -32,6 +33,7 @@ export const NAV_ICONS: Record<
   "/admin/stats": ChartBarIcon,
   "/admin/pass-sales": ChartPieIcon,
   "/admin/registration-mix": ArrowsRightLeftIcon,
+  "/admin/membership-expiry": ClockIcon,
   "/admin/messages": ChatBubbleLeftRightIcon,
   "/admin/admins": UserGroupIcon,
   // 직원 관리 — 준비중 메뉴들. 실제 페이지는 아직 없음.
