@@ -59,15 +59,26 @@ export default function AdminMembersPage() {
     retry: false,
   });
   // detail fetch 성공 → viewTarget 으로 다이얼로그 자동 오픈.
-  // 그리고 ?detail 쿼리를 즉시 URL 에서 제거 — 안 그러면 사이드바로 다른 페이지
-  // 갔다 돌아왔을 때 ?detail 이 남아있거나 캐시가 살아있어 다이얼로그가 자동으로
-  // 다시 열림. 한 번 소비한 알림은 두 번 트리거되지 않게.
+  // 추가로 sessionStorage 에 "이번 탭 세션에서 소비한 detail id" 를 기록 → 어떤 이유로든
+  // URL 에 ?detail 이 남아있거나 다른 페이지 다녀와도 다시 자동 오픈되지 않게 함.
+  // (router.replace 만으로 안 풀리던 케이스 대비)
   useEffect(() => {
-    if (detailQuery.data && detailQuery.data.id === detailId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setViewTarget(detailQuery.data);
+    if (!detailQuery.data || detailQuery.data.id !== detailId) return;
+    const consumedKey = `admin-detail-consumed:member:${detailId}`;
+    if (
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(consumedKey)
+    ) {
+      // 이미 소비된 ID — URL 만 정리하고 종료
       router.replace(pathname);
+      return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setViewTarget(detailQuery.data);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(consumedKey, "1");
+    }
+    router.replace(pathname);
   }, [detailQuery.data, detailId, router, pathname]);
   // 실패 (404·권한 등) → 안내 + URL 정리
   useEffect(() => {
@@ -77,8 +88,14 @@ export default function AdminMembersPage() {
     }
   }, [detailQuery.isError, detailId, toast, router, pathname]);
 
-  // 상세 다이얼로그 닫기 — URL 의 ?detail 도 함께 제거해야 effect 재진입 방지
+  // 상세 다이얼로그 닫기 — URL 의 ?detail 정리 + sessionStorage consumed 해제
+  // (해제하면 같은 알림을 또 받았을 때 자동 오픈 가능)
   function closeView() {
+    if (viewTarget && typeof window !== "undefined") {
+      window.sessionStorage.removeItem(
+        `admin-detail-consumed:member:${viewTarget.id}`,
+      );
+    }
     setViewTarget(null);
     if (detailId) router.replace(pathname);
   }
