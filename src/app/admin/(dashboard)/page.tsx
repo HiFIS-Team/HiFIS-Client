@@ -518,13 +518,17 @@ export default function AdminDashboardPage() {
     queryFn: () => getAdmins(),
     enabled: isSuper,
   });
-  // 우수사원 카드의 지점별 1위 자리용 — 모든 역할에 표시 (FC 도 본인 지점 자리 보임).
+  // 우수사원 카드의 지점별 1위 자리용 — SUPER_ADMIN 은 전 지점, FC 는 본인 지점만.
+  // (GET /branches 자체는 공개라 응답엔 전부 옴 → 프론트에서 FC 필터)
   const branchesQuery = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
   });
   // 화순 → 첨단 → 동광주 순서로 정렬해 카드 첫 화면에 화순이 먼저 보이게.
-  const branches = sortBranchesForDashboard(branchesQuery.data ?? []);
+  const allBranches = sortBranchesForDashboard(branchesQuery.data ?? []);
+  const branches = isSuper
+    ? allBranches
+    : allBranches.filter((b) => b.id === meQuery.data?.branch_id);
 
   const summary = summaryQuery.data;
   const m = summary?.members;
