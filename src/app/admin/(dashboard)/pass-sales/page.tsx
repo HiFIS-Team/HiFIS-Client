@@ -21,21 +21,51 @@ import {
 import { Select } from "@/components/Select";
 import { StatChart } from "@/components/StatChart";
 import { buildMonthOptions, currentMonthYM } from "@/lib/statsMonth";
+import { comparePassOrderByName } from "@/lib/passDuration";
+
+// 통계 응답의 패스 항목을 상품관리 페이지(sortPassesForUI) 와 같은 순서로 정렬.
+// 백엔드 응답이 어떤 순서로 오든 화면에서 동일한 순서로 보이게 한다.
+function sortStatItems(items: StatItem[]): StatItem[] {
+  return items
+    .slice()
+    .sort((a, b) => comparePassOrderByName(a.label, b.label));
+}
 
 // 4종(회원권/PT/락커/운동복) 탭 전환. 한 번에 한 차트만 보여 화면을 짧게 유지.
 // 탭 라벨 옆에 그 종류의 총 건수를 같이 표시해 4종 비교는 탭 줄에서 한 번에.
 function PassSalesTabs({ data }: { data: PassSalesResponse }) {
   type TabKey = "membership" | "pt" | "locker" | "clothes";
+  // items 는 상품관리·신청서 Select 와 같은 순서로 정렬해서 표시.
   const tabs: {
     key: TabKey;
     label: string;
     icon: ComponentType<{ className?: string }>;
     data: { items: StatItem[]; total: number };
   }[] = [
-    { key: "membership", label: "회원권", icon: TicketIcon, data: data.membership },
-    { key: "pt", label: "PT", icon: UserIcon, data: data.pt },
-    { key: "locker", label: "락커", icon: KeyIcon, data: data.locker },
-    { key: "clothes", label: "운동복", icon: SparklesIcon, data: data.clothes },
+    {
+      key: "membership",
+      label: "회원권",
+      icon: TicketIcon,
+      data: { items: sortStatItems(data.membership.items), total: data.membership.total },
+    },
+    {
+      key: "pt",
+      label: "PT",
+      icon: UserIcon,
+      data: { items: sortStatItems(data.pt.items), total: data.pt.total },
+    },
+    {
+      key: "locker",
+      label: "락커",
+      icon: KeyIcon,
+      data: { items: sortStatItems(data.locker.items), total: data.locker.total },
+    },
+    {
+      key: "clothes",
+      label: "운동복",
+      icon: SparklesIcon,
+      data: { items: sortStatItems(data.clothes.items), total: data.clothes.total },
+    },
   ];
   const [active, setActive] = useState<TabKey>("membership");
   const activeTab = tabs.find((t) => t.key === active)!;
