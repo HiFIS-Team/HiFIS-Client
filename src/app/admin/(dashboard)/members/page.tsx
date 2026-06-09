@@ -210,7 +210,7 @@ export default function AdminMembersPage() {
     <div>
       <PageTitle title="회원 조회" />
       <p className="mt-1 text-sm text-gray-500">
-        키오스크 회원가입 신청서로 접수된 회원입니다.
+        회원가입 신청서로 접수된 회원입니다.
       </p>
 
       <div
