@@ -16,6 +16,34 @@ import { RowActionButton } from "@/components/RowActionButton";
 import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
 
+// 운영 시나리오 흐름 순서로 정렬 — 예약 → 가입 → 만기 → 홀딩 → 취소 → 재등록.
+// 백엔드 라벨 표기 변형(공백·부호)에 견고하게 정규식 매칭.
+// negative lookahead 로 "+" 가 포함된 라벨은 단일 패턴에 안 걸리게 분리.
+const ALIMTALK_TRIGGER_ORDER: RegExp[] = [
+  /^\s*예약(?!.*[+＋])/, // 예약 (또는 "예약 확인") — + 부호 없는 단일
+  /예약.*[+＋].*3.*일/, // 예약 +3일
+  /예약.*[+＋].*5.*일/, // 예약 +5일
+  /(신청|가입).*등록/, // 신청 등록 / 가입 등록
+  /가입.*7/, // 가입 +7일
+  /가입.*14/, // 가입 +14일
+  /가입.*30/, // 가입 +30일
+  /만기.*[-－−].*5|만기.*5\s*일\s*전/, // 만기 -5일
+  /만기.*[-－−].*2|만기.*2\s*일\s*전/, // 만기 -2일
+  /만기.*당일|^\s*만기일?\s*$/, // 만기 당일
+  /만기.*[+＋].*30|만기\s*후.*30/, // 만기 +30일
+  /홀딩.*시작|시작.*홀딩/, // 홀딩 시작
+  /홀딩/, // 그 외 홀딩
+  /취소/, // 취소
+  /재등록/, // 재등록
+];
+
+function triggerOrder(label: string): number {
+  for (let i = 0; i < ALIMTALK_TRIGGER_ORDER.length; i++) {
+    if (ALIMTALK_TRIGGER_ORDER[i].test(label)) return i;
+  }
+  return ALIMTALK_TRIGGER_ORDER.length;
+}
+
 // 알림톡 종류별 ON/OFF (1단계). 본문 편집·조건 필터는 추후 단계.
 // 전역 알림톡 발송 + 지점 토글과 AND 동작.
 export default function AdminAlimtalkTemplatesPage() {
@@ -61,7 +89,18 @@ export default function AdminAlimtalkTemplatesPage() {
 
   const isLoading = templatesQuery.isLoading || enumsQuery.isLoading;
   const isError = templatesQuery.isError || enumsQuery.isError;
-  const items = templatesQuery.data ?? [];
+  // 운영 시나리오 흐름 순서로 정렬 — 매칭 안 되는 항목은 뒤로, 같은 순위면 라벨 가나다.
+  const items = useMemo(() => {
+    const arr = templatesQuery.data ?? [];
+    return arr.slice().sort((a, b) => {
+      const la = triggerLabel(a.trigger_type);
+      const lb = triggerLabel(b.trigger_type);
+      const oa = triggerOrder(la);
+      const ob = triggerOrder(lb);
+      if (oa !== ob) return oa - ob;
+      return la.localeCompare(lb);
+    });
+  }, [templatesQuery.data, triggerLabel]);
   const isTogglePending = (id: string) =>
     toggleMutation.isPending && toggleMutation.variables?.id === id;
 
