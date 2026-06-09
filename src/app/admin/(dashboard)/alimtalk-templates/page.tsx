@@ -1,15 +1,27 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PageTitle } from "../PageTitle";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  BuildingOffice2Icon,
+  TagIcon,
+} from "@heroicons/react/24/outline";
 import {
   getAlimtalkTemplates,
   updateAlimtalkTemplate,
   type AlimtalkTemplate,
 } from "@/lib/api/alimtalkTemplates";
+import { getMe } from "@/lib/api/auth";
+import { getBranches } from "@/lib/api/branches";
 import { getEnums } from "@/lib/api/enums";
 import { getErrorMessage } from "@/lib/api/client";
+import { Select } from "@/components/Select";
 import { Switch } from "@/components/Switch";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { RowActionButton } from "@/components/RowActionButton";
@@ -50,9 +62,36 @@ export default function AdminAlimtalkTemplatesPage() {
   const toast = useToast();
   const qc = useQueryClient();
 
+  const meQuery = useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: getMe,
+    retry: false,
+  });
+  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
+
+  const branchesQuery = useQuery({
+    queryKey: ["branches"],
+    queryFn: getBranches,
+    enabled: isSuper,
+  });
+
+  // 지점 필터 — "전체 지점" 옵션 없음. SUPER_ADMIN 기본값은 화순점.
+  // FC 는 토큰 기반 자동 분기라 셀렉터 자체를 숨김.
+  const [branchFilter, setBranchFilter] = useState("");
+  const branches = branchesQuery.data ?? [];
+  const defaultBranch =
+    branches.find((b) => b.name.includes("화순")) ?? branches[0];
+  const branchId = isSuper ? branchFilter || defaultBranch?.id : undefined;
+
+  // 종류 필터 — "" = 전체 종류. 클라이언트 측 필터 (그 지점의 row 가 15개 정도라 부담 없음).
+  const [typeFilter, setTypeFilter] = useState("");
+
   const templatesQuery = useQuery({
-    queryKey: ["admin", "alimtalk-templates"],
-    queryFn: getAlimtalkTemplates,
+    queryKey: ["admin", "alimtalk-templates", branchId ?? "self"],
+    queryFn: () => getAlimtalkTemplates(branchId),
+    placeholderData: keepPreviousData,
+    // SUPER_ADMIN 은 branchId 정해진 뒤에만 호출 (브랜치 로드 전 한 번 비호출).
+    enabled: !isSuper || !!branchId,
   });
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
 
@@ -89,10 +128,14 @@ export default function AdminAlimtalkTemplatesPage() {
 
   const isLoading = templatesQuery.isLoading || enumsQuery.isLoading;
   const isError = templatesQuery.isError || enumsQuery.isError;
-  // 운영 시나리오 흐름 순서로 정렬 — 매칭 안 되는 항목은 뒤로, 같은 순위면 라벨 가나다.
+  // 종류 필터 적용 후 운영 시나리오 흐름 순서로 정렬.
+  // 매칭 안 되는 항목은 뒤로, 같은 순위면 라벨 가나다.
   const items = useMemo(() => {
     const arr = templatesQuery.data ?? [];
-    return arr.slice().sort((a, b) => {
+    const filtered = typeFilter
+      ? arr.filter((t) => t.trigger_type === typeFilter)
+      : arr;
+    return filtered.slice().sort((a, b) => {
       const la = triggerLabel(a.trigger_type);
       const lb = triggerLabel(b.trigger_type);
       const oa = triggerOrder(la);
@@ -100,7 +143,7 @@ export default function AdminAlimtalkTemplatesPage() {
       if (oa !== ob) return oa - ob;
       return la.localeCompare(lb);
     });
-  }, [templatesQuery.data, triggerLabel]);
+  }, [templatesQuery.data, triggerLabel, typeFilter]);
   const isTogglePending = (id: string) =>
     toggleMutation.isPending && toggleMutation.variables?.id === id;
 
@@ -126,6 +169,33 @@ export default function AdminAlimtalkTemplatesPage() {
         알림톡 종류별로 발송을 켜고 끌 수 있어요. 전역 알림톡 발송, 지점별
         토글과 함께 동작해서 한 곳이라도 꺼져 있으면 발송되지 않아요.
       </p>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+        {isSuper && (
+          <Select
+            id="branch-filter"
+            label="지점"
+            icon={BuildingOffice2Icon}
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
+            value={branchFilter || defaultBranch?.id || ""}
+            onChange={(e) => setBranchFilter(e.target.value)}
+          />
+        )}
+        <Select
+          id="type-filter"
+          label="종류"
+          icon={TagIcon}
+          options={[
+            { value: "", label: "전체 종류" },
+            ...(enumsQuery.data?.trigger_type ?? []).map((o) => ({
+              value: o.code,
+              label: o.label,
+            })),
+          ]}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+        />
+      </div>
 
       <div className="mt-6">
         {isLoading ? (
