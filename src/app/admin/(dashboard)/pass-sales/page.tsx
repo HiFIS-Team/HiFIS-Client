@@ -72,7 +72,9 @@ function PassSalesTabs({ data }: { data: PassSalesResponse }) {
 
   return (
     <div>
-      <div className="flex gap-4 overflow-x-auto border-b border-gray-200">
+      {/* 좁은 화면에서 라벨이 잘리지 않게 가로 스크롤은 유지하되 스크롤바는 숨김 —
+          Tailwind v4 arbitrary variants 로 Webkit / Firefox / IE 한 번에 처리 */}
+      <div className="flex gap-4 overflow-x-auto border-b border-gray-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((t) => {
           const isActive = t.key === active;
           const Icon = t.icon;
