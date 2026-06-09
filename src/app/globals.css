@@ -64,6 +64,17 @@ body {
     transform: translateY(0);
   }
 }
+/* 캐러셀 다음 슬라이드 — 우측에서 카드가 들어오는 느낌 (translateX 큼) */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
 .animate-toast-in {
   animation: toast-in 0.18s ease-out;
@@ -76,4 +87,7 @@ body {
 }
 .animate-panel-in {
   animation: panel-in 0.18s ease-out;
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.22s ease-out;
 }

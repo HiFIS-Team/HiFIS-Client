@@ -228,9 +228,10 @@ export default function AdminPassesPage() {
         </button>
       </div>
 
-      {/* 탭 행 — 데스크탑에선 등록 버튼이 우측에 함께 */}
-      <div className="mt-4 flex items-end border-b border-gray-200 lg:mt-6 lg:justify-between lg:gap-3">
-        <div className="flex gap-1">
+      {/* 탭 행 — 상품별 판매와 동일하게 4개 flex-1 균등 분할 (모바일 가로 스크롤 X).
+          데스크탑은 탭 영역 우측에 등록 버튼이 함께. */}
+      <div className="mt-4 flex items-end border-b border-gray-200 lg:mt-6 lg:gap-3">
+        <div className="flex flex-1">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -238,7 +239,7 @@ export default function AdminPassesPage() {
                 key={t.type}
                 type="button"
                 onClick={() => setActiveType(t.type)}
-                className={`-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap ${
+                className={`-mb-px flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-sm font-medium whitespace-nowrap sm:px-4 ${
                   activeType === t.type
                     ? "border-primary text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-800"

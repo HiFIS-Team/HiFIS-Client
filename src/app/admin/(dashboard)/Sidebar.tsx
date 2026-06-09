@@ -46,11 +46,17 @@ const NAV: NavGroup[] = [
     ],
   },
   {
-    label: "분석",
+    label: "통계",
     items: [
-      { href: "/admin/stats", label: "통계" },
-      { href: "/admin/messages", label: "알림톡 이력" },
+      { href: "/admin/stats", label: "유입·방문" },
+      { href: "/admin/pass-sales", label: "상품별 판매" },
+      { href: "/admin/registration-mix", label: "신규·재등록" },
+      { href: "/admin/membership-expiry", label: "잔여 기간" },
     ],
+  },
+  {
+    label: "알림톡",
+    items: [{ href: "/admin/messages", label: "알림톡 이력" }],
   },
   {
     label: "직원 관리",
@@ -80,7 +86,10 @@ const NAV: NavGroup[] = [
   },
   {
     label: "계정",
-    items: [{ href: "/admin/admins", label: "관리자 관리", superOnly: true }],
+    items: [
+      { href: "/admin/admins", label: "관리자 관리", superOnly: true },
+      { href: "/admin/release-notes", label: "패치 노트" },
+    ],
   },
 ];
 

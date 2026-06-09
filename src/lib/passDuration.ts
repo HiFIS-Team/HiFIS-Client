@@ -112,3 +112,17 @@ export function sortPassesForUI(arr: Pass[]): Pass[] {
     return a.name.localeCompare(b.name);
   });
 }
+
+// 이름만 가지고 sortPassesForUI 와 같은 순서로 비교 — 카테고리 → 기간 → 이름.
+// 가격 단계는 빠짐(Pass 객체가 없는 통계 응답 등에서 사용). 같은 카테고리·기간이면
+// 가격 차이는 거의 없는 변형(드물게만 존재)이라 실용상 동일한 정렬 결과.
+export function comparePassOrderByName(aName: string, bName: string): number {
+  const ca = passCategoryKey(aName);
+  const cb = passCategoryKey(bName);
+  if (ca.sort !== cb.sort) return ca.sort - cb.sort;
+  if (ca.label !== cb.label) return ca.label.localeCompare(cb.label);
+  const da = passDurationDays({ name: aName });
+  const db = passDurationDays({ name: bName });
+  if (da !== db) return da - db;
+  return aName.localeCompare(bName);
+}

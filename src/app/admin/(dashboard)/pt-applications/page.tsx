@@ -64,14 +64,24 @@ export default function AdminPtApplicationsPage() {
     enabled: !!detailId,
     retry: false,
   });
-  // 자동 오픈 후 ?detail 즉시 제거 — 다른 페이지 갔다 돌아왔을 때 자동 재오픈 방지.
+  // detail fetch 성공 → 자동 오픈 + sessionStorage consumed 마킹.
   // (회원 페이지와 동일 패턴. members/page.tsx 주석 참조)
   useEffect(() => {
-    if (detailQuery.data && detailQuery.data.id === detailId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setViewTarget(detailQuery.data);
+    if (!detailQuery.data || detailQuery.data.id !== detailId) return;
+    const consumedKey = `admin-detail-consumed:pt:${detailId}`;
+    if (
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(consumedKey)
+    ) {
       router.replace(pathname);
+      return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setViewTarget(detailQuery.data);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(consumedKey, "1");
+    }
+    router.replace(pathname);
   }, [detailQuery.data, detailId, router, pathname]);
   useEffect(() => {
     if (detailQuery.isError && detailId) {
@@ -80,8 +90,13 @@ export default function AdminPtApplicationsPage() {
     }
   }, [detailQuery.isError, detailId, toast, router, pathname]);
 
-  // 상세 다이얼로그 닫기 — URL 의 ?detail 도 함께 제거해야 effect 재진입 방지
+  // 상세 다이얼로그 닫기 — URL 의 ?detail 정리 + sessionStorage consumed 해제
   function closeView() {
+    if (viewTarget && typeof window !== "undefined") {
+      window.sessionStorage.removeItem(
+        `admin-detail-consumed:pt:${viewTarget.id}`,
+      );
+    }
     setViewTarget(null);
     if (detailId) router.replace(pathname);
   }
@@ -211,7 +226,7 @@ export default function AdminPtApplicationsPage() {
     <div>
       <PageTitle title="PT 조회" />
       <p className="mt-1 text-sm text-gray-500">
-        키오스크 PT 신청서로 접수된 개인 레슨 신청입니다.
+        PT 신청서로 접수된 개인 레슨 신청입니다.
       </p>
 
       <div

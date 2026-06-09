@@ -1,9 +1,10 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useState, type ComponentType } from "react";
+import { useMemo, useState, type ComponentType } from "react";
 import {
   BuildingOffice2Icon,
+  CalendarDaysIcon,
   ChatBubbleBottomCenterTextIcon,
   FlagIcon,
   MegaphoneIcon,
@@ -21,57 +22,8 @@ import { getEnums } from "@/lib/api/enums";
 import type { EnumOption } from "@/lib/api/types";
 import { aggregateReferralDetails } from "@/lib/referral";
 import { Select } from "@/components/Select";
-
-// 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이)
-function StatChart({
-  title,
-  data,
-  icon: Icon,
-}: {
-  title: string;
-  data: StatsResponse;
-  icon?: ComponentType<{ className?: string }>;
-}) {
-  return (
-    <section className="rounded-xl border border-gray-200 p-5">
-      <div className="flex items-baseline justify-between">
-        <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
-          {Icon && <Icon className="size-4 text-primary" />}
-          {title}
-        </h2>
-        <span className="text-sm text-gray-500">총 {data.total}건</span>
-      </div>
-      {data.items.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-500">데이터가 없습니다.</p>
-      ) : (
-        <div className="mt-4 space-y-3">
-          {data.items.map((item) => {
-            const pct =
-              data.total > 0
-                ? Math.round((item.count / data.total) * 100)
-                : 0;
-            return (
-              <div key={item.code}>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-700">{item.label}</span>
-                  <span className="text-gray-500">
-                    {item.count}건 · {pct}%
-                  </span>
-                </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-}
+import { StatChart } from "@/components/StatChart";
+import { buildMonthOptions, currentMonthYM } from "@/lib/statsMonth";
 
 // 자유 입력 항목(referral_detail) 별 카운트 — enum 차트와 별개 섹션.
 // 백엔드가 "기타" 선택 후 자유 입력된 텍스트들을 집계해 내려준다.
@@ -156,17 +108,21 @@ export default function AdminStatsPage() {
   const [branchFilter, setBranchFilter] = useState("");
   const branchId = isSuper ? branchFilter || undefined : undefined;
 
+  // 월 필터 — 기본값 이번 달. 최근 12개월 옵션.
+  const [month, setMonth] = useState<string>(currentMonthYM);
+  const monthOptions = useMemo(() => buildMonthOptions(12), []);
+
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
 
   const referralQuery = useQuery({
-    queryKey: ["admin", "stats", "referral", branchId ?? "all"],
-    queryFn: () => getReferralStats(branchId),
-    // 지점 변경 시 깜빡임 방지
+    queryKey: ["admin", "stats", "referral", branchId ?? "all", month],
+    queryFn: () => getReferralStats(branchId, month),
+    // 지점·월 변경 시 깜빡임 방지
     placeholderData: keepPreviousData,
   });
   const motivationQuery = useQuery({
-    queryKey: ["admin", "stats", "motivation", branchId ?? "all"],
-    queryFn: () => getMotivationStats(branchId),
+    queryKey: ["admin", "stats", "motivation", branchId ?? "all", month],
+    queryFn: () => getMotivationStats(branchId, month),
     placeholderData: keepPreviousData,
   });
 
@@ -179,13 +135,21 @@ export default function AdminStatsPage() {
 
   return (
     <div>
-      <PageTitle title="통계" />
+      <PageTitle title="유입·방문" />
       <p className="mt-1 text-sm text-gray-500">
-        이번 달 신청 기준 집계입니다.
+        선택한 달 신청 기준 집계입니다.
       </p>
 
-      {isSuper && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
+        <Select
+          id="month"
+          label="월"
+          icon={CalendarDaysIcon}
+          options={monthOptions}
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+        />
+        {isSuper && (
           <Select
             id="branch"
             label="지점"
@@ -200,8 +164,8 @@ export default function AdminStatsPage() {
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="mt-6">
         {isLoading ? (
@@ -242,6 +206,7 @@ export default function AdminStatsPage() {
           </div>
         )}
       </div>
+
     </div>
   );
 }

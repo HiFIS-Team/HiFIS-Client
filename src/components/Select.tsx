@@ -108,6 +108,9 @@ export function Select({
             // 채 사용자가 누르는 사이 다시 아래로 점프해 탭 미스나는 문제 해결.
             // 패널 height: 모바일 max-h-44(176px ≈ 4-5항목), sm+ max-h-56(224px).
             anchor={false}
+            // modal=false — 기본값(true) 이면 Listbox 열릴 때 body scroll lock 이 걸려서
+            // 폼 스크롤이 멈춤. 드롭다운은 모달이 아니라 인라인 위젯이라 lock 불필요.
+            modal={false}
             transition
             className="absolute top-full left-0 z-[60] mt-1 w-full max-h-44 sm:max-h-56 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in data-[closed]:opacity-0"
           >
