@@ -7,15 +7,21 @@ import {
   CalendarDaysIcon,
   ChatBubbleBottomCenterTextIcon,
   FlagIcon,
+  KeyIcon,
   MegaphoneIcon,
+  SparklesIcon,
+  TicketIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import {
   getMotivationStats,
+  getPassSalesStats,
   getReferralStats,
   type StatDetailItem,
+  type StatItem,
   type StatsResponse,
 } from "@/lib/api/stats";
 import { getEnums } from "@/lib/api/enums";
@@ -23,14 +29,15 @@ import type { EnumOption } from "@/lib/api/types";
 import { aggregateReferralDetails } from "@/lib/referral";
 import { Select } from "@/components/Select";
 
-// 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이)
+// 막대 그래프 형태의 통계 블록 (차트 라이브러리 없이).
+// data 는 items + total 만 필요 — referral/motivation(StatsResponse) 와 상품 판매 통계 모두 재사용.
 function StatChart({
   title,
   data,
   icon: Icon,
 }: {
   title: string;
-  data: StatsResponse;
+  data: { items: StatItem[]; total: number };
   icon?: ComponentType<{ className?: string }>;
 }) {
   return (
@@ -197,6 +204,11 @@ export default function AdminStatsPage() {
     queryFn: () => getMotivationStats(branchId, month),
     placeholderData: keepPreviousData,
   });
+  const passSalesQuery = useQuery({
+    queryKey: ["admin", "stats", "passes", branchId ?? "all", month],
+    queryFn: () => getPassSalesStats(branchId, month),
+    placeholderData: keepPreviousData,
+  });
 
   const isLoading =
     enumsQuery.isLoading ||
@@ -277,6 +289,47 @@ export default function AdminStatsPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* 상품별 판매 — 회원권/PT/락커/운동복 4종. 별도 섹션으로 분리해서
+          이 쿼리만 실패해도 위쪽 유입·방문 통계는 정상 표시되게. */}
+      <div className="mt-10">
+        <h2 className="text-base font-semibold text-gray-900">상품별 판매</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          선택한 달에 신청·등록된 상품 종류별 건수입니다.
+        </p>
+        <div className="mt-4">
+          {passSalesQuery.isLoading ? (
+            <p className="text-sm text-gray-500">불러오는 중…</p>
+          ) : passSalesQuery.isError ? (
+            <p className="text-sm text-gray-500">
+              상품 판매 통계를 불러오지 못했습니다.
+            </p>
+          ) : passSalesQuery.data ? (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <StatChart
+                title="회원권"
+                icon={TicketIcon}
+                data={passSalesQuery.data.membership}
+              />
+              <StatChart
+                title="PT"
+                icon={UserIcon}
+                data={passSalesQuery.data.pt}
+              />
+              <StatChart
+                title="락커"
+                icon={KeyIcon}
+                data={passSalesQuery.data.locker}
+              />
+              <StatChart
+                title="운동복"
+                icon={SparklesIcon}
+                data={passSalesQuery.data.clothes}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

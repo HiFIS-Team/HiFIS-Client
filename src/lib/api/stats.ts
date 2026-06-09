@@ -48,3 +48,23 @@ export function getMotivationStats(
     { auth: true },
   );
 }
+
+// 상품별 판매 통계 — 4종(회원권/PT/락커/운동복) 묶음.
+// 각 종의 items[i].code = pass_id, label = pass_name. 기존 StatChart 재사용.
+export interface PassSalesResponse {
+  membership: { items: StatItem[]; total: number };
+  pt: { items: StatItem[]; total: number };
+  locker: { items: StatItem[]; total: number };
+  clothes: { items: StatItem[]; total: number };
+}
+
+// GET /admin/stats/passes — 상품별 월 판매 건수.
+export function getPassSalesStats(
+  branchId?: string,
+  month?: string,
+): Promise<PassSalesResponse> {
+  return apiFetch<PassSalesResponse>(
+    statsPath("/admin/stats/passes", branchId, month),
+    { auth: true },
+  );
+}
