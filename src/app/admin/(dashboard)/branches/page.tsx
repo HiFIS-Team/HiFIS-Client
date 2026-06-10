@@ -277,7 +277,7 @@ export default function AdminBranchesPage() {
   return (
     <div>
       <PageTitle title="지점 관리" />
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-500 lg:hidden">
         피트니스스타 지점을 등록·수정합니다.
       </p>
 

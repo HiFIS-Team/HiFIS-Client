@@ -209,7 +209,7 @@ export default function AdminMembersPage() {
   return (
     <div>
       <PageTitle title="회원 조회" />
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-500 lg:hidden">
         회원가입 신청서로 접수된 회원입니다.
       </p>
 

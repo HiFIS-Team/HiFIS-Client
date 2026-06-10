@@ -74,7 +74,7 @@ export default function AdminPassSalesPage() {
   return (
     <div>
       <PageTitle title="상품별 판매" />
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-500 lg:hidden">
         선택한 달에 신청·등록된 상품 종류별 건수입니다.
       </p>
 

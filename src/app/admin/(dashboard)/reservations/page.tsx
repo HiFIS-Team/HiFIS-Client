@@ -64,7 +64,7 @@ export default function AdminReservationsPage() {
   return (
     <div>
       <PageTitle title="예약 신청 조회" />
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-500 lg:hidden">
         네이버 플레이스를 통해 접수된 방문 예약입니다.
       </p>
 
