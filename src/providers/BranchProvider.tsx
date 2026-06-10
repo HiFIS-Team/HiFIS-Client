@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import type { Branch } from "@/lib/api/types";
+import { useToast } from "@/providers/ToastProvider";
 
 // 글로벌 지점 선택 — 모든 어드민 페이지가 이 한 지점을 기준으로 데이터를 보여준다.
 // "전체 지점" 옵션은 없음 (대표 요청). SUPER_ADMIN 은 사이드바 셀렉터로 전환,
@@ -41,7 +42,13 @@ export function useBranch(): BranchContextValue {
   return ctx;
 }
 
+// "피트니스스타 화순점" → "화순점" — 토스트·칩에 공통으로 쓰는 짧은 형태.
+function branchShortName(name: string): string {
+  return name.replace(/^피트니스스타\s*/, "");
+}
+
 export function BranchProvider({ children }: { children: ReactNode }) {
+  const toast = useToast();
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
     queryFn: getMe,
@@ -84,10 +91,15 @@ export function BranchProvider({ children }: { children: ReactNode }) {
 
   function setSelectedBranchId(id: string) {
     if (!isSuper) return;
+    if (id === selectedBranchId) return;
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, id);
     }
     setStoredId(id);
+    const next = branches.find((b) => b.id === id);
+    if (next) {
+      toast.success(`${branchShortName(next.name)}으로 변경했습니다`);
+    }
   }
 
   const isReady =
