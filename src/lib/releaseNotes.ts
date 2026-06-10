@@ -28,6 +28,36 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "1.3.2",
+    date: "2026-06-10",
+    items: [
+      // 새 기능
+      {
+        type: "feature",
+        title: "알림톡 이력 한 줄씩 삭제",
+        description: [
+          "알림톡 이력에서 더 이상 필요 없는 한 줄을 골라 삭제할 수 있어요.",
+          "발송된 알림톡이 회수되는 것은 아니며, 어드민에서 보는 기록 한 줄만 사라져요.",
+        ],
+      },
+      // 개선
+      {
+        type: "improvement",
+        title: "삭제 시 \"삭제\" 입력 안전망",
+        description: [
+          "회원·PT·예약·관리자처럼 영향이 큰 데이터를 삭제할 때 실수로 누르더라도 바로 삭제되지 않도록, \"삭제\" 라고 직접 입력해야 진행되게 바꿨어요. (관리자 가입 거부는 \"거부\" 입력)",
+        ],
+      },
+      {
+        type: "improvement",
+        title: "알림톡 이력 모바일 카드 정돈",
+        description: [
+          "모바일에서 알림톡 이력 카드의 지점·시각 정보를 두 줄로 쌓고 보기·삭제 버튼이 가로 한 줄로 들어가게 정돈했어요.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.3.1",
     date: "2026-06-10",
     items: [
