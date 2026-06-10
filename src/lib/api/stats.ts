@@ -62,12 +62,14 @@ export interface MembershipExpiryResponse {
   total: number;
 }
 
-// GET /admin/stats/membership-expiry — 유효 회원의 잔여 기간 구간별 카운트.
+// GET /admin/stats/membership-expiry — 그 월 시점 기준 잔여 기간 구간별 카운트.
+// month 미지정 시 이번 달. 미래 달을 고르면 그 시점 시뮬레이션.
 export function getMembershipExpiryStats(
   branchId?: string,
+  month?: string,
 ): Promise<MembershipExpiryResponse> {
   return apiFetch<MembershipExpiryResponse>(
-    statsPath("/admin/stats/membership-expiry", branchId),
+    statsPath("/admin/stats/membership-expiry", branchId, month),
     { auth: true },
   );
 }
