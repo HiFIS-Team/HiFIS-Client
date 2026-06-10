@@ -414,6 +414,7 @@ export default function AdminMembersPage() {
           deleteTarget ? `${deleteTarget.name}님을 삭제하시겠습니까?` : ""
         }
         confirmLabel="삭제"
+        requireText="삭제"
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);

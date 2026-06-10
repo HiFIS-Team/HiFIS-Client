@@ -7,10 +7,18 @@ import {
   MagnifyingGlassIcon,
   TagIcon,
 } from "@heroicons/react/24/outline";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useBranch } from "@/providers/BranchProvider";
 import { getEnums } from "@/lib/api/enums";
-import { enumLabel, getAdminMessages } from "@/lib/api/messages";
+import { deleteMessage, enumLabel, getAdminMessages } from "@/lib/api/messages";
+import { getErrorMessage } from "@/lib/api/client";
+import { useToast } from "@/providers/ToastProvider";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { Select } from "@/components/Select";
 import { TextField } from "@/components/TextField";
@@ -38,9 +46,23 @@ function MsgStatusBadge({ status }: { status: string }) {
 
 export default function AdminMessagesPage() {
   const [viewTarget, setViewTarget] = useState<Message | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
+  const toast = useToast();
+  const qc = useQueryClient();
 
   // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점.
   const { selectedBranchId: branchId, branches, isSuper } = useBranch();
+
+  // 이력 한 건 삭제 — 발송 내용 자체가 사라지는 게 아니라 어드민에서 보는 기록만 정리.
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteMessage(id),
+    onSuccess: () => {
+      toast.success("이력을 삭제했어요.");
+      qc.invalidateQueries({ queryKey: ["admin", "messages"] });
+      setDeleteTarget(null);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
   const triggerTypes = enumsQuery.data?.trigger_type;
   // 종류(trigger_type) 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
@@ -156,21 +178,29 @@ export default function AdminMessagesPage() {
                     {m.content}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2">
-                    <p className="text-xs text-gray-400">
+                    {/* 모바일은 좌측 메타를 두 줄(지점 / 시각)로 정돈해 우측 버튼 가로 공간 확보 */}
+                    <div className="min-w-0 text-xs text-gray-400">
                       {isSuper && (
-                        <>
-                          {branchName(m.branch_id)}
-                          <span className="mx-1.5">·</span>
-                        </>
+                        <p className="truncate">{branchName(m.branch_id)}</p>
                       )}
-                      {formatDateTime(m.sent_at)}
-                    </p>
-                    <RowActionButton
-                      variant="neutral"
-                      onClick={() => setViewTarget(m)}
-                    >
-                      보기
-                    </RowActionButton>
+                      <p className={isSuper ? "mt-0.5" : ""}>
+                        {formatDateTime(m.sent_at)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <RowActionButton
+                        variant="neutral"
+                        onClick={() => setViewTarget(m)}
+                      >
+                        보기
+                      </RowActionButton>
+                      <RowActionButton
+                        variant="danger"
+                        onClick={() => setDeleteTarget(m)}
+                      >
+                        삭제
+                      </RowActionButton>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -208,12 +238,18 @@ export default function AdminMessagesPage() {
                       </span>
                     </Td>
                     <Td>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-2">
                         <RowActionButton
                           variant="neutral"
                           onClick={() => setViewTarget(m)}
                         >
                           보기
+                        </RowActionButton>
+                        <RowActionButton
+                          variant="danger"
+                          onClick={() => setDeleteTarget(m)}
+                        >
+                          삭제
                         </RowActionButton>
                       </div>
                     </Td>
@@ -241,6 +277,21 @@ export default function AdminMessagesPage() {
           onClose={() => setViewTarget(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        danger
+        title="이력 삭제"
+        message="이 이력을 삭제하시겠어요?"
+        notice="발송된 알림톡이 회수되는 것은 아니며, 어드민의 발송 기록 한 줄만 사라져요."
+        confirmLabel="삭제"
+        requireText="삭제"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
