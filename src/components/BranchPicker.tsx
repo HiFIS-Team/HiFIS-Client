@@ -14,8 +14,8 @@ import { CheckIcon } from "@heroicons/react/16/solid";
 import type { Branch } from "@/lib/api/types";
 
 // "피트니스스타 화순점" → "화순점" — 신청서 폼과 동일 prefix strip.
-// 글로벌 헤더의 좁은 공간에서 이름이 잘리지 않게.
-function branchShortName(name: string): string {
+// 글로벌 헤더의 좁은 공간에서 이름이 잘리지 않게. 헤더 라벨·토스트 등에서도 동일하게 씀.
+export function branchShortName(name: string): string {
   return name.replace(/^피트니스스타\s*/, "");
 }
 
