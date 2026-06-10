@@ -7,13 +7,10 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { adminRoleLabel } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
-import { useBranch } from "@/providers/BranchProvider";
 import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
-import { BranchPicker } from "@/components/BranchPicker";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
-import { NotificationBell } from "./NotificationBell";
 import { PushToggle } from "./PushToggle";
 
 interface NavItem {
@@ -116,13 +113,6 @@ export function Sidebar({
   const router = useRouter();
   const toast = useToast();
   const [passwordOpen, setPasswordOpen] = useState(false);
-  // 글로벌 지점 셀렉터 — SUPER_ADMIN 만 노출. FC 는 본인 지점 고정.
-  const {
-    selectedBranchId,
-    setSelectedBranchId,
-    branches,
-    isSuper,
-  } = useBranch();
   // 모바일 드로어 열려있는 동안 뒤 페이지 스크롤 잠금. 데스크탑(lg+)은 open 이
   // 항상 false 라 영향 없음 (드로어 토글은 모바일 햄버거에서만 호출됨).
   useBodyScrollLock(open);
@@ -169,10 +159,8 @@ export function Sidebar({
           <span className="text-lg font-bold text-gray-900">HiFIS</span>
           <span className="text-sm text-gray-500">관리자</span>
         </div>
-        {/* 데스크탑에선 사이드바에, 모바일에선 상단 바에 위치 — 중복 방지 */}
-        <div className="hidden lg:block">
-          <NotificationBell />
-        </div>
+        {/* 알림벨·지점 셀렉터는 GlobalHeader 로 옮겨 모바일/데스크탑 공통으로 표시.
+            사이드바는 메뉴 전용. */}
         {/* 모바일 드로어 닫기 */}
         <button
           type="button"
@@ -183,19 +171,6 @@ export function Sidebar({
           <XMarkIcon className="size-5" />
         </button>
       </div>
-
-      {/* 글로벌 지점 셀렉터 — SUPER_ADMIN 만 노출. 모든 어드민 페이지가 이 한 지점을
-          기준으로 데이터를 보여준다. FC 는 본인 지점 고정이라 셀렉터 안 보임.
-          컴팩트 칩(BranchPicker) 으로 사이드바 메뉴 영역을 덜 침범. */}
-      {isSuper && branches.length > 0 && (
-        <div className="px-3 pb-3">
-          <BranchPicker
-            value={selectedBranchId}
-            onChange={setSelectedBranchId}
-            branches={branches}
-          />
-        </div>
-      )}
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
         {NAV.map((group, gi) => {

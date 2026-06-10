@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowPathIcon, Bars3Icon } from "@heroicons/react/24/outline";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getAccessToken } from "@/lib/api/tokenStore";
 import { useHeartbeat } from "@/lib/hooks/useHeartbeat";
@@ -16,7 +16,7 @@ import {
 import { ReleaseNotesDialog } from "@/components/ReleaseNotesDialog";
 import { BranchProvider } from "@/providers/BranchProvider";
 import { Sidebar } from "./Sidebar";
-import { NotificationBell } from "./NotificationBell";
+import { GlobalHeader } from "./GlobalHeader";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -120,29 +120,9 @@ export default function DashboardLayout({
   return (
     <BranchProvider>
     <div className="min-h-screen bg-white">
-      {/* 모바일 상단 바 — 햄버거 + 브랜드 + 알림벨 (데스크탑에선 숨김) */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="메뉴 열기"
-          className="rounded-md p-1.5 text-gray-700 hover:bg-gray-100"
-        >
-          <Bars3Icon className="size-6" />
-        </button>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/icons/logo.png"
-          alt=""
-          aria-hidden="true"
-          className="size-7"
-        />
-        <span className="text-base font-bold text-gray-900">HiFIS</span>
-        <span className="text-sm text-gray-500">관리자</span>
-        <div className="ml-auto">
-          <NotificationBell />
-        </div>
-      </div>
+      {/* 글로벌 sticky 헤더 — 모바일/데스크탑 공통. 햄버거(모바일만) + 로고 +
+          지점 칩(SUPER_ADMIN) + 알림벨. */}
+      <GlobalHeader onOpenDrawer={() => setDrawerOpen(true)} />
 
       <div className="flex">
         <Sidebar
