@@ -5,6 +5,9 @@ export interface StatItem {
   code: string;
   label: string;
   count: number;
+  // 상품별 판매(passes) 에서만 채워짐 — 그 항목의 매출 합산(final_price 합).
+  // 평균가는 프론트에서 revenue / count 로 계산.
+  revenue?: number;
 }
 // 자유 텍스트 통계 항목 (referral 의 기타 세부 입력) — code 없음
 export interface StatDetailItem {
