@@ -24,7 +24,7 @@ export default function AdminReleaseNotesPage() {
   return (
     <div>
       <PageTitle title="패치 노트" />
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-500 lg:hidden">
         버전별 업데이트 내역을 다시 볼 수 있어요.
       </p>
 

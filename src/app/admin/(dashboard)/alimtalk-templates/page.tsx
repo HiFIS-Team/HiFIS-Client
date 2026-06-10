@@ -126,7 +126,7 @@ export default function AdminAlimtalkTemplatesPage() {
   return (
     <div>
       <PageTitle title="알림톡 관리" />
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-500 lg:hidden">
         알림톡 종류별로 본문을 수정하고 발송을 켜고 끌 수 있어요. 전역 알림톡
         발송, 지점별 토글과 함께 동작해서 한 곳이라도 꺼져 있으면 발송되지
         않아요.

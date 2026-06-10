@@ -179,7 +179,7 @@ export default function AdminPassesPage() {
   return (
     <div>
       <PageTitle title="상품 관리" />
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-500 lg:hidden">
         지점별 회원권·수강권·락커·운동복 상품을 관리합니다.
       </p>
 
