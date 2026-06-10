@@ -123,16 +123,52 @@ export function ContractDialog({
     setIsLocked(true);
   }
 
+  // 캡처 직전에 서명 <canvas> 를 PNG <img> 로 임시 교체.
+  // 이유 : html2canvas-pro 가 prod 모바일(특히 iOS Safari, DPR 3) 에서 canvas 요소를
+  // 잡을 때 DPR 스케일과 충돌해서 캔버스 자체뿐 아니라 부모 박스(테두리/배경) 까지
+  // 렌더가 깨지는 케이스가 있음. 일반 <img> 로 바꿔두면 html2canvas 가 단순 이미지로
+  // 처리해서 박스·서명 모두 정상 캡처. 캡처 후 함수가 반환한 restore() 로 원복.
+  async function swapSignatureForCapture(): Promise<() => void> {
+    const root = paperRef.current;
+    if (!root) return () => {};
+    const canvas = root.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) return () => {};
+    const dataUrl = canvas.toDataURL("image/png");
+    const rect = canvas.getBoundingClientRect();
+    const img = document.createElement("img");
+    img.src = dataUrl;
+    img.style.width = `${rect.width}px`;
+    img.style.height = `${rect.height}px`;
+    img.style.display = "block";
+    img.className = canvas.className;
+    canvas.style.display = "none";
+    canvas.parentElement?.insertBefore(img, canvas);
+    // img 로드 보장 — dataURL 이라 동기 가능성 높지만 안전망
+    await new Promise<void>((resolve) => {
+      if (img.complete && img.naturalWidth > 0) {
+        resolve();
+        return;
+      }
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    });
+    return () => {
+      canvas.style.display = "";
+      img.remove();
+    };
+  }
+
   // 종이 영역 전체를 한 장의 이미지로 캡처. 컨트롤(다시 그리기·서명 완료·에러문구) 은
   // data-capture-ignore 속성으로 제외해서 신청서 본문만 남게 함.
   //
-  // prod 모바일에서 폰트(Pretendard) 가 아직 로딩 중일 때 캡처되면 fallback 폰트 메트릭으로
-  // 레이아웃이 잡혀 글자·서명이 잘려보이는 문제가 있었음. 캡처 전에 폰트 로딩 + 한 프레임
-  // 대기로 레이아웃 안정화.
+  // 캡처 전 처리 :
+  // 1) 폰트(Pretendard) 로딩 대기 — fallback 메트릭으로 레이아웃이 잡혀 글자가 잘리는 문제 회피
+  // 2) 서명 <canvas> → <img> 교체 — 모바일 prod 에서 박스/서명이 깨지는 문제 회피
+  // 3) 한 프레임 더 대기 — 폰트 적용 + img 반영 후 레이아웃 안정화
   async function captureContract(): Promise<Blob | null> {
     const el = paperRef.current;
     if (!el) return null;
-    // 1) 커스텀 폰트 로딩 완료 대기 — 모바일/느린 네트워크 대비
+
     if (typeof document !== "undefined" && document.fonts?.ready) {
       try {
         await document.fonts.ready;
@@ -140,24 +176,30 @@ export function ContractDialog({
         // 폰트 promise 가 실패해도 진행 (fallback 폰트로 캡처)
       }
     }
-    // 2) 한 프레임 더 — 폰트 적용 후 레이아웃·캔버스 리사이즈 안정화
+
+    const restoreSignature = await swapSignatureForCapture();
+
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => resolve()),
     );
 
-    const canvas = await html2canvas(el, {
-      backgroundColor: "#ffffff",
-      // scale 1.5 — 종이가 길어서 2 로 잡으면 파일/픽셀 모두 부담. 1.5 도 글자 충분히 또렷.
-      scale: 1.5,
-      useCORS: true,
-      ignoreElements: (n) =>
-        n instanceof HTMLElement && n.dataset.captureIgnore === "true",
-    });
-    return new Promise<Blob | null>((resolve) => {
-      // 백엔드 signature 필드가 PNG 만 받음 → PNG 로 저장.
-      // 약관 길이에 따라 1~2MB 정도 나옴.
-      canvas.toBlob((b) => resolve(b), "image/png");
-    });
+    try {
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#ffffff",
+        // scale 1.5 — 종이가 길어서 2 로 잡으면 파일/픽셀 모두 부담. 1.5 도 글자 충분히 또렷.
+        scale: 1.5,
+        useCORS: true,
+        ignoreElements: (n) =>
+          n instanceof HTMLElement && n.dataset.captureIgnore === "true",
+      });
+      return await new Promise<Blob | null>((resolve) => {
+        // 백엔드 signature 필드가 PNG 만 받음 → PNG 로 저장.
+        // 약관 길이에 따라 1~2MB 정도 나옴.
+        canvas.toBlob((b) => resolve(b), "image/png");
+      });
+    } finally {
+      restoreSignature();
+    }
   }
 
   async function handleConfirm() {
@@ -266,7 +308,16 @@ export function ContractDialog({
 
               {/* 동의·날짜·서명 구역 — 종이 신청서 하단처럼 */}
               <div className="mt-8 border-t border-gray-300 pt-6">
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                {/* 동의 박스 — inline 색은 prod 모바일 html2canvas 가 oklch 를 못
+                    잡는 경우 대비 안전망 (Tailwind v4 색이 prod 빌드에서 oklch 로
+                    노출되는 케이스가 모바일에서 가끔 깨져 보임) */}
+                <div
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                  style={{
+                    backgroundColor: "rgb(249, 250, 251)",
+                    borderColor: "rgb(229, 231, 235)",
+                  }}
+                >
                   <Checkbox
                     id="contract-agree"
                     label="위 내용에 동의합니다. (필수)"
@@ -302,12 +353,23 @@ export function ContractDialog({
                         빈 상태에선 가운데 "(서명)" 안내 노출, 한 획이라도 그리면 사라짐.
                         "서명 완료" 누르면 잠겨서 더 못 그리게, "다시 그리기" 로 풀림.
                         잠긴 상태에선 테두리 색이 primary 로 바뀌고 우상단에 ✓ 뱃지. */}
+                    {/* 서명 박스 — prod 모바일에서 oklch 색이 캡처 시 평탄화되지
+                        않아 박스 자체가 사라져 보이는 케이스 회피. inline rgb 가
+                        oklch 보다 우선이라 캡처 결과가 안정적. */}
                     <div
                       className={`relative mt-2 overflow-hidden rounded-md border-2 transition-colors ${
                         isLocked
                           ? "border-primary bg-primary/5"
                           : "border-gray-400 bg-gray-50"
                       }`}
+                      style={{
+                        backgroundColor: isLocked
+                          ? "rgba(124, 58, 237, 0.05)"
+                          : "rgb(249, 250, 251)",
+                        borderColor: isLocked
+                          ? "rgb(124, 58, 237)"
+                          : "rgb(156, 163, 175)",
+                      }}
                     >
                       <SignaturePad
                         ref={padRef}
