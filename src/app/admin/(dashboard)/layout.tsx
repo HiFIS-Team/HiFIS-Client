@@ -135,7 +135,10 @@ export default function DashboardLayout({
           admin={meQuery.data}
           onOpenDrawer={() => setDrawerOpen(true)}
         />
-        <main className="flex-1 px-4 py-6 lg:px-8 lg:py-10">{children}</main>
+        {/* PC : 본문 배경을 옅은 회색으로 — 사이드바/헤더(흰) 와 시각 구분. 모바일은 흰 그대로. */}
+        <main className="flex-1 px-4 py-6 lg:bg-gray-50 lg:px-8 lg:py-10">
+          {children}
+        </main>
       </div>
       {pendingNotes && (
         <ReleaseNotesDialog

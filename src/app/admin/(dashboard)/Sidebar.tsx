@@ -141,7 +141,7 @@ export function Sidebar({
         aria-hidden
       />
       <aside
-        className={`fixed top-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:sticky lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:sticky lg:translate-x-0 lg:bg-white ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
