@@ -301,6 +301,7 @@ export default function AdminAdminsPage() {
             : ""
         }
         confirmLabel={confirmTarget?.action === "reject" ? "거부" : "삭제"}
+        requireText={confirmTarget?.action === "reject" ? "거부" : "삭제"}
         loading={rejectMutation.isPending || deleteMutation.isPending}
         onConfirm={() => {
           if (!confirmTarget) return;

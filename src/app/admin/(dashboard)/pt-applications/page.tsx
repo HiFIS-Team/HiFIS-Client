@@ -415,6 +415,7 @@ export default function AdminPtApplicationsPage() {
             : ""
         }
         confirmLabel="삭제"
+        requireText="삭제"
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
