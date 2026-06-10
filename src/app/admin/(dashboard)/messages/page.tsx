@@ -280,18 +280,10 @@ export default function AdminMessagesPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        warning
+        danger
         title="이력 삭제"
-        message={
-          <>
-            이 이력을 삭제합니다.
-            <br />
-            <span className="text-gray-500">
-              발송된 알림톡이 회수되는 것은 아니며, 어드민의 발송 기록 한 줄만
-              사라져요.
-            </span>
-          </>
-        }
+        message="이 이력을 삭제하시겠어요?"
+        notice="발송된 알림톡이 회수되는 것은 아니며, 어드민의 발송 기록 한 줄만 사라져요."
         confirmLabel="삭제"
         requireText="삭제"
         loading={deleteMutation.isPending}

@@ -14,13 +14,13 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   // true면 확인 버튼이 빨강 + 상단 경고 아이콘 (삭제 등 파괴적 작업)
   danger?: boolean;
-  // true면 노랑 톤 — danger 보다 약한 경고 (예: 이력만 삭제, 원본은 유지).
-  // danger 와 동시 지정 시 warning 이 우선 (의미상 더 약한 경고가 두 표기를 흡수).
-  warning?: boolean;
   loading?: boolean;
   // 지정 시 사용자가 정확히 이 텍스트를 입력해야 확인 버튼이 활성화 — 실수 방지 안전망.
   // 회원 삭제처럼 영향이 큰 작업에 사용.
   requireText?: string;
+  // 메시지 아래에 노란 경고 박스로 띄울 부가 안내 (예: "발송된 알림톡이 회수되는 건 아니에요").
+  // danger 톤(빨강) 은 그대로 유지하면서 부가 정보만 노란 callout 으로 별도 표시.
+  notice?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -32,9 +32,9 @@ export function ConfirmDialog({
   message,
   confirmLabel = "확인",
   danger = false,
-  warning = false,
   loading = false,
   requireText,
+  notice,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -46,23 +46,7 @@ export function ConfirmDialog({
   }, [open]);
   if (!open) return null;
 
-  // tone 우선순위: warning > danger > default.
-  const tone: "default" | "danger" | "warning" = warning
-    ? "warning"
-    : danger
-      ? "danger"
-      : "default";
-  const Icon = tone === "default" ? QuestionMarkCircleIcon : ExclamationTriangleIcon;
-  const iconClass = {
-    default: "bg-violet-50 text-primary",
-    danger: "bg-red-50 text-red-500",
-    warning: "bg-amber-50 text-amber-500",
-  }[tone];
-  const confirmBtnClass = {
-    default: "bg-primary hover:bg-primary-hover",
-    danger: "bg-red-600 hover:bg-red-700",
-    warning: "bg-amber-500 hover:bg-amber-600",
-  }[tone];
+  const Icon = danger ? ExclamationTriangleIcon : QuestionMarkCircleIcon;
   // requireText 없으면 항상 충족. 있으면 정확 일치만 (공백/대소문자 차이도 거름).
   const requirementMet = !requireText || typed === requireText;
 
@@ -78,7 +62,9 @@ export function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className={`mx-auto flex size-12 items-center justify-center rounded-full ${iconClass}`}
+          className={`mx-auto flex size-12 items-center justify-center rounded-full ${
+            danger ? "bg-red-50 text-red-500" : "bg-violet-50 text-primary"
+          }`}
         >
           <Icon className="size-6" />
         </div>
@@ -90,6 +76,12 @@ export function ConfirmDialog({
         <div className="mt-2 text-center text-sm/6 text-gray-600">
           {message}
         </div>
+        {notice && (
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs/5 text-amber-800">
+            <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
+            <div className="min-w-0 flex-1">{notice}</div>
+          </div>
+        )}
         {requireText && (
           <div className="mt-4 text-left">
             <label
@@ -125,7 +117,11 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading || !requirementMet}
-            className={`rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${confirmBtnClass}`}
+            className={`rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${
+              danger
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-primary hover:bg-primary-hover"
+            }`}
           >
             {loading ? "처리 중…" : confirmLabel}
           </button>
