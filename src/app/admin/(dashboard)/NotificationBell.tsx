@@ -169,8 +169,8 @@ export function NotificationBell() {
 
       {open && (
         <>
-          {/* 모바일(상단바 우측): 우측 정렬·화면 안에 가두기. 데스크탑(사이드바 좌측): 좌측 정렬. */}
-          <div className="animate-panel-in absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:right-auto lg:left-0">
+          {/* 알림 종은 헤더 우측 끝 — 패널도 우측 정렬해야 화면 밖으로 튀어나가지 않음. */}
+          <div className="animate-panel-in absolute top-full right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
             <div className="border-b border-gray-200 px-4 py-3">
               <p className="text-sm font-bold text-gray-900">알림</p>
             </div>
