@@ -178,16 +178,16 @@ export default function AdminMessagesPage() {
                     {m.content}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2">
-                    <p className="text-xs text-gray-400">
+                    {/* 모바일은 좌측 메타를 두 줄(지점 / 시각)로 정돈해 우측 버튼 가로 공간 확보 */}
+                    <div className="min-w-0 text-xs text-gray-400">
                       {isSuper && (
-                        <>
-                          {branchName(m.branch_id)}
-                          <span className="mx-1.5">·</span>
-                        </>
+                        <p className="truncate">{branchName(m.branch_id)}</p>
                       )}
-                      {formatDateTime(m.sent_at)}
-                    </p>
-                    <div className="flex gap-2">
+                      <p className={isSuper ? "mt-0.5" : ""}>
+                        {formatDateTime(m.sent_at)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
                       <RowActionButton
                         variant="neutral"
                         onClick={() => setViewTarget(m)}
