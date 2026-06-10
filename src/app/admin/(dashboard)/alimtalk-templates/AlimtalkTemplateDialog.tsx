@@ -6,6 +6,7 @@ import {
   type AlimtalkTemplate,
 } from "@/lib/api/alimtalkTemplates";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { useBranch } from "@/providers/BranchProvider";
 
 // 알림톡 본문 보기/수정 다이얼로그.
 // - mode="view": textarea readOnly, 변수는 표시만, 닫기 버튼만
@@ -35,6 +36,9 @@ export function AlimtalkTemplateDialog({
   const [body, setBody] = useState(initialBody);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // 미리보기에 헤더("안녕하세요 OO점입니다") 를 현재 선택 지점 기준으로 조립.
+  const { selectedBranchId } = useBranch();
+
   // 다이얼로그가 다른 템플릿으로 열릴 때 body 리셋
   useEffect(() => {
     setBody(template.body ?? template.default_body);
@@ -55,7 +59,10 @@ export function AlimtalkTemplateDialog({
     if (!open) return;
     let cancelled = false;
     setPreviewing(true);
-    previewAlimtalkTemplate(template.id, { body: debouncedBody })
+    previewAlimtalkTemplate(template.id, {
+      body: debouncedBody,
+      branch_id: selectedBranchId,
+    })
       .then((res) => {
         if (!cancelled) setPreview(res.preview);
       })
@@ -68,7 +75,7 @@ export function AlimtalkTemplateDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, template.id, debouncedBody]);
+  }, [open, template.id, debouncedBody, selectedBranchId]);
 
   const isEdit = mode === "edit";
   const isDirty = body !== initialBody;
