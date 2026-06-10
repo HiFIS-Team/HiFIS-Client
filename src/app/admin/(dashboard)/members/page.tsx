@@ -88,14 +88,13 @@ export default function AdminMembersPage() {
     }
   }, [detailQuery.isError, detailId, toast, router, pathname]);
 
-  // 상세 다이얼로그 닫기 — URL 의 ?detail 정리 + sessionStorage consumed 해제
-  // (해제하면 같은 알림을 또 받았을 때 자동 오픈 가능)
+  // 상세 다이얼로그 닫기 — URL 의 ?detail 정리.
+  // consumedKey 는 일부러 제거하지 않음 (탭 세션 동안 유지) :
+  // 알림 → 다이얼로그 자동 오픈 → 닫음 → 다른 메뉴 갔다가 회원 페이지로 돌아왔을 때
+  // 어떤 경로로든 URL 에 ?detail=ABC 가 다시 들어오는 케이스(router.replace 가 안 먹는 케이스,
+  // 캐시된 RSC URL, 브라우저 뒤로가기 등) 에서 또 자동 오픈되던 문제가 있었음.
+  // 같은 알림을 다시 보고 싶으면 사용자가 직접 회원 페이지에서 찾으면 됨.
   function closeView() {
-    if (viewTarget && typeof window !== "undefined") {
-      window.sessionStorage.removeItem(
-        `admin-detail-consumed:member:${viewTarget.id}`,
-      );
-    }
     setViewTarget(null);
     if (detailId) router.replace(pathname);
   }
