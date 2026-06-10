@@ -21,6 +21,14 @@ export function getAdminMessages(opts: {
   });
 }
 
+// DELETE /admin/messages/{id} — 알림톡 발송 이력 한 건 삭제 (이력 레코드만; 실제 발송 내용 무관).
+export function deleteMessage(id: string): Promise<void> {
+  return apiFetch<void>(`/admin/messages/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
 // enum 옵션 배열에서 code → label 조회. 없으면 code 그대로 반환 (안전 폴백).
 // 알림톡 trigger_type·source_type 같은 enum 라벨을 변환할 때 사용.
 export function enumLabel(
