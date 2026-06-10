@@ -224,14 +224,17 @@ export function Sidebar({
       </nav>
 
       <div className="border-t border-gray-200 px-5 py-4">
-        <p className="truncate text-sm font-semibold text-gray-900">
-          {admin.name}
-        </p>
-        <p className="text-xs text-gray-500">{adminRoleLabel(admin)}</p>
+        {/* 모바일 : 이름·역할 표시. PC 는 헤더 프로필 카드에 같은 정보가 있어 숨김. */}
+        <div className="lg:hidden">
+          <p className="truncate text-sm font-semibold text-gray-900">
+            {admin.name}
+          </p>
+          <p className="text-xs text-gray-500">{adminRoleLabel(admin)}</p>
+        </div>
         <button
           type="button"
           onClick={() => setPasswordOpen(true)}
-          className="mt-3 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          className="mt-3 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 lg:mt-0"
         >
           비밀번호 변경
         </button>

@@ -17,6 +17,7 @@ import { ReleaseNotesDialog } from "@/components/ReleaseNotesDialog";
 import { BranchProvider } from "@/providers/BranchProvider";
 import { Sidebar } from "./Sidebar";
 import { GlobalHeader } from "./GlobalHeader";
+import { PageTitleProvider } from "./PageTitleProvider";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -119,20 +120,22 @@ export default function DashboardLayout({
 
   return (
     <BranchProvider>
-    <div className="min-h-screen bg-white">
-      {/* 글로벌 sticky 헤더 — 모바일/데스크탑 공통. 햄버거(모바일만) + 로고 +
-          지점 칩(SUPER_ADMIN) + 알림벨. */}
-      <GlobalHeader onOpenDrawer={() => setDrawerOpen(true)} />
-
-      <div className="flex">
-        <Sidebar
+    <PageTitleProvider>
+    <div className="min-h-screen bg-white lg:flex">
+      {/* 모바일 : 위로 헤더 → 아래로 사이드바(드로어) + main 의 vertical 흐름.
+          PC   : 좌측 사이드바(전체 높이) + 우측 inner 컨테이너(헤더 + main).
+                 sidebar 가 자체 sticky h-screen 이라 lg:flex 만으로 분기 가능. */}
+      <Sidebar
+        admin={meQuery.data}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <GlobalHeader
           admin={meQuery.data}
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
+          onOpenDrawer={() => setDrawerOpen(true)}
         />
-        <main className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-10">
-          {children}
-        </main>
+        <main className="flex-1 px-4 py-6 lg:px-8 lg:py-10">{children}</main>
       </div>
       {pendingNotes && (
         <ReleaseNotesDialog
@@ -141,6 +144,7 @@ export default function DashboardLayout({
         />
       )}
     </div>
+    </PageTitleProvider>
     </BranchProvider>
   );
 }
