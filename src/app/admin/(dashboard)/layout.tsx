@@ -135,9 +135,12 @@ export default function DashboardLayout({
           admin={meQuery.data}
           onOpenDrawer={() => setDrawerOpen(true)}
         />
-        {/* PC : 본문 배경을 옅은 회색으로 — 사이드바/헤더(흰) 와 시각 구분. 모바일은 흰 그대로. */}
-        <main className="flex-1 px-4 py-6 lg:bg-gray-50 lg:px-8 lg:py-10">
-          {children}
+        {/* PC : 본문 배경 옅은 회색 + 페이지 콘텐츠 전체를 흰 카드로 감싸 사이드바/헤더(흰) 와 톤 통일.
+            모바일은 wrap 의 lg: 클래스가 적용 안 돼 기존처럼 흰 배경 + 평면. */}
+        <main className="flex-1 lg:bg-gray-50">
+          <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-gray-200 lg:bg-white lg:p-8">
+            {children}
+          </div>
         </main>
       </div>
       {pendingNotes && (
