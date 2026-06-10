@@ -14,6 +14,7 @@ import {
   type ReleaseNote,
 } from "@/lib/releaseNotes";
 import { ReleaseNotesDialog } from "@/components/ReleaseNotesDialog";
+import { BranchProvider } from "@/providers/BranchProvider";
 import { Sidebar } from "./Sidebar";
 import { NotificationBell } from "./NotificationBell";
 
@@ -117,6 +118,7 @@ export default function DashboardLayout({
   if (!meQuery.data) return null;
 
   return (
+    <BranchProvider>
     <div className="min-h-screen bg-white">
       {/* 모바일 상단 바 — 햄버거 + 브랜드 + 알림벨 (데스크탑에선 숨김) */}
       <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
@@ -159,5 +161,6 @@ export default function DashboardLayout({
         />
       )}
     </div>
+    </BranchProvider>
   );
 }

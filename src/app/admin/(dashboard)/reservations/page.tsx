@@ -2,21 +2,18 @@
 
 import { PageTitle } from "../PageTitle";
 import { useState } from "react";
-import { BuildingOffice2Icon } from "@heroicons/react/24/outline";
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { getMe } from "@/lib/api/auth";
-import { getBranches } from "@/lib/api/branches";
 import { deleteReservation, getAdminReservations } from "@/lib/api/reservations";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
+import { useBranch } from "@/providers/BranchProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
-import { Select } from "@/components/Select";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { Pagination } from "@/components/Pagination";
 
@@ -29,20 +26,8 @@ export default function AdminReservationsPage() {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
 
-  const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: getMe,
-    retry: false,
-  });
-  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-  });
-
-  // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
-  const [branchFilter, setBranchFilter] = useState("");
-  const branchId = isSuper ? branchFilter || undefined : undefined;
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점.
+  const { selectedBranchId: branchId, branches, isSuper } = useBranch();
 
   // 페이지 — 필터 변경 시 자동 1페이지로 (React 19: useEffect 안 setState 회피)
   const [page, setPage] = useState(1);
@@ -71,7 +56,7 @@ export default function AdminReservationsPage() {
   });
 
   const branchName = (id: string) =>
-    branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
+    branches.find((b) => b.id === id)?.name ?? "-";
 
   const reservationsPage = reservationsQuery.data;
   const reservations = reservationsPage?.items ?? [];
@@ -83,24 +68,7 @@ export default function AdminReservationsPage() {
         네이버 플레이스를 통해 접수된 방문 예약입니다.
       </p>
 
-      {isSuper && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-          <Select
-            id="branch-filter"
-            label="지점"
-            icon={BuildingOffice2Icon}
-            options={[
-              { value: "", label: "전체 지점" },
-              ...(branchesQuery.data ?? []).map((b) => ({
-                value: b.id,
-                label: b.name,
-              })),
-            ]}
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-          />
-        </div>
-      )}
+      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 필터 없음. */}
 
       <div className="mt-6">
         {reservationsQuery.isLoading ? (

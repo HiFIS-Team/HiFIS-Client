@@ -4,8 +4,7 @@ import { PageTitle } from "../PageTitle";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BuildingOffice2Icon, EnvelopeIcon } from "@heroicons/react/24/outline";
-import { getMe } from "@/lib/api/auth";
-import { getBranches } from "@/lib/api/branches";
+import { useBranch } from "@/providers/BranchProvider";
 import {
   approveAdmin,
   deleteAdmin,
@@ -81,14 +80,10 @@ export default function AdminAdminsPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: getMe,
-    retry: false,
-  });
-  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
-  // 지점 필터 ("" = 전체)
-  const [branchFilter, setBranchFilter] = useState("");
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점.
+  // admins 페이지는 SUPER_ADMIN 전용 — 글로벌 지점에 따라 그 지점 FC 만 보여줌
+  // (SUPER_ADMIN 본인은 지점 무관이라 항상 보임).
+  const { selectedBranchId: branchId, branches, isSuper } = useBranch();
 
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
@@ -97,11 +92,6 @@ export default function AdminAdminsPage() {
     // FC 가입 신청 들어오면 새로고침 없이 보이게 — 30초마다 폴링 (탭 백그라운드는 제외)
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
-  });
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-    enabled: isSuper,
   });
 
   // 거부·삭제는 확인 모달 — 어떤 동작인지 함께 보관
@@ -140,8 +130,8 @@ export default function AdminAdminsPage() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
-  // 권한 가드 — FC는 접근 불가
-  if (meQuery.data && !isSuper) {
+  // 권한 가드 — FC는 접근 불가 (사이드바에서도 superOnly 로 숨김)
+  if (!isSuper) {
     return (
       <div>
         <PageTitle title="관리자 관리" />
@@ -151,20 +141,19 @@ export default function AdminAdminsPage() {
   }
 
   const branchName = (id: string | null) =>
-    id ? (branchesQuery.data?.find((b) => b.id === id)?.name ?? "-") : "-";
+    id ? (branches.find((b) => b.id === id)?.name ?? "-") : "-";
   const admins = adminsQuery.data ?? [];
-  // 지점 필터 — 대표(SUPER_ADMIN)는 지점과 무관하므로 항상 표시
+  // 글로벌 지점 필터 — SUPER_ADMIN 본인은 지점 무관이라 항상 표시
   // 정렬 규칙:
   //   1) SUPER_ADMIN 이 항상 맨 위
   //   2) SUPER_ADMIN 끼리는 라벨(대표 → 관리자 → 기타) → 운영진 우선순위 → 가입순
   //   3) FC 는 지점(화순 → 첨단 → 동광주) → 직책(점장 → 팀장 → 트레이너 → FC) → 가입순
-  const branches = branchesQuery.data ?? [];
   const visibleAdmins = admins
     .filter(
       (a) =>
-        !branchFilter ||
+        !branchId ||
         a.role === "SUPER_ADMIN" ||
-        a.branch_id === branchFilter,
+        a.branch_id === branchId,
     )
     .slice()
     .sort((a, b) => {
@@ -196,22 +185,7 @@ export default function AdminAdminsPage() {
         FC 가입 승인·거부 및 계정 관리.
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-        <Select
-          id="branch-filter"
-          label="지점"
-          icon={BuildingOffice2Icon}
-          options={[
-            { value: "", label: "전체 지점" },
-            ...(branchesQuery.data ?? []).map((b) => ({
-              value: b.id,
-              label: b.name,
-            })),
-          ]}
-          value={branchFilter}
-          onChange={(e) => setBranchFilter(e.target.value)}
-        />
-      </div>
+      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 별도 셀렉터 없음. */}
 
       <div className="mt-6">
         {adminsQuery.isLoading ? (

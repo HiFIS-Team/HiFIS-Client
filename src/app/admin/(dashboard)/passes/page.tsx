@@ -17,8 +17,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { getMe } from "@/lib/api/auth";
-import { getBranches } from "@/lib/api/branches";
+import { useBranch } from "@/providers/BranchProvider";
 import {
   createPass,
   deletePass,
@@ -84,30 +83,14 @@ export default function AdminPassesPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: getMe,
-    retry: false,
-  });
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-  });
-
-  const me = meQuery.data;
-  const isSuper = me?.role === "SUPER_ADMIN";
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점.
+  const { selectedBranchId } = useBranch();
+  const branchId = selectedBranchId ?? "";
 
   const [activeType, setActiveType] = useState<PassType>("membership");
-  const [selectedBranch, setSelectedBranch] = useState("");
   // null=닫힘, "new"=등록, Pass=수정
   const [formTarget, setFormTarget] = useState<Pass | "new" | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Pass | null>(null);
-
-  // FC는 본인 지점 고정. SUPER_ADMIN 은 선택한 지점, 아직 선택 안 했으면 목록 첫 지점.
-  // (useEffect + setState 패턴 대신 derive — React 19 권장)
-  const branchId = isSuper
-    ? selectedBranch || branchesQuery.data?.[0]?.id || ""
-    : (me?.branch_id ?? "");
   const typeLabel = TABS.find((t) => t.type === activeType)!.label;
 
   const passesQuery = useQuery({
@@ -123,7 +106,7 @@ export default function AdminPassesPage() {
   const summaryQuery = useQuery({
     queryKey: ["admin", "dashboard-summary", branchId || "all"],
     queryFn: () => getDashboardSummary(branchId || undefined),
-    enabled: !!branchId || !isSuper,
+    enabled: !!branchId,
   });
 
   const invalidate = () =>
@@ -200,21 +183,7 @@ export default function AdminPassesPage() {
         지점별 회원권·수강권·락커·운동복 상품을 관리합니다.
       </p>
 
-      {isSuper && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-          <Select
-            id="branch"
-            label="지점"
-            icon={BuildingOffice2Icon}
-            options={(branchesQuery.data ?? []).map((b) => ({
-              value: b.id,
-              label: b.name,
-            }))}
-            value={branchId}
-            onChange={(e) => setSelectedBranch(e.target.value)}
-          />
-        </div>
-      )}
+      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 별도 셀렉터 없음. */}
 
       {/* 모바일 전용 — 좌측 정렬, 자체 행 */}
       <div className="mt-4 flex justify-start lg:hidden">

@@ -15,13 +15,12 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { getMe } from "@/lib/api/auth";
-import { getBranches } from "@/lib/api/branches";
 import { deleteMember, getAdminMember, getAdminMembers } from "@/lib/api/members";
 import { cancelHold } from "@/lib/api/holds";
 import { getMembershipPasses } from "@/lib/api/passes";
 import { getErrorMessage } from "@/lib/api/client";
 import { useToast } from "@/providers/ToastProvider";
+import { useBranch } from "@/providers/BranchProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
@@ -99,35 +98,18 @@ export default function AdminMembersPage() {
     if (detailId) router.replace(pathname);
   }
 
-  const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: getMe,
-    retry: false,
-  });
-  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-  });
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점.
+  const { selectedBranchId: branchId, branches, isSuper } = useBranch();
 
-  // 이용 기간 대신 회원권명을 표시 — 지점별 회원권 목록을 모아 id→이름 맵 구성
-  const passQueries = useQueries({
-    queries: (branchesQuery.data ?? []).map((b) => ({
-      queryKey: ["membership-passes", b.id],
-      queryFn: () => getMembershipPasses(b.id),
-    })),
+  // 회원권명 표시용 — 현재 선택 지점의 회원권 목록만 받음 (전체 지점 의미 없음).
+  const passesQuery = useQuery({
+    queryKey: ["membership-passes", branchId ?? "none"],
+    queryFn: () => getMembershipPasses(branchId!),
+    enabled: !!branchId,
   });
   function membershipPassName(id: string): string {
-    for (const q of passQueries) {
-      const hit = q.data?.find((p) => p.id === id);
-      if (hit) return hit.name;
-    }
-    return "-";
+    return passesQuery.data?.find((p) => p.id === id)?.name ?? "-";
   }
-
-  // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
-  const [branchFilter, setBranchFilter] = useState("");
-  const branchId = isSuper ? branchFilter || undefined : undefined;
   // 상태 필터 ("" = 전체) — 현재 페이지 내에서만 client-side로 거름 (간단·MVP).
   // 정확한 상태별 카운트는 대시보드 summary 참조.
   const [statusFilter, setStatusFilter] = useState("");
@@ -210,8 +192,10 @@ export default function AdminMembersPage() {
     setHoldTarget(m);
   }
 
+  // 카드·테이블에 지점명 노출 — 글로벌 셀렉터 도입 후엔 항상 같은 지점이라
+  // 사실상 단일 값이지만 모바일 카드 메타에 그대로 표시.
   const branchName = (id: string) =>
-    branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
+    branches.find((b) => b.id === id)?.name ?? "-";
 
   const membersPage = membersQuery.data;
   const members = membersPage?.items ?? [];
@@ -229,27 +213,8 @@ export default function AdminMembersPage() {
         회원가입 신청서로 접수된 회원입니다.
       </p>
 
-      <div
-        className={`mt-5 grid gap-3 sm:grid-cols-2 ${
-          isSuper ? "lg:max-w-5xl lg:grid-cols-4" : "lg:max-w-4xl lg:grid-cols-3"
-        }`}
-      >
-        {isSuper && (
-          <Select
-            id="branch-filter"
-            label="지점"
-            icon={BuildingOffice2Icon}
-            options={[
-              { value: "", label: "전체 지점" },
-              ...(branchesQuery.data ?? []).map((b) => ({
-                value: b.id,
-                label: b.name,
-              })),
-            ]}
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-          />
-        )}
+      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 상태/구분/검색 만. */}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
         <Select
           id="status-filter"
           label="상태"

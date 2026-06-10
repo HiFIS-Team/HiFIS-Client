@@ -11,8 +11,7 @@ import {
   TicketIcon,
 } from "@heroicons/react/24/outline";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getMe } from "@/lib/api/auth";
-import { getBranches } from "@/lib/api/branches";
+import { useBranch } from "@/providers/BranchProvider";
 import {
   getPassSalesStats,
   type PassSalesResponse,
@@ -54,27 +53,8 @@ function buildPassTabs(data: PassSalesResponse | undefined): PassTab[] {
 }
 
 export default function AdminPassSalesPage() {
-  const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: getMe,
-    retry: false,
-  });
-  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
-
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-    enabled: isSuper,
-  });
-
-  // 상품별 판매는 지점별 의미가 강해서 "전체 지점" 옵션을 두지 않음.
-  // SUPER_ADMIN 기본값은 화순점(이름에 "화순" 포함). 없으면 첫 지점으로 폴백.
-  // FC 는 토큰 기준으로 백엔드가 본인 지점만 내려줘서 셀렉터 자체를 숨김.
-  const [branchFilter, setBranchFilter] = useState("");
-  const branches = branchesQuery.data ?? [];
-  const defaultBranch =
-    branches.find((b) => b.name.includes("화순")) ?? branches[0];
-  const branchId = isSuper ? branchFilter || defaultBranch?.id : undefined;
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점.
+  const { selectedBranchId: branchId } = useBranch();
 
   const [month, setMonth] = useState<string>(currentMonthYM);
   const monthOptions = useMemo(() => buildMonthOptions(12), []);
@@ -83,8 +63,7 @@ export default function AdminPassSalesPage() {
     queryKey: ["admin", "stats", "passes", branchId ?? "self", month],
     queryFn: () => getPassSalesStats(branchId, month),
     placeholderData: keepPreviousData,
-    // SUPER_ADMIN 은 branchId 가 정해진 뒤에만 호출 (브랜치 로드 전 한 번 비호출).
-    enabled: !isSuper || !!branchId,
+    enabled: !!branchId,
   });
 
   // 탭 상태와 변환된 탭 목록 — 응답이 없어도 0건으로 채워 탭 줄은 항상 표시.
@@ -108,16 +87,7 @@ export default function AdminPassSalesPage() {
           value={month}
           onChange={(e) => setMonth(e.target.value)}
         />
-        {isSuper && (
-          <Select
-            id="branch"
-            label="지점"
-            icon={BuildingOffice2Icon}
-            options={branches.map((b) => ({ value: b.id, label: b.name }))}
-            value={branchFilter || defaultBranch?.id || ""}
-            onChange={(e) => setBranchFilter(e.target.value)}
-          />
-        )}
+        {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 월 셀렉터만. */}
       </div>
 
       {/* 탭 줄 — 카드 밖. 4개를 flex-1 로 균등 분할해 폭에 맞춰 줄어들게.

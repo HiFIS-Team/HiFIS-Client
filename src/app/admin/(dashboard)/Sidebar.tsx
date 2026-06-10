@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { BuildingOffice2Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { adminRoleLabel } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
+import { useBranch } from "@/providers/BranchProvider";
 import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
+import { Select } from "@/components/Select";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
@@ -114,6 +116,13 @@ export function Sidebar({
   const router = useRouter();
   const toast = useToast();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  // 글로벌 지점 셀렉터 — SUPER_ADMIN 만 노출. FC 는 본인 지점 고정.
+  const {
+    selectedBranchId,
+    setSelectedBranchId,
+    branches,
+    isSuper,
+  } = useBranch();
   // 모바일 드로어 열려있는 동안 뒤 페이지 스크롤 잠금. 데스크탑(lg+)은 open 이
   // 항상 false 라 영향 없음 (드로어 토글은 모바일 햄버거에서만 호출됨).
   useBodyScrollLock(open);
@@ -174,6 +183,21 @@ export function Sidebar({
           <XMarkIcon className="size-5" />
         </button>
       </div>
+
+      {/* 글로벌 지점 셀렉터 — SUPER_ADMIN 만 노출. 모든 어드민 페이지가 이 한 지점을
+          기준으로 데이터를 보여준다. FC 는 본인 지점 고정이라 셀렉터 안 보임. */}
+      {isSuper && branches.length > 0 && (
+        <div className="px-3 pb-3">
+          <Select
+            id="global-branch"
+            label="지점"
+            icon={BuildingOffice2Icon}
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
+            value={selectedBranchId ?? ""}
+            onChange={(e) => setSelectedBranchId(e.target.value)}
+          />
+        </div>
+      )}
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
         {NAV.map((group, gi) => {
