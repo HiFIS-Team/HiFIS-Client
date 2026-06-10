@@ -6,9 +6,11 @@ import { formatWon } from "@/lib/format";
 
 // 항목 막대 리스트 본체 (헤더·테두리 없음).
 // 탭 안 등에서 막대만 깔끔하게 보여주고 싶을 때 직접 사용.
-// item.revenue 있으면 (상품별 판매) :
-//   - 라벨 옆 괄호에 평균가(revenue / count) 표시
-//   - 막대 row 클릭 시 펼침 → 매출(합산) 한 줄 추가
+//
+// 상품별 판매(passes) 의 회원권/PT 에서만 추가 정보 :
+//   - item.price 있으면 라벨 옆 괄호에 정가 표시
+//   - item.revenue 있으면 막대 row 클릭 시 펼침 → 매출(합산) 한 줄 추가
+// 락커/운동복·다른 통계는 price/revenue 모두 없어 일반 막대.
 export function StatBars({
   items,
   total,
@@ -33,10 +35,7 @@ export function StatBars({
     <div className="space-y-3">
       {items.map((item) => {
         const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
-        const hasRevenue = item.revenue != null && item.count > 0;
-        const avg = hasRevenue
-          ? Math.round(item.revenue! / item.count)
-          : null;
+        const hasRevenue = item.revenue != null;
         const isExpanded = expanded.has(item.code);
         // 클릭 가능한 row 는 button, 아니면 div — 일관된 시각·접근성.
         const Row = hasRevenue ? "button" : "div";
@@ -58,9 +57,9 @@ export function StatBars({
               <div className="flex items-baseline justify-between gap-2 text-sm">
                 <span className="min-w-0 truncate text-gray-700">
                   {item.label}
-                  {avg != null && (
+                  {item.price != null && (
                     <span className="ml-1 text-gray-400">
-                      ({formatWon(avg)})
+                      ({formatWon(item.price)})
                     </span>
                   )}
                 </span>

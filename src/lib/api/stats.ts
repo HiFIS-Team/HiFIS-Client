@@ -5,8 +5,11 @@ export interface StatItem {
   code: string;
   label: string;
   count: number;
-  // 상품별 판매(passes) 에서만 채워짐 — 그 항목의 매출 합산(final_price 합).
-  // 평균가는 프론트에서 revenue / count 로 계산.
+  // 상품별 판매(passes) 의 회원권/PT 항목에서만 채워짐.
+  // price : 그 상품 정가 (cash_price) — 라벨 옆 괄호에 그대로 표시.
+  // revenue : 실제 결제 매출 합산 (final_price 합) — 막대 클릭 시 펼쳐 표시.
+  // 락커/운동복은 둘 다 미존재. 다른 통계(referral/motivation 등) 도 미존재.
+  price?: number;
   revenue?: number;
 }
 // 자유 텍스트 통계 항목 (referral 의 기타 세부 입력) — code 없음
