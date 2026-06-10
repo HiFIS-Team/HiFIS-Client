@@ -490,23 +490,25 @@ export default function AdminDashboardPage() {
   });
   const isSuper = meQuery.data?.role === "SUPER_ADMIN";
 
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점. 대시보드 모든 정보는
+  // 이 지점만 보여줌 (회원/PT/예약/알림톡 카운트, 최근 신청, 가입 추이 등 전부).
+  const { selectedBranchId, branches: allBranches } = useBranch();
+  const selectedBranch = allBranches.find((b) => b.id === selectedBranchId);
+  const branches = selectedBranch ? [selectedBranch] : [];
+
   // 모든 집계 데이터를 한 번에 — 회원 1000건+ 운영 환경에서도 정확한 카운트.
   // staleTime 0: 데이터 변동(신청 등) 즉시 반영하려고 페이지 진입 시 항상 새로.
   const summaryQuery = useQuery({
-    queryKey: ["admin", "dashboard-summary", "all"],
-    queryFn: () => getDashboardSummary(),
+    queryKey: ["admin", "dashboard-summary", selectedBranchId ?? "self"],
+    queryFn: () => getDashboardSummary(selectedBranchId),
     staleTime: 0,
+    enabled: !!selectedBranchId,
   });
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
     queryFn: () => getAdmins(),
     enabled: isSuper,
   });
-  // 우수사원 카드의 지점 — 글로벌 셀렉터에서 선택한 단일 지점.
-  // 카드 컴포넌트는 branches 배열 인터페이스 유지 (1개면 캐러셀 컨트롤 자동 숨김).
-  const { selectedBranchId, branches: allBranches } = useBranch();
-  const selectedBranch = allBranches.find((b) => b.id === selectedBranchId);
-  const branches = selectedBranch ? [selectedBranch] : [];
 
   const summary = summaryQuery.data;
   const m = summary?.members;
