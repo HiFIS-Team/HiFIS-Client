@@ -3,13 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BuildingOffice2Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { adminRoleLabel } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
 import { useBranch } from "@/providers/BranchProvider";
 import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
-import { Select } from "@/components/Select";
+import { BranchPicker } from "@/components/BranchPicker";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
@@ -185,16 +185,14 @@ export function Sidebar({
       </div>
 
       {/* 글로벌 지점 셀렉터 — SUPER_ADMIN 만 노출. 모든 어드민 페이지가 이 한 지점을
-          기준으로 데이터를 보여준다. FC 는 본인 지점 고정이라 셀렉터 안 보임. */}
+          기준으로 데이터를 보여준다. FC 는 본인 지점 고정이라 셀렉터 안 보임.
+          컴팩트 칩(BranchPicker) 으로 사이드바 메뉴 영역을 덜 침범. */}
       {isSuper && branches.length > 0 && (
         <div className="px-3 pb-3">
-          <Select
-            id="global-branch"
-            label="지점"
-            icon={BuildingOffice2Icon}
-            options={branches.map((b) => ({ value: b.id, label: b.name }))}
-            value={selectedBranchId ?? ""}
-            onChange={(e) => setSelectedBranchId(e.target.value)}
+          <BranchPicker
+            value={selectedBranchId}
+            onChange={setSelectedBranchId}
+            branches={branches}
           />
         </div>
       )}
