@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import {
   AcademicCapIcon,
+  AdjustmentsHorizontalIcon,
   ArrowsRightLeftIcon,
   BoltIcon,
   BuildingOffice2Icon,
@@ -35,6 +36,7 @@ export const NAV_ICONS: Record<
   "/admin/pass-sales": ChartPieIcon,
   "/admin/registration-mix": ArrowsRightLeftIcon,
   "/admin/membership-expiry": ClockIcon,
+  "/admin/alimtalk-templates": AdjustmentsHorizontalIcon,
   "/admin/messages": ChatBubbleLeftRightIcon,
   "/admin/admins": UserGroupIcon,
   "/admin/release-notes": NewspaperIcon,

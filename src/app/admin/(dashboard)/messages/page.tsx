@@ -8,8 +8,7 @@ import {
   TagIcon,
 } from "@heroicons/react/24/outline";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getMe } from "@/lib/api/auth";
-import { getBranches } from "@/lib/api/branches";
+import { useBranch } from "@/providers/BranchProvider";
 import { getEnums } from "@/lib/api/enums";
 import { enumLabel, getAdminMessages } from "@/lib/api/messages";
 import { RowActionButton } from "@/components/RowActionButton";
@@ -40,22 +39,10 @@ function MsgStatusBadge({ status }: { status: string }) {
 export default function AdminMessagesPage() {
   const [viewTarget, setViewTarget] = useState<Message | null>(null);
 
-  const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: getMe,
-    retry: false,
-  });
-  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-  });
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점.
+  const { selectedBranchId: branchId, branches, isSuper } = useBranch();
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
   const triggerTypes = enumsQuery.data?.trigger_type;
-
-  // SUPER_ADMIN 지점 필터 ("" = 전체). FC는 토큰 기준 자동 분기.
-  const [branchFilter, setBranchFilter] = useState("");
-  const branchId = isSuper ? branchFilter || undefined : undefined;
   // 종류(trigger_type) 필터 ("" = 전체) — 데이터가 이미 로드돼 있어 화면에서 거름
   const [typeFilter, setTypeFilter] = useState("");
   // 수신자 전화번호 검색 (디바운스 300ms) — 백엔드가 숫자만 추출해 비교
@@ -95,7 +82,7 @@ export default function AdminMessagesPage() {
   });
 
   const branchName = (id: string) =>
-    branchesQuery.data?.find((b) => b.id === id)?.name ?? "-";
+    branches.find((b) => b.id === id)?.name ?? "-";
 
   const messagesPage = messagesQuery.data;
   const messages = messagesPage?.items ?? [];
@@ -111,23 +98,8 @@ export default function AdminMessagesPage() {
         발송된 알림톡 기록입니다. (최신순)
       </p>
 
+      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 종류/검색 만. */}
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-        {isSuper && (
-          <Select
-            id="branch-filter"
-            label="지점"
-            icon={BuildingOffice2Icon}
-            options={[
-              { value: "", label: "전체 지점" },
-              ...(branchesQuery.data ?? []).map((b) => ({
-                value: b.id,
-                label: b.name,
-              })),
-            ]}
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-          />
-        )}
         <Select
           id="type-filter"
           label="종류"

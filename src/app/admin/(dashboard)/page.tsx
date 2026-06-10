@@ -23,7 +23,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { getAdmins } from "@/lib/api/admins";
-import { getBranches } from "@/lib/api/branches";
+import { useBranch } from "@/providers/BranchProvider";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { formatDate, formatPhone } from "@/lib/format";
 import type { Branch, DayCount } from "@/lib/api/types";
@@ -482,22 +482,6 @@ function branchShortName(name: string): string {
   return name.replace(/^피트니스스타\s*/, "");
 }
 
-// 대시보드 우수사원 카드의 지점 순서 — 화순 → 첨단 → 동광주 → 그 외.
-// 사용자가 가장 자주 보는 화순부터 시작하기 위한 prefer-list 정렬.
-function sortBranchesForDashboard(arr: Branch[]): Branch[] {
-  const order = ["화순", "첨단", "동광주"];
-  const rank = (name: string) => {
-    const i = order.findIndex((k) => name.includes(k));
-    return i === -1 ? order.length : i;
-  };
-  return arr.slice().sort((a, b) => {
-    const ra = rank(a.name);
-    const rb = rank(b.name);
-    if (ra !== rb) return ra - rb;
-    return a.name.localeCompare(b.name);
-  });
-}
-
 export default function AdminDashboardPage() {
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
@@ -506,29 +490,25 @@ export default function AdminDashboardPage() {
   });
   const isSuper = meQuery.data?.role === "SUPER_ADMIN";
 
+  // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점. 대시보드 모든 정보는
+  // 이 지점만 보여줌 (회원/PT/예약/알림톡 카운트, 최근 신청, 가입 추이 등 전부).
+  const { selectedBranchId, branches: allBranches } = useBranch();
+  const selectedBranch = allBranches.find((b) => b.id === selectedBranchId);
+  const branches = selectedBranch ? [selectedBranch] : [];
+
   // 모든 집계 데이터를 한 번에 — 회원 1000건+ 운영 환경에서도 정확한 카운트.
   // staleTime 0: 데이터 변동(신청 등) 즉시 반영하려고 페이지 진입 시 항상 새로.
   const summaryQuery = useQuery({
-    queryKey: ["admin", "dashboard-summary", "all"],
-    queryFn: () => getDashboardSummary(),
+    queryKey: ["admin", "dashboard-summary", selectedBranchId ?? "self"],
+    queryFn: () => getDashboardSummary(selectedBranchId),
     staleTime: 0,
+    enabled: !!selectedBranchId,
   });
   const adminsQuery = useQuery({
     queryKey: ["admin", "admins"],
     queryFn: () => getAdmins(),
     enabled: isSuper,
   });
-  // 우수사원 카드의 지점별 1위 자리용 — SUPER_ADMIN 은 전 지점, FC 는 본인 지점만.
-  // (GET /branches 자체는 공개라 응답엔 전부 옴 → 프론트에서 FC 필터)
-  const branchesQuery = useQuery({
-    queryKey: ["branches"],
-    queryFn: getBranches,
-  });
-  // 화순 → 첨단 → 동광주 순서로 정렬해 카드 첫 화면에 화순이 먼저 보이게.
-  const allBranches = sortBranchesForDashboard(branchesQuery.data ?? []);
-  const branches = isSuper
-    ? allBranches
-    : allBranches.filter((b) => b.id === meQuery.data?.branch_id);
 
   const summary = summaryQuery.data;
   const m = summary?.members;

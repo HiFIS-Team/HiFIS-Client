@@ -11,7 +11,6 @@ import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
-import { NotificationBell } from "./NotificationBell";
 import { PushToggle } from "./PushToggle";
 
 interface NavItem {
@@ -56,7 +55,13 @@ const NAV: NavGroup[] = [
   },
   {
     label: "알림톡",
-    items: [{ href: "/admin/messages", label: "알림톡 이력" }],
+    items: [
+      {
+        href: "/admin/alimtalk-templates",
+        label: "알림톡 관리",
+      },
+      { href: "/admin/messages", label: "알림톡 이력" },
+    ],
   },
   {
     label: "직원 관리",
@@ -140,7 +145,8 @@ export function Sidebar({
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-      <div className="flex items-center justify-between px-5 py-5">
+      {/* 사이드바 상단 — 브랜드(로고 + HiFIS) + 모바일 드로어 닫기. */}
+      <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
           {/* 정적 PNG — 추가 최적화 불필요 (Next.js static export) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -151,13 +157,7 @@ export function Sidebar({
             className="size-7"
           />
           <span className="text-lg font-bold text-gray-900">HiFIS</span>
-          <span className="text-sm text-gray-500">관리자</span>
         </div>
-        {/* 데스크탑에선 사이드바에, 모바일에선 상단 바에 위치 — 중복 방지 */}
-        <div className="hidden lg:block">
-          <NotificationBell />
-        </div>
-        {/* 모바일 드로어 닫기 */}
         <button
           type="button"
           onClick={onClose}
