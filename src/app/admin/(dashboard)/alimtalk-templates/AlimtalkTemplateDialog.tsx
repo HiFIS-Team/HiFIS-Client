@@ -142,6 +142,17 @@ export function AlimtalkTemplateDialog({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto px-6 py-5">
+          {/* 발송 형태 — 헤더(자동) / 본문(편집 가능) / 푸터(자동).
+              헤더·푸터의 {name} {branch_name} 등은 발송 시 자동 치환 — 보기에선 placeholder 그대로. */}
+          {template.header_template && (
+            <div>
+              <p className="text-xs font-medium text-gray-500">헤더 (자동)</p>
+              <div className="mt-1 rounded-md bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap text-gray-500">
+                {template.header_template}
+              </div>
+            </div>
+          )}
+
           {/* 본문 */}
           <div>
             <label
@@ -163,7 +174,21 @@ export function AlimtalkTemplateDialog({
                   : "bg-gray-50 text-gray-700 outline-gray-200"
               }`}
             />
+            {isEdit && (
+              <p className="mt-1 text-right text-xs text-gray-400">
+                {body.length}자
+              </p>
+            )}
           </div>
+
+          {template.footer_template && (
+            <div>
+              <p className="text-xs font-medium text-gray-500">푸터 (자동)</p>
+              <div className="mt-1 rounded-md bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap text-gray-500">
+                {template.footer_template}
+              </div>
+            </div>
+          )}
 
           {/* 미리보기 — 헤더+본문+푸터 조립된 실제 발송 형태. 본문 변경 300ms 후 갱신. */}
           <div>

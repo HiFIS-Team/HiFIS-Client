@@ -9,12 +9,19 @@ export interface AlimtalkVariable {
 // 알림톡 템플릿 — trigger_type 단일 PK 글로벌.
 // SUPER_ADMIN 전용 (백엔드 require_super_admin).
 // body=null 이면 코드 디폴트(default_body) 사용.
+//
+// header_template / footer_template :
+//   본문 보기/수정 UI 에서 "본문 앞뒤로 자동 붙는 부분" 형태 안내용.
+//   {name} {branch_name} 같은 placeholder 그대로 (미치환).
+//   안부 트리거는 footer_template=null (푸터 없음).
 export interface AlimtalkTemplate {
   id: string;
   trigger_type: string;
   is_enabled: boolean;
   body: string | null; // 어드민 수정 본문 — null 이면 default_body
   default_body: string; // 코드 디폴트 (참고/복원용)
+  header_template: string; // 본문 앞 헤더 raw (placeholder 형태)
+  footer_template: string | null; // 본문 뒤 푸터 raw (안부 트리거면 null)
   variables: AlimtalkVariable[]; // 이 트리거에서 본문에 쓸 수 있는 변수
   updated_at: string;
 }
