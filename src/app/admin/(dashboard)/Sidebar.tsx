@@ -59,7 +59,6 @@ const NAV: NavGroup[] = [
       {
         href: "/admin/alimtalk-templates",
         label: "알림톡 관리",
-        superOnly: true,
       },
       { href: "/admin/messages", label: "알림톡 이력" },
     ],

@@ -19,7 +19,7 @@ import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
 import { AlimtalkTemplateDialog } from "./AlimtalkTemplateDialog";
 
-// 알림톡 종류별 본문/ON·OFF 관리. SUPER_ADMIN 전용 (백엔드 require_super_admin).
+// 알림톡 종류별 본문/ON·OFF 관리. 모든 어드민 권한(SUPER_ADMIN / FC) 사용 가능.
 // 전역 / 지점별 토글과 AND 동작 — 한 곳이라도 꺼져 있으면 발송 X.
 export default function AdminAlimtalkTemplatesPage() {
   const toast = useToast();

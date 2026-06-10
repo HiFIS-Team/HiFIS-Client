@@ -7,7 +7,7 @@ export interface AlimtalkVariable {
 }
 
 // 알림톡 템플릿 — trigger_type 단일 PK 글로벌.
-// SUPER_ADMIN 전용 (백엔드 require_super_admin).
+// 모든 어드민(SUPER_ADMIN / FC) 사용 가능 (백엔드 require_admin).
 // body=null 이면 코드 디폴트(default_body) 사용.
 //
 // header_template / footer_template :
