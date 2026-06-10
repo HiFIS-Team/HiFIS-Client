@@ -13,9 +13,15 @@ import {
 import { CheckIcon } from "@heroicons/react/16/solid";
 import type { Branch } from "@/lib/api/types";
 
-// 사이드바 글로벌 지점 셀렉터 — 컴팩트 칩 형태.
-// 일반 Select 컴포넌트(라벨 + 큰 input) 와 달리 라벨 없이 한 줄 칩.
-// 작은 공간(사이드바 240px) 에서 메뉴 영역을 덜 침범하도록 디자인.
+// "피트니스스타 화순점" → "화순점" — 신청서 폼과 동일 prefix strip.
+// 글로벌 헤더의 좁은 공간에서 이름이 잘리지 않게.
+function branchShortName(name: string): string {
+  return name.replace(/^피트니스스타\s*/, "");
+}
+
+// 글로벌 지점 셀렉터 — 컴팩트 칩 형태.
+// 일반 Select(라벨 + 큰 input) 와 달리 라벨 없이 한 줄 칩.
+// 좁은 공간에서 메뉴/액션 영역을 덜 침범하도록 디자인.
 export function BranchPicker({
   value,
   onChange,
@@ -30,10 +36,10 @@ export function BranchPicker({
   return (
     <Listbox value={value ?? ""} onChange={onChange}>
       <div className="relative">
-        <ListboxButton className="flex w-full items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-gray-200 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-          <BuildingOffice2Icon className="size-4 shrink-0 text-primary" />
+        <ListboxButton className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[open]:bg-gray-100">
+          <BuildingOffice2Icon className="size-4 shrink-0 text-gray-400" />
           <span className="min-w-0 flex-1 truncate text-left">
-            {selected?.name ?? "지점 선택"}
+            {selected ? branchShortName(selected.name) : "지점"}
           </span>
           <ChevronUpDownIcon className="size-4 shrink-0 text-gray-400" />
         </ListboxButton>
@@ -50,7 +56,7 @@ export function BranchPicker({
               className="group relative flex cursor-default items-center gap-2 py-2 pr-9 pl-3 text-sm text-gray-900 select-none data-[focus]:bg-primary data-[focus]:text-white"
             >
               <span className="min-w-0 flex-1 truncate group-data-[selected]:font-semibold">
-                {b.name}
+                {branchShortName(b.name)}
               </span>
               <CheckIcon
                 aria-hidden="true"

@@ -146,7 +146,8 @@ export function Sidebar({
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-      <div className="flex items-center justify-between px-5 py-5">
+      {/* 사이드바 상단 — 브랜드(로고 + HiFIS) + 모바일 드로어 닫기. */}
+      <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
           {/* 정적 PNG — 추가 최적화 불필요 (Next.js static export) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -157,11 +158,7 @@ export function Sidebar({
             className="size-7"
           />
           <span className="text-lg font-bold text-gray-900">HiFIS</span>
-          <span className="text-sm text-gray-500">관리자</span>
         </div>
-        {/* 알림벨·지점 셀렉터는 GlobalHeader 로 옮겨 모바일/데스크탑 공통으로 표시.
-            사이드바는 메뉴 전용. */}
-        {/* 모바일 드로어 닫기 */}
         <button
           type="button"
           onClick={onClose}
