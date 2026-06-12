@@ -11,8 +11,10 @@ import {
 } from "@/lib/api/alimtalkTemplates";
 import { getEnums } from "@/lib/api/enums";
 import { getErrorMessage } from "@/lib/api/client";
+import { getSystemConfig } from "@/lib/api/systemConfig";
 import { useBranch } from "@/providers/BranchProvider";
 import { Select } from "@/components/Select";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Switch } from "@/components/Switch";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { RowActionButton } from "@/components/RowActionButton";
@@ -26,7 +28,7 @@ export default function AdminAlimtalkTemplatesPage() {
   const toast = useToast();
   const qc = useQueryClient();
   // 글로벌 지점 — 백엔드가 (branch_id, trigger_type) 복합 키라 지점별로 따로 로드.
-  const { selectedBranchId: branchId } = useBranch();
+  const { selectedBranchId: branchId, branches, isSuper } = useBranch();
 
   const templatesQuery = useQuery({
     queryKey: ["admin", "alimtalk-templates", branchId ?? "self"],
@@ -34,6 +36,27 @@ export default function AdminAlimtalkTemplatesPage() {
     enabled: !!branchId,
   });
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
+  // 전역 발송 마스터 — SUPER_ADMIN 만 read 권한. FC 는 백엔드가 권한 풀릴 때까지 모름.
+  const systemConfigQuery = useQuery({
+    queryKey: ["admin", "system-config"],
+    queryFn: getSystemConfig,
+    enabled: isSuper,
+  });
+  // 발송 차단 여부 — 전역(SystemConfig.messaging_enabled) AND 지점(Branch.messaging_enabled) AND 트리거 토글
+  // 셋 중 하나라도 OFF 면 실제 발송 차단. 여기선 위 두 단계 (전역·지점) 가 OFF 일 때를 UI 로 노출.
+  const currentBranch = branches.find((b) => b.id === branchId);
+  const globalOn = isSuper
+    ? systemConfigQuery.data
+      ? systemConfigQuery.data.messaging_enabled
+      : true // 로드 전엔 ON 가정해 깜빡임 방지
+    : true; // FC 는 전역 모름 — ON 가정 (백엔드 권한 풀린 후 정확화)
+  const branchOn = currentBranch ? currentBranch.messaging_enabled : true;
+  const masterOn = globalOn && branchOn;
+  const blockReason = !globalOn
+    ? "전역 알림톡 발송이 꺼져 있어요. 지점 관리에서 켜야 알림톡이 발송돼요."
+    : !branchOn
+      ? "이 지점의 알림톡 발송이 꺼져 있어요. 지점 관리에서 켜야 알림톡이 발송돼요."
+      : null;
 
   // 종류 필터 ("" = 전체)
   const [typeFilter, setTypeFilter] = useState("");
@@ -137,6 +160,13 @@ export default function AdminAlimtalkTemplatesPage() {
         않아요.
       </p>
 
+      {blockReason && (
+        <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+          <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
+          <p>{blockReason}</p>
+        </div>
+      )}
+
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-md">
         <Select
           id="type-filter"
@@ -200,8 +230,8 @@ export default function AdminAlimtalkTemplatesPage() {
                       </RowActionButton>
                     </div>
                     <Switch
-                      checked={t.is_enabled}
-                      disabled={isTogglePending(t.id)}
+                      checked={masterOn && t.is_enabled}
+                      disabled={!masterOn || isTogglePending(t.id)}
                       onChange={(next) =>
                         toggleMutation.mutate({ id: t.id, next })
                       }
@@ -253,8 +283,8 @@ export default function AdminAlimtalkTemplatesPage() {
                             수정
                           </RowActionButton>
                           <Switch
-                            checked={t.is_enabled}
-                            disabled={isTogglePending(t.id)}
+                            checked={masterOn && t.is_enabled}
+                            disabled={!masterOn || isTogglePending(t.id)}
                             onChange={(next) =>
                               toggleMutation.mutate({ id: t.id, next })
                             }
