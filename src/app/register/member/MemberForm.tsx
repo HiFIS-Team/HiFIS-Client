@@ -866,8 +866,9 @@ export function MemberForm({ branchId }: { branchId: string }) {
 
             {isDajimFace && (
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-700">
-                  얼굴 사진 (다짐 회원 등록용)
+                <p className="text-sm font-medium text-gray-700">얼굴 사진</p>
+                <p className="mt-0.5 mb-2 text-xs text-gray-500">
+                  센터 출입 시 얼굴 인식에 사용돼요.
                 </p>
                 <FaceCapture
                   value={faceImage}
