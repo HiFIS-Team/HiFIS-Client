@@ -32,6 +32,7 @@ import { ApiError } from "@/lib/api/client";
 import type { EnumOption, Pass } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
 import { TextField } from "@/components/TextField";
+import { FaceCapture } from "@/components/FaceCapture";
 import { DateField } from "@/components/DateField";
 import { NumberField } from "@/components/NumberField";
 import { Select, type SelectOption } from "@/components/Select";
@@ -205,7 +206,29 @@ export function PtForm({ branchId }: { branchId: string }) {
     if (!signaturePreview) return;
     return () => URL.revokeObjectURL(signaturePreview);
   }, [signaturePreview]);
+  // 첨단점 다짐 얼굴 등록 (Branch.dajim_face_enabled). 백엔드 400 "얼굴 인증 실패" 시 faceError.
+  const [faceImage, setFaceImage] = useState<File | null>(null);
+  const [faceError, setFaceError] = useState<string | null>(null);
   const mutation = useMutation({ mutationFn: createPtApplication });
+  // 아래 mutation.isSuccess early return 보다 위에 둬야 hooks 순서가 변하지 않음.
+  useEffect(() => {
+    if (
+      mutation.isError &&
+      mutation.error instanceof ApiError &&
+      mutation.error.status === 400 &&
+      /얼굴/.test(mutation.error.detail ?? "")
+    ) {
+      setFaceImage(null);
+      // 백엔드 detail 그대로 노출하면 다짐/브로제이 마다 문구가 달라 혼란 — 고정 안내문으로 통일.
+      setFaceError(
+        "얼굴 인증에 실패했어요. 정면을 보고 또렷하게 다시 찍어 주세요.",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutation.isError, mutation.error]);
+  useEffect(() => {
+    if (faceImage) setFaceError(null);
+  }, [faceImage]);
 
   const set = (patch: Partial<FormState>) =>
     setForm((f) => ({ ...f, ...patch }));
@@ -246,6 +269,9 @@ export function PtForm({ branchId }: { branchId: string }) {
   const branchShort = branchName.replace(/^피트니스스타\s*/, "");
   // 다짐 지점(첨단·동광주)은 PT 유의사항 대신 통합 이용약관 사용
   const isDajim = !!branch?.dajim_enabled;
+  // 첨단점(다짐) 과 화순점(브로제이) 은 회원·PT 신청 시 얼굴 사진을 추가로 받음.
+  const requiresFace =
+    !!branch?.dajim_face_enabled || !!branch?.broj_face_enabled;
   const terms = isDajim ? DAJIM_PT_TERMS : PT_NOTICE;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "서명 전 유의사항 보기";
@@ -399,6 +425,7 @@ export function PtForm({ branchId }: { branchId: string }) {
     // 동의 — 모든 지점: 체크박스 필수. 다짐 지점은 전자서명까지 추가로 필수.
     if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
     if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
+    if (requiresFace && !faceImage) e.faceImage = "얼굴 사진을 촬영해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -437,13 +464,21 @@ export function PtForm({ branchId }: { branchId: string }) {
         agreed_marketing: form.agreed_marketing,
       },
       signature: isDajim ? signature : undefined,
+      faceImage: requiresFace ? faceImage : undefined,
     });
   }
 
+  // 400 "얼굴 인증 실패…" 는 FaceCapture 자체에 인라인 에러로 띄우므로 하단 중복 표시는 생략.
   let submitError: string | null = null;
   if (mutation.isError) {
     if (mutation.error instanceof ApiError && mutation.error.status === 429) {
       submitError = "요청이 많습니다. 잠시 후 다시 시도해 주세요.";
+    } else if (
+      mutation.error instanceof ApiError &&
+      mutation.error.status === 400 &&
+      /얼굴/.test(mutation.error.detail ?? "")
+    ) {
+      submitError = null;
     } else if (mutation.error instanceof ApiError) {
       submitError = mutation.error.detail;
     } else {
@@ -751,6 +786,21 @@ export function PtForm({ branchId }: { branchId: string }) {
               <p className="text-sm text-red-600">{errors.signature}</p>
             )}
 
+            {requiresFace && (
+              <div>
+                <p className="text-sm font-medium text-gray-700">얼굴 사진</p>
+                <p className="mt-0.5 mb-2 text-xs text-gray-500">
+                  센터 출입 시 얼굴 인식에 사용돼요.
+                </p>
+                <FaceCapture
+                  value={faceImage}
+                  onChange={setFaceImage}
+                  invalid={!!errors.faceImage}
+                  errorMessage={faceError ?? errors.faceImage ?? null}
+                />
+              </div>
+            )}
+
             <Checkbox
               id="agreed-marketing"
               label="마케팅 정보 수신에 동의합니다. (선택)"
@@ -777,7 +827,11 @@ export function PtForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_notice || (isDajim && !signature)}
+            disabled={
+              !form.agreed_notice ||
+              (isDajim && !signature) ||
+              (requiresFace && !faceImage)
+            }
           >
             신청서 제출
           </Button>

@@ -33,6 +33,7 @@ import type { EnumOption, Pass } from "@/lib/api/types";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
 import { NumberField } from "@/components/NumberField";
+import { FaceCapture } from "@/components/FaceCapture";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
@@ -233,7 +234,31 @@ export function MemberForm({ branchId }: { branchId: string }) {
     if (!signaturePreview) return;
     return () => URL.revokeObjectURL(signaturePreview);
   }, [signaturePreview]);
+  // 첨단점 다짐 얼굴 등록 — Branch.dajim_face_enabled 일 때만 받음.
+  // 백엔드 400 "얼굴 인증 실패" 응답 시 faceError 에 detail 담아 미리보기 위에 노출.
+  const [faceImage, setFaceImage] = useState<File | null>(null);
+  const [faceError, setFaceError] = useState<string | null>(null);
   const mutation = useMutation({ mutationFn: createMember });
+  // 백엔드가 400 "얼굴 인증 실패…" 로 막은 경우 — 사진 리셋 + 인라인 에러로 다시 찍게 유도.
+  // 아래 mutation.isSuccess early return 보다 위에 둬야 hooks 순서가 변하지 않음.
+  useEffect(() => {
+    if (
+      mutation.isError &&
+      mutation.error instanceof ApiError &&
+      mutation.error.status === 400 &&
+      /얼굴/.test(mutation.error.detail ?? "")
+    ) {
+      setFaceImage(null);
+      // 백엔드 detail 그대로 노출하면 다짐/브로제이 마다 문구가 달라 혼란 — 고정 안내문으로 통일.
+      setFaceError(
+        "얼굴 인증에 실패했어요. 정면을 보고 또렷하게 다시 찍어 주세요.",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutation.isError, mutation.error]);
+  useEffect(() => {
+    if (faceImage) setFaceError(null);
+  }, [faceImage]);
 
   const set = (patch: Partial<FormState>) =>
     setForm((f) => ({ ...f, ...patch }));
@@ -272,6 +297,10 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const branchShort = branchName.replace(/^피트니스스타\s*/, "");
   // 다짐 지점(첨단·동광주)은 별도 이용약관 — Branch.dajim_enabled 로 판정
   const isDajim = !!branch?.dajim_enabled;
+  // 첨단점(다짐) 과 화순점(브로제이) 은 회원·PT 신청 시 얼굴 사진을 추가로 받음.
+  // 백엔드가 multipart face_image 받아 각 SaaS 에 동기 등록 (실패 시 400 "얼굴 인증 실패").
+  const requiresFace =
+    !!branch?.dajim_face_enabled || !!branch?.broj_face_enabled;
   const terms = isDajim ? DAJIM_MEMBER_TERMS : OPERATING_RULES;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "운영 회칙 전문 보기";
@@ -494,6 +523,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
       : "운영 회칙에 동의해 주세요.";
     if (!form.agreed_terms) e.agreed_terms = termsErrorMsg;
     if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
+    if (requiresFace && !faceImage) e.faceImage = "얼굴 사진을 촬영해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -533,14 +563,23 @@ export function MemberForm({ branchId }: { branchId: string }) {
       },
       // signature 는 다짐 지점에서만 전달 (래퍼가 없으면 JSON 으로 보냄)
       signature: isDajim ? signature : undefined,
+      // face_image 는 첨단점만. 백엔드가 다짐 RegisterFace 동기 호출.
+      faceImage: requiresFace ? faceImage : undefined,
     });
   }
 
-  // 제출 에러 — 429(호출 제한)는 안내 문구로 대체
+  // 제출 에러 — 429(호출 제한)는 안내 문구로 대체.
+  // 400 "얼굴 인증 실패…" 는 FaceCapture 자체에 인라인 에러로 띄우므로 하단 중복 표시는 생략.
   let submitError: string | null = null;
   if (mutation.isError) {
     if (mutation.error instanceof ApiError && mutation.error.status === 429) {
       submitError = "요청이 많습니다. 잠시 후 다시 시도해 주세요.";
+    } else if (
+      mutation.error instanceof ApiError &&
+      mutation.error.status === 400 &&
+      /얼굴/.test(mutation.error.detail ?? "")
+    ) {
+      submitError = null;
     } else if (mutation.error instanceof ApiError) {
       submitError = mutation.error.detail;
     } else {
@@ -830,6 +869,21 @@ export function MemberForm({ branchId }: { branchId: string }) {
               <p className="text-sm text-red-600">{errors.signature}</p>
             )}
 
+            {requiresFace && (
+              <div>
+                <p className="text-sm font-medium text-gray-700">얼굴 사진</p>
+                <p className="mt-0.5 mb-2 text-xs text-gray-500">
+                  센터 출입 시 얼굴 인식에 사용돼요.
+                </p>
+                <FaceCapture
+                  value={faceImage}
+                  onChange={setFaceImage}
+                  invalid={!!errors.faceImage}
+                  errorMessage={faceError ?? errors.faceImage ?? null}
+                />
+              </div>
+            )}
+
             <Checkbox
               id="agreed-marketing"
               label="마케팅 정보 수신에 동의합니다. (선택)"
@@ -856,7 +910,11 @@ export function MemberForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_terms || (isDajim && !signature)}
+            disabled={
+              !form.agreed_terms ||
+              (isDajim && !signature) ||
+              (requiresFace && !faceImage)
+            }
           >
             신청서 제출
           </Button>

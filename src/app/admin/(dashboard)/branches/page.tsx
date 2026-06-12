@@ -178,36 +178,42 @@ export default function AdminBranchesPage() {
       updateSystemConfig({ messaging_enabled: next }),
     onSuccess: (data) => {
       queryClient.setQueryData(["admin", "system-config"], data);
-      if (data.messaging_enabled) {
-        toast.success(
-          "전역 알림톡 발송이 켜졌어요. 지점별 토글도 켜야 발송돼요.",
-        );
-        return;
-      }
-      // 전역 OFF — 켜져 있던 지점들도 자동으로 OFF (cascade).
-      // 캐시는 즉시 false 로 반영해 UI 가 안 깜빡이게, 백엔드는 병렬 PATCH.
+      // 전역 토글은 양방향 cascade — 끄면 지점도 모두 OFF, 켜면 지점도 모두 ON.
+      // 트리거 토글(AlimtalkTemplate.is_enabled) 은 사용자가 의도해 둔 값을 보존하기 위해
+      // 그대로 두고, 지점 토글만 cascade 한다. BranchProvider 의 ["branches"] 캐시도 같이 동기화.
+      const targetOn = data.messaging_enabled;
       const list =
         queryClient.getQueryData<Branch[]>(["admin", "branches"]) ?? [];
-      const enabled = list.filter((b) => b.messaging_enabled);
-      queryClient.setQueryData<Branch[]>(["admin", "branches"], (old) =>
-        old?.map((b) => ({ ...b, messaging_enabled: false })),
-      );
-      if (enabled.length > 0) {
+      const mismatched = list.filter((b) => b.messaging_enabled !== targetOn);
+      const applyAll = (old: Branch[] | undefined) =>
+        old?.map((b) => ({ ...b, messaging_enabled: targetOn }));
+      queryClient.setQueryData<Branch[]>(["admin", "branches"], applyAll);
+      queryClient.setQueryData<Branch[]>(["branches"], applyAll);
+      if (mismatched.length > 0) {
         Promise.all(
-          enabled.map((b) =>
-            updateBranch(b.id, { messaging_enabled: false } as BranchInput)
+          mismatched.map((b) =>
+            updateBranch(b.id, { messaging_enabled: targetOn } as BranchInput)
               // 부분 실패는 무시 — 다음 새로고침 때 서버 상태로 동기화
               .catch(() => null),
           ),
         ).finally(() => {
           queryClient.invalidateQueries({ queryKey: ["admin", "branches"] });
+          queryClient.invalidateQueries({ queryKey: ["branches"] });
         });
       }
-      toast.success(
-        enabled.length > 0
-          ? `전역 알림톡 발송이 꺼졌어요. 켜진 지점 ${enabled.length}곳도 함께 꺼졌어요.`
-          : "전역 알림톡 발송이 꺼졌어요.",
-      );
+      if (targetOn) {
+        toast.success(
+          mismatched.length > 0
+            ? `전역 알림톡 발송이 켜졌어요. 지점 ${mismatched.length}곳도 함께 켜졌어요.`
+            : "전역 알림톡 발송이 켜졌어요.",
+        );
+      } else {
+        toast.success(
+          mismatched.length > 0
+            ? `전역 알림톡 발송이 꺼졌어요. 켜진 지점 ${mismatched.length}곳도 함께 꺼졌어요.`
+            : "전역 알림톡 발송이 꺼졌어요.",
+        );
+      }
     },
     onError: (e) => toast.error(getErrorMessage(e)),
   });
@@ -225,11 +231,11 @@ export default function AdminBranchesPage() {
           : `${updated.name} 알림톡 발송이 꺼졌어요.`,
       );
       // 캐시 즉시 갱신 → 폴링 안 기다리고 토글 반영
-      queryClient.setQueryData<Branch[]>(
-        ["admin", "branches"],
-        (old) =>
-          old?.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)),
-      );
+      // BranchProvider 의 ["branches"] 도 같이 갱신해야 알림톡 관리 등 다른 페이지가 stale 안 됨.
+      const apply = (old: Branch[] | undefined) =>
+        old?.map((b) => (b.id === updated.id ? { ...b, ...updated } : b));
+      queryClient.setQueryData<Branch[]>(["admin", "branches"], apply);
+      queryClient.setQueryData<Branch[]>(["branches"], apply);
     },
     onError: (e) => toast.error(getErrorMessage(e)),
     onSettled: () => setTogglingBranchId(null),
