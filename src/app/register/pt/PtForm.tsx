@@ -219,7 +219,10 @@ export function PtForm({ branchId }: { branchId: string }) {
       /얼굴/.test(mutation.error.detail ?? "")
     ) {
       setFaceImage(null);
-      setFaceError(mutation.error.detail ?? "얼굴 인증에 실패했습니다.");
+      // 백엔드 detail 그대로 노출하면 다짐/브로제이 마다 문구가 달라 혼란 — 고정 안내문으로 통일.
+      setFaceError(
+        "얼굴 인증에 실패했어요. 정면을 보고 또렷하게 다시 찍어 주세요.",
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mutation.isError, mutation.error]);
