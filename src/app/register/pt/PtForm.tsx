@@ -210,6 +210,22 @@ export function PtForm({ branchId }: { branchId: string }) {
   const [faceImage, setFaceImage] = useState<File | null>(null);
   const [faceError, setFaceError] = useState<string | null>(null);
   const mutation = useMutation({ mutationFn: createPtApplication });
+  // 아래 mutation.isSuccess early return 보다 위에 둬야 hooks 순서가 변하지 않음.
+  useEffect(() => {
+    if (
+      mutation.isError &&
+      mutation.error instanceof ApiError &&
+      mutation.error.status === 400 &&
+      /얼굴/.test(mutation.error.detail ?? "")
+    ) {
+      setFaceImage(null);
+      setFaceError(mutation.error.detail ?? "얼굴 인증에 실패했습니다.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutation.isError, mutation.error]);
+  useEffect(() => {
+    if (faceImage) setFaceError(null);
+  }, [faceImage]);
 
   const set = (patch: Partial<FormState>) =>
     setForm((f) => ({ ...f, ...patch }));
@@ -458,23 +474,6 @@ export function PtForm({ branchId }: { branchId: string }) {
       submitError = "신청에 실패했습니다. 잠시 후 다시 시도해 주세요.";
     }
   }
-
-  // 백엔드 400 "얼굴 인증 실패…" 응답 시 사진 리셋 + 인라인 에러로 다시 찍게 유도.
-  useEffect(() => {
-    if (
-      mutation.isError &&
-      mutation.error instanceof ApiError &&
-      mutation.error.status === 400 &&
-      /얼굴/.test(mutation.error.detail ?? "")
-    ) {
-      setFaceImage(null);
-      setFaceError(mutation.error.detail ?? "얼굴 인증에 실패했습니다.");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutation.isError, mutation.error]);
-  useEffect(() => {
-    if (faceImage) setFaceError(null);
-  }, [faceImage]);
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
