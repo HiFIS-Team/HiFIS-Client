@@ -563,11 +563,18 @@ export function MemberForm({ branchId }: { branchId: string }) {
     });
   }
 
-  // 제출 에러 — 429(호출 제한)는 안내 문구로 대체
+  // 제출 에러 — 429(호출 제한)는 안내 문구로 대체.
+  // 400 "얼굴 인증 실패…" 는 FaceCapture 자체에 인라인 에러로 띄우므로 하단 중복 표시는 생략.
   let submitError: string | null = null;
   if (mutation.isError) {
     if (mutation.error instanceof ApiError && mutation.error.status === 429) {
       submitError = "요청이 많습니다. 잠시 후 다시 시도해 주세요.";
+    } else if (
+      mutation.error instanceof ApiError &&
+      mutation.error.status === 400 &&
+      /얼굴/.test(mutation.error.detail ?? "")
+    ) {
+      submitError = null;
     } else if (mutation.error instanceof ApiError) {
       submitError = mutation.error.detail;
     } else {
