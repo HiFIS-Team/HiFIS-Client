@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/alimtalkTemplates";
 import { getEnums } from "@/lib/api/enums";
 import { getErrorMessage } from "@/lib/api/client";
+import { useBranch } from "@/providers/BranchProvider";
 import { Select } from "@/components/Select";
 import { Switch } from "@/components/Switch";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
@@ -24,10 +25,13 @@ import { AlimtalkTemplateDialog } from "./AlimtalkTemplateDialog";
 export default function AdminAlimtalkTemplatesPage() {
   const toast = useToast();
   const qc = useQueryClient();
+  // 글로벌 지점 — 백엔드가 (branch_id, trigger_type) 복합 키라 지점별로 따로 로드.
+  const { selectedBranchId: branchId } = useBranch();
 
   const templatesQuery = useQuery({
-    queryKey: ["admin", "alimtalk-templates"],
-    queryFn: getAlimtalkTemplates,
+    queryKey: ["admin", "alimtalk-templates", branchId ?? "self"],
+    queryFn: () => getAlimtalkTemplates(branchId),
+    enabled: !!branchId,
   });
   const enumsQuery = useQuery({ queryKey: ["enums"], queryFn: getEnums });
 
@@ -68,9 +72,10 @@ export default function AdminAlimtalkTemplatesPage() {
   }, [templatesQuery.data, triggerIndex, typeFilter]);
 
   // 캐시 업데이트 — 토글 / 본문 저장 응답을 동일하게 처리.
+  // queryKey 의 branch 키를 동일하게 맞춰야 setQueryData 가 정확히 그 캐시에 들어감.
   function applyUpdated(updated: AlimtalkTemplate) {
     qc.setQueryData<AlimtalkTemplate[]>(
-      ["admin", "alimtalk-templates"],
+      ["admin", "alimtalk-templates", branchId ?? "self"],
       (prev) => prev?.map((t) => (t.id === updated.id ? updated : t)) ?? prev,
     );
   }

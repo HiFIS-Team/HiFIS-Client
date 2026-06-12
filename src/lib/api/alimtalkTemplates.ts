@@ -6,8 +6,8 @@ export interface AlimtalkVariable {
   label: string; // 한국어 라벨 (예: "회원 이름")
 }
 
-// 알림톡 템플릿 — trigger_type 단일 PK 글로벌.
-// 모든 어드민(SUPER_ADMIN / FC) 사용 가능 (백엔드 require_admin).
+// 알림톡 템플릿 — (branch_id, trigger_type) 복합 키. 지점마다 독립 row.
+// 모든 어드민(SUPER_ADMIN / FC) 사용 가능. FC 는 본인 지점만, SUPER_ADMIN 은 글로벌 셀렉터 지점.
 // body=null 이면 코드 디폴트(default_body) 사용.
 //
 // header_template / footer_template :
@@ -26,9 +26,13 @@ export interface AlimtalkTemplate {
   updated_at: string;
 }
 
-// GET /admin/alimtalk-templates — 모든 트리거 row.
-export function getAlimtalkTemplates(): Promise<AlimtalkTemplate[]> {
-  return apiFetch<AlimtalkTemplate[]>("/admin/alimtalk-templates", {
+// GET /admin/alimtalk-templates?branch_id=... — 해당 지점의 트리거 row 들.
+// SUPER_ADMIN 은 branch_id 명시 필수. FC 는 본인 지점 자동(미지정 시 백엔드가 채움).
+export function getAlimtalkTemplates(
+  branchId?: string,
+): Promise<AlimtalkTemplate[]> {
+  const qs = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+  return apiFetch<AlimtalkTemplate[]>(`/admin/alimtalk-templates${qs}`, {
     auth: true,
   });
 }
