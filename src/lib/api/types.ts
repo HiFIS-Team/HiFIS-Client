@@ -33,6 +33,10 @@ export interface Branch {
   // 다짐 얼굴 등록 통합 — 첨단점 만 ON. 회원·PT 신청 시 face_image 받아서
   // 다짐 RegisterFace 동기 호출 (실패 시 백엔드가 400 "얼굴 인증 실패").
   dajim_face_enabled: boolean;
+  // 브로제이 얼굴 등록 통합 — 화순점 만 ON. 다짐과 동일 패턴 (multipart face_image →
+  // 백엔드가 브로제이 얼굴 등록 동기 호출, 실패 시 400). 프론트는 둘 중 하나만 켜져
+  // 있어도 FaceCapture 를 띄움 — 두 지점이 동시에 둘 다 ON 일 일은 없음.
+  broj_face_enabled: boolean;
   created_at: string;
 }
 

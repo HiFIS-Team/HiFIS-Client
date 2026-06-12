@@ -294,8 +294,10 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const branchShort = branchName.replace(/^피트니스스타\s*/, "");
   // 다짐 지점(첨단·동광주)은 별도 이용약관 — Branch.dajim_enabled 로 판정
   const isDajim = !!branch?.dajim_enabled;
-  // 첨단점만 다짐 얼굴 등록을 추가로 요구 — Branch.dajim_face_enabled 로 판정.
-  const isDajimFace = !!branch?.dajim_face_enabled;
+  // 첨단점(다짐) 과 화순점(브로제이) 은 회원·PT 신청 시 얼굴 사진을 추가로 받음.
+  // 백엔드가 multipart face_image 받아 각 SaaS 에 동기 등록 (실패 시 400 "얼굴 인증 실패").
+  const requiresFace =
+    !!branch?.dajim_face_enabled || !!branch?.broj_face_enabled;
   const terms = isDajim ? DAJIM_MEMBER_TERMS : OPERATING_RULES;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "운영 회칙 전문 보기";
@@ -518,7 +520,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
       : "운영 회칙에 동의해 주세요.";
     if (!form.agreed_terms) e.agreed_terms = termsErrorMsg;
     if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
-    if (isDajimFace && !faceImage) e.faceImage = "얼굴 사진을 촬영해 주세요.";
+    if (requiresFace && !faceImage) e.faceImage = "얼굴 사진을 촬영해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -559,7 +561,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
       // signature 는 다짐 지점에서만 전달 (래퍼가 없으면 JSON 으로 보냄)
       signature: isDajim ? signature : undefined,
       // face_image 는 첨단점만. 백엔드가 다짐 RegisterFace 동기 호출.
-      faceImage: isDajimFace ? faceImage : undefined,
+      faceImage: requiresFace ? faceImage : undefined,
     });
   }
 
@@ -864,7 +866,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
               <p className="text-sm text-red-600">{errors.signature}</p>
             )}
 
-            {isDajimFace && (
+            {requiresFace && (
               <div>
                 <p className="text-sm font-medium text-gray-700">얼굴 사진</p>
                 <p className="mt-0.5 mb-2 text-xs text-gray-500">
@@ -908,7 +910,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
             disabled={
               !form.agreed_terms ||
               (isDajim && !signature) ||
-              (isDajimFace && !faceImage)
+              (requiresFace && !faceImage)
             }
           >
             신청서 제출

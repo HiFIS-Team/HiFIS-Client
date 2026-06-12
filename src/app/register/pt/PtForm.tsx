@@ -266,8 +266,9 @@ export function PtForm({ branchId }: { branchId: string }) {
   const branchShort = branchName.replace(/^피트니스스타\s*/, "");
   // 다짐 지점(첨단·동광주)은 PT 유의사항 대신 통합 이용약관 사용
   const isDajim = !!branch?.dajim_enabled;
-  // 첨단점만 다짐 얼굴 등록 추가.
-  const isDajimFace = !!branch?.dajim_face_enabled;
+  // 첨단점(다짐) 과 화순점(브로제이) 은 회원·PT 신청 시 얼굴 사진을 추가로 받음.
+  const requiresFace =
+    !!branch?.dajim_face_enabled || !!branch?.broj_face_enabled;
   const terms = isDajim ? DAJIM_PT_TERMS : PT_NOTICE;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "서명 전 유의사항 보기";
@@ -421,7 +422,7 @@ export function PtForm({ branchId }: { branchId: string }) {
     // 동의 — 모든 지점: 체크박스 필수. 다짐 지점은 전자서명까지 추가로 필수.
     if (!form.agreed_notice) e.agreed_notice = "유의사항을 확인해 주세요.";
     if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
-    if (isDajimFace && !faceImage) e.faceImage = "얼굴 사진을 촬영해 주세요.";
+    if (requiresFace && !faceImage) e.faceImage = "얼굴 사진을 촬영해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -460,7 +461,7 @@ export function PtForm({ branchId }: { branchId: string }) {
         agreed_marketing: form.agreed_marketing,
       },
       signature: isDajim ? signature : undefined,
-      faceImage: isDajimFace ? faceImage : undefined,
+      faceImage: requiresFace ? faceImage : undefined,
     });
   }
 
@@ -782,7 +783,7 @@ export function PtForm({ branchId }: { branchId: string }) {
               <p className="text-sm text-red-600">{errors.signature}</p>
             )}
 
-            {isDajimFace && (
+            {requiresFace && (
               <div>
                 <p className="text-sm font-medium text-gray-700">얼굴 사진</p>
                 <p className="mt-0.5 mb-2 text-xs text-gray-500">
@@ -826,7 +827,7 @@ export function PtForm({ branchId }: { branchId: string }) {
             disabled={
               !form.agreed_notice ||
               (isDajim && !signature) ||
-              (isDajimFace && !faceImage)
+              (requiresFace && !faceImage)
             }
           >
             신청서 제출
