@@ -32,8 +32,7 @@ export interface Branch {
   dajim_enabled: boolean;
   // 다짐 얼굴 등록 통합 — 첨단점 만 ON. 회원·PT 신청 시 face_image 받아서
   // 다짐 RegisterFace 동기 호출 (실패 시 백엔드가 400 "얼굴 인증 실패").
-  // 백엔드 BranchResponse 가 아직 안 노출하는 경우를 대비해 옵셔널로 둔다 (없으면 false 취급).
-  dajim_face_enabled?: boolean;
+  dajim_face_enabled: boolean;
   created_at: string;
 }
 
