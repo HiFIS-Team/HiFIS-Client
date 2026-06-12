@@ -8,16 +8,19 @@ import type {
 } from "./types";
 
 // POST /members — 회원가입 신청 (공개).
-// signature 가 있으면 multipart/form-data (payload JSON 문자열 + PNG 파일),
-// 없으면 기존 JSON. 다짐 지점(첨단·동광주)만 서명 → multipart 사용, 그 외는 JSON.
+// signature / faceImage 중 하나라도 있으면 multipart/form-data (payload JSON 문자열 + 파일들),
+// 없으면 기존 JSON. 다짐 지점(첨단·동광주)만 서명, 첨단점만 face_image 추가.
 export function createMember(args: {
   payload: MemberCreate;
   signature?: Blob | null;
+  faceImage?: Blob | null;
 }): Promise<Member> {
-  if (args.signature) {
+  if (args.signature || args.faceImage) {
     const fd = new FormData();
     fd.append("payload", JSON.stringify(args.payload));
-    fd.append("signature", args.signature, "signature.png");
+    if (args.signature)
+      fd.append("signature", args.signature, "signature.png");
+    if (args.faceImage) fd.append("face_image", args.faceImage, "face.jpg");
     return apiFetch<Member>("/members", { method: "POST", body: fd });
   }
   return apiFetch<Member>("/members", { method: "POST", body: args.payload });
@@ -27,11 +30,14 @@ export function createMember(args: {
 export function reRegisterMember(args: {
   payload: MemberReRegister;
   signature?: Blob | null;
+  faceImage?: Blob | null;
 }): Promise<Member> {
-  if (args.signature) {
+  if (args.signature || args.faceImage) {
     const fd = new FormData();
     fd.append("payload", JSON.stringify(args.payload));
-    fd.append("signature", args.signature, "signature.png");
+    if (args.signature)
+      fd.append("signature", args.signature, "signature.png");
+    if (args.faceImage) fd.append("face_image", args.faceImage, "face.jpg");
     return apiFetch<Member>("/members/re-register", {
       method: "POST",
       body: fd,

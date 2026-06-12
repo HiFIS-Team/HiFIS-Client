@@ -33,6 +33,7 @@ import type { EnumOption, Pass } from "@/lib/api/types";
 import { TextField } from "@/components/TextField";
 import { DateField } from "@/components/DateField";
 import { NumberField } from "@/components/NumberField";
+import { FaceCapture } from "@/components/FaceCapture";
 import { Select, type SelectOption } from "@/components/Select";
 import { Checkbox } from "@/components/Checkbox";
 import { Button } from "@/components/Button";
@@ -233,6 +234,10 @@ export function MemberForm({ branchId }: { branchId: string }) {
     if (!signaturePreview) return;
     return () => URL.revokeObjectURL(signaturePreview);
   }, [signaturePreview]);
+  // 첨단점 다짐 얼굴 등록 — Branch.dajim_face_enabled 일 때만 받음.
+  // 백엔드 400 "얼굴 인증 실패" 응답 시 faceError 에 detail 담아 미리보기 위에 노출.
+  const [faceImage, setFaceImage] = useState<File | null>(null);
+  const [faceError, setFaceError] = useState<string | null>(null);
   const mutation = useMutation({ mutationFn: createMember });
 
   const set = (patch: Partial<FormState>) =>
@@ -272,6 +277,8 @@ export function MemberForm({ branchId }: { branchId: string }) {
   const branchShort = branchName.replace(/^피트니스스타\s*/, "");
   // 다짐 지점(첨단·동광주)은 별도 이용약관 — Branch.dajim_enabled 로 판정
   const isDajim = !!branch?.dajim_enabled;
+  // 첨단점만 다짐 얼굴 등록을 추가로 요구 — Branch.dajim_face_enabled 로 판정.
+  const isDajimFace = !!branch?.dajim_face_enabled;
   const terms = isDajim ? DAJIM_MEMBER_TERMS : OPERATING_RULES;
   const pledge = isDajim ? DAJIM_PLEDGE : MEMBERSHIP_PLEDGE;
   const termsButtonLabel = isDajim ? "이용약관 전문 보기" : "운영 회칙 전문 보기";
@@ -494,6 +501,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
       : "운영 회칙에 동의해 주세요.";
     if (!form.agreed_terms) e.agreed_terms = termsErrorMsg;
     if (isDajim && !signature) e.signature = "전자서명을 입력해 주세요.";
+    if (isDajimFace && !faceImage) e.faceImage = "얼굴 사진을 촬영해 주세요.";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -533,6 +541,8 @@ export function MemberForm({ branchId }: { branchId: string }) {
       },
       // signature 는 다짐 지점에서만 전달 (래퍼가 없으면 JSON 으로 보냄)
       signature: isDajim ? signature : undefined,
+      // face_image 는 첨단점만. 백엔드가 다짐 RegisterFace 동기 호출.
+      faceImage: isDajimFace ? faceImage : undefined,
     });
   }
 
@@ -547,6 +557,24 @@ export function MemberForm({ branchId }: { branchId: string }) {
       submitError = "신청에 실패했습니다. 잠시 후 다시 시도해 주세요.";
     }
   }
+
+  // 백엔드가 400 "얼굴 인증 실패…" 로 막은 경우 — 사진 리셋 + 인라인 에러로 다시 찍게 유도.
+  // mutation.error 가 변경될 때만 동작. 다시 찍어 faceImage 가 채워지면 faceError 자동 해제.
+  useEffect(() => {
+    if (
+      mutation.isError &&
+      mutation.error instanceof ApiError &&
+      mutation.error.status === 400 &&
+      /얼굴/.test(mutation.error.detail ?? "")
+    ) {
+      setFaceImage(null);
+      setFaceError(mutation.error.detail ?? "얼굴 인증에 실패했습니다.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutation.isError, mutation.error]);
+  useEffect(() => {
+    if (faceImage) setFaceError(null);
+  }, [faceImage]);
 
   // 락커·운동복은 선택 항목 → "선택 안 함" 옵션을 맨 앞에
   const optional = (arr: SelectOption[]): SelectOption[] => [
@@ -830,6 +858,20 @@ export function MemberForm({ branchId }: { branchId: string }) {
               <p className="text-sm text-red-600">{errors.signature}</p>
             )}
 
+            {isDajimFace && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-gray-700">
+                  얼굴 사진 (다짐 회원 등록용)
+                </p>
+                <FaceCapture
+                  value={faceImage}
+                  onChange={setFaceImage}
+                  invalid={!!errors.faceImage}
+                  errorMessage={faceError ?? errors.faceImage ?? null}
+                />
+              </div>
+            )}
+
             <Checkbox
               id="agreed-marketing"
               label="마케팅 정보 수신에 동의합니다. (선택)"
@@ -856,7 +898,11 @@ export function MemberForm({ branchId }: { branchId: string }) {
             type="submit"
             className="flex-1"
             loading={mutation.isPending}
-            disabled={!form.agreed_terms || (isDajim && !signature)}
+            disabled={
+              !form.agreed_terms ||
+              (isDajim && !signature) ||
+              (isDajimFace && !faceImage)
+            }
           >
             신청서 제출
           </Button>

@@ -30,6 +30,10 @@ export interface Branch {
   // 다짐(외부 SaaS) 자동 회원 등록 토글 — 첨단점·동광주점 만 ON.
   // 프론트는 이 플래그로 신청서 이용약관 분기 (다짐매니저 위탁 고지가 포함된 약관 사용).
   dajim_enabled: boolean;
+  // 다짐 얼굴 등록 통합 — 첨단점 만 ON. 회원·PT 신청 시 face_image 받아서
+  // 다짐 RegisterFace 동기 호출 (실패 시 백엔드가 400 "얼굴 인증 실패").
+  // 백엔드 BranchResponse 가 아직 안 노출하는 경우를 대비해 옵셔널로 둔다 (없으면 false 취급).
+  dajim_face_enabled?: boolean;
   created_at: string;
 }
 

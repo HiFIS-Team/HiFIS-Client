@@ -8,15 +8,19 @@ import type {
 } from "./types";
 
 // POST /pt-applications — PT 신청 (공개).
-// signature 가 있으면 multipart, 없으면 JSON (지점별 분기는 폼에서).
+// signature / faceImage 중 하나라도 있으면 multipart, 없으면 JSON.
+// 다짐 지점만 서명, 첨단점만 face_image 추가 (지점별 분기는 폼에서).
 export function createPtApplication(args: {
   payload: PTApplicationCreate;
   signature?: Blob | null;
+  faceImage?: Blob | null;
 }): Promise<PTApplication> {
-  if (args.signature) {
+  if (args.signature || args.faceImage) {
     const fd = new FormData();
     fd.append("payload", JSON.stringify(args.payload));
-    fd.append("signature", args.signature, "signature.png");
+    if (args.signature)
+      fd.append("signature", args.signature, "signature.png");
+    if (args.faceImage) fd.append("face_image", args.faceImage, "face.jpg");
     return apiFetch<PTApplication>("/pt-applications", {
       method: "POST",
       body: fd,
@@ -32,11 +36,14 @@ export function createPtApplication(args: {
 export function reRegisterPtApplication(args: {
   payload: PTApplicationReRegister;
   signature?: Blob | null;
+  faceImage?: Blob | null;
 }): Promise<PTApplication> {
-  if (args.signature) {
+  if (args.signature || args.faceImage) {
     const fd = new FormData();
     fd.append("payload", JSON.stringify(args.payload));
-    fd.append("signature", args.signature, "signature.png");
+    if (args.signature)
+      fd.append("signature", args.signature, "signature.png");
+    if (args.faceImage) fd.append("face_image", args.faceImage, "face.jpg");
     return apiFetch<PTApplication>("/pt-applications/re-register", {
       method: "POST",
       body: fd,
