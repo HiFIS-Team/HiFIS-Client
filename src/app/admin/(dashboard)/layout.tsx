@@ -135,10 +135,10 @@ export default function DashboardLayout({
           PC    : 좌측 사이드바(전체 높이) + 우측 inner 컨테이너(헤더 + 콘텐츠).
                   Sidebar 자체가 hidden lg:flex 라 모바일에선 자동 비표시. */}
       <Sidebar admin={meQuery.data} />
-      {/* 모바일 GlobalHeader 가 fixed top-0 이라 flow 에서 빠져 있어 첫 in-flow 자식
-          (SubTabBar 또는 main) 이 헤더 뒤에 깔리지 않게 컬럼에 padding-top 줌.
+      {/* 모바일 GlobalHeader 가 fixed h-12 (48px) 라 flow 에서 빠져 있어 첫
+          in-flow 자식이 헤더 뒤에 깔리지 않게 컬럼에 pt-12 줌.
           PC 는 sticky 헤더가 flow 안이라 padding 불필요. */}
-      <div className="flex min-w-0 flex-1 flex-col pt-[44px] lg:pt-0">
+      <div className="flex min-w-0 flex-1 flex-col pt-12 lg:pt-0">
         <GlobalHeader
           admin={meQuery.data}
           onOpenProfile={() => setProfileOpen(true)}

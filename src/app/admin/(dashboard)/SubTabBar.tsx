@@ -20,32 +20,38 @@ export function SubTabBar() {
   if (items.length <= 1) return null;
 
   return (
-    <nav
-      aria-label="하위 페이지"
-      className="sticky top-[44px] z-10 flex gap-4 overflow-x-auto border-b border-gray-200 bg-white px-4 lg:hidden"
-    >
-      {items.map((sub) => {
-        const active =
-          pathname === sub.href || pathname.startsWith(sub.href + "/");
-        return (
-          <Link
-            key={sub.href}
-            href={sub.href}
-            className={`relative shrink-0 py-3 text-[15px] font-semibold tracking-tight transition-colors ${
-              active ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
-            }`}
-          >
-            {sub.label}
-            {/* 활성 밑줄 — 글자 폭에 정확히 맞고 살짝 두꺼움(2.5px) 으로 또렷 */}
-            <span
-              aria-hidden="true"
-              className={`pointer-events-none absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-gray-900 transition-opacity ${
-                active ? "opacity-100" : "opacity-0"
+    <>
+      {/* 헤더(h-12) 바로 아래 fixed 로 viewport 에 고정. 스크롤·오버스크롤에
+          영향 안 받게 헤더와 동일한 패턴. lg:hidden 이라 PC 영향 없음. */}
+      <nav
+        aria-label="하위 페이지"
+        className="fixed inset-x-0 top-12 z-10 flex h-12 gap-4 overflow-x-auto border-b border-gray-200 bg-white px-4 lg:hidden"
+      >
+        {items.map((sub) => {
+          const active =
+            pathname === sub.href || pathname.startsWith(sub.href + "/");
+          return (
+            <Link
+              key={sub.href}
+              href={sub.href}
+              className={`relative flex shrink-0 items-center text-[15px] font-semibold tracking-tight transition-colors ${
+                active ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
               }`}
-            />
-          </Link>
-        );
-      })}
-    </nav>
+            >
+              {sub.label}
+              {/* 활성 밑줄 — 글자 폭에 정확히 맞고 살짝 두꺼움(2.5px) 으로 또렷 */}
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-gray-900 transition-opacity ${
+                  active ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            </Link>
+          );
+        })}
+      </nav>
+      {/* fixed 라 flow 에서 빠지니 main 이 그 자리만큼 더 밀려 내려가도록 스페이서. */}
+      <div aria-hidden className="h-12 lg:hidden" />
+    </>
   );
 }
