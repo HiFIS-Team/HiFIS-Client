@@ -66,12 +66,12 @@ const NAV: NavGroup[] = [
     items: [
       {
         href: "/admin/staff/facility-care",
-        label: "환경정비",
+        label: "환경 정비",
         comingSoon: true,
       },
       {
         href: "/admin/staff/peer-review",
-        label: "동료평가",
+        label: "동료 평가",
         comingSoon: true,
       },
       {
@@ -85,6 +85,7 @@ const NAV: NavGroup[] = [
         label: "센터 기여도",
         comingSoon: true,
       },
+      { href: "/admin/staff/projects", label: "프로젝트", comingSoon: true },
     ],
   },
   {

@@ -62,13 +62,20 @@ export const TABS: TabDef[] = [
     ],
   },
   {
-    // 메시지(알림톡) 는 헤더 종이비행기 아이콘으로 이동 → 여기선 평가만.
+    // 메시지(알림톡) 는 헤더 종이비행기 아이콘으로 이동 → 업무는 평가 항목들만.
     href: "/admin/staff/facility-care",
     label: "업무",
     icon: BriefcaseIcon,
     iconActive: BriefcaseSolidIcon,
     routes: ["/admin/staff"],
-    subTabs: [{ href: "/admin/staff/facility-care", label: "평가" }],
+    subTabs: [
+      { href: "/admin/staff/facility-care", label: "환경 정비" },
+      { href: "/admin/staff/peer-review", label: "동료 평가" },
+      { href: "/admin/staff/kindness", label: "회원 친절도" },
+      { href: "/admin/staff/classes", label: "수업 개수" },
+      { href: "/admin/staff/contribution", label: "센터 기여도" },
+      { href: "/admin/staff/projects", label: "프로젝트" },
+    ],
   },
   {
     href: "/admin/passes",

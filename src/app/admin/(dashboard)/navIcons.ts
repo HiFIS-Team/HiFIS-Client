@@ -13,6 +13,7 @@ import {
   CubeIcon,
   HeartIcon,
   NewspaperIcon,
+  RocketLaunchIcon,
   ScaleIcon,
   SparklesIcon,
   Squares2X2Icon,
@@ -46,4 +47,5 @@ export const NAV_ICONS: Record<
   "/admin/staff/kindness": HeartIcon,
   "/admin/staff/classes": AcademicCapIcon,
   "/admin/staff/contribution": TrophyIcon,
+  "/admin/staff/projects": RocketLaunchIcon,
 };
