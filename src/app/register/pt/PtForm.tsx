@@ -219,9 +219,10 @@ export function PtForm({ branchId }: { branchId: string }) {
       /얼굴/.test(mutation.error.detail ?? "")
     ) {
       setFaceImage(null);
-      // 백엔드 detail 그대로 노출하면 다짐/브로제이 마다 문구가 달라 혼란 — 고정 안내문으로 통일.
+      // 백엔드 detail 그대로 노출 — 다짐/브로제이 모두 사용자 친화 메시지를 보내고
+      // 원인별로 다르게 안내해야 회원이 무엇 때문에 실패했는지 알 수 있음.
       setFaceError(
-        "얼굴 인증에 실패했어요. 정면을 보고 또렷하게 다시 찍어 주세요.",
+        mutation.error.detail ?? "얼굴 인증에 실패했어요. 다시 찍어 주세요.",
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -737,7 +738,7 @@ export function PtForm({ branchId }: { branchId: string }) {
                         aria-hidden="true"
                         className="size-5 shrink-0"
                       />
-                      <span>약관 동의 + 전자서명 완료</span>
+                      <span>약관·서명 완료</span>
                     </p>
                     <p className="mt-0.5 text-xs text-gray-500">
                       내용을 바꾸려면 다시 동의해 주세요.

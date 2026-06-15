@@ -28,6 +28,28 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "1.4.1",
+    date: "2026-06-15",
+    items: [
+      // 버그 수정
+      {
+        type: "fix",
+        title: "모바일 신청서 캡처가 좁고 길게 나오던 문제",
+        description: [
+          "모바일에서 전자서명 후 저장되는 신청서 이미지가 좁고 길게 늘어지던 문제를 고쳤어요. PC 와 동일한 종이 모양으로 단정하게 저장돼요.",
+        ],
+      },
+      // 개선
+      {
+        type: "improvement",
+        title: "얼굴 인증 실패 사유 안내",
+        description: [
+          "얼굴 사진 등록이 실패하면 사진 크기 초과, 얼굴 인식 실패 등 원인별 안내가 표시돼요. 무엇 때문에 실패했는지 회원이 바로 알 수 있어요.",
+        ],
+      },
+    ],
+  },
+  {
     version: "1.4.0",
     date: "2026-06-12",
     items: [
