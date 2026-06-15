@@ -4,12 +4,6 @@ import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useState, type ReactNode } from "react";
 
-// route 기반 사용 (router.back() 경로) 에서만 의미 — child 가 ← 로 닫히는
-// 순간 module-level 로 신호 → 다음에 mount 되는 MobileSubPage (= router.back()
-// 으로 돌아온 parent)는 진입 애니메이션을 skip 하고 정적으로 등장.
-// inline (onClose 가 있는) 사용에선 parent 가 항상 mount 상태라 신호 불필요.
-let skipNextEnter = false;
-
 // 모바일 풀스크린 서브 페이지 wrapper. 두 가지 방식으로 사용:
 //   (a) 라우트 페이지 wrapper — onClose 미전달 → ← 누르면 router.back()
 //       예) /admin/admins, /admin/release-notes 등 직접 URL 진입 케이스
@@ -34,27 +28,16 @@ export function MobileSubPage({
   children: ReactNode;
 }) {
   const router = useRouter();
-  // mode :
-  //   "in"     슬라이드 진입 (기본)
-  //   "static" 애니메이션 없이 그대로 (route 기반에서 child → parent 복귀 케이스)
-  //   "out"    슬라이드 종료 → onAnimationEnd 에서 close
-  const [mode, setMode] = useState<"in" | "static" | "out">(() => {
-    if (skipNextEnter) {
-      skipNextEnter = false;
-      return "static";
-    }
-    return "in";
-  });
+  // closing : ← 누른 직후 → 슬라이드 아웃 애니메이션 적용 → onAnimationEnd 에서 close.
+  const [closing, setClosing] = useState(false);
 
   function handleClose() {
-    if (mode === "out") return;
-    // route 기반 사용일 때만 parent 의 재진입 애니메이션을 skip 시키는 신호.
-    if (!onClose) skipNextEnter = true;
-    setMode("out");
+    if (closing) return;
+    setClosing(true);
   }
 
   function handleAnimationEnd() {
-    if (mode !== "out") return;
+    if (!closing) return;
     if (onClose) onClose();
     else router.back();
   }
@@ -62,11 +45,7 @@ export function MobileSubPage({
   return (
     <div
       className={`fixed inset-0 z-50 flex flex-col bg-white lg:static lg:animate-none lg:bg-transparent ${
-        mode === "out"
-          ? "animate-page-slide-out"
-          : mode === "in"
-            ? "animate-page-slide-in"
-            : ""
+        closing ? "animate-page-slide-out" : "animate-page-slide-in"
       }`}
       onAnimationEnd={handleAnimationEnd}
     >
