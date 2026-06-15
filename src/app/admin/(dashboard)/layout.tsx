@@ -22,6 +22,7 @@ import { MobileTabBar } from "./MobileTabBar";
 import { SubTabBar } from "./SubTabBar";
 import { MobileSubPage } from "./MobileSubPage";
 import { ProfileBody } from "./profile/ProfileBody";
+import { NotificationsBody } from "./NotificationBell";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -31,11 +32,12 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   const router = useRouter();
-  // 모바일 프로필 오버레이 — 헤더 사람 아이콘 누르면 state on,
+  // 모바일 프로필 / 알림 오버레이 — 헤더 사람·벨 아이콘 누르면 state on,
   // MobileSubPage 가 fixed inset-0 z-50 으로 현재 페이지 위에 슬라이드 인.
-  // route 방식으로 /admin/profile 가면 parent 가 unmount 돼서 슬라이드 인/아웃
-  // 동안 뒤가 흰 배경으로 보이는 문제 해결.
+  // 라우트 push 대신 state 로 가는 이유 : parent 페이지가 unmount 되면 슬라이드
+  // 인/아웃 동안 뒤가 흰 배경으로 보이게 됨. state 면 parent 그대로 mount 유지.
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   // 로그인한 관리자 정보 (사이드바 권한 분기 + 본문 페이지에서 캐시 재사용)
   const meQuery = useQuery({
@@ -137,6 +139,7 @@ export default function DashboardLayout({
         <GlobalHeader
           admin={meQuery.data}
           onOpenProfile={() => setProfileOpen(true)}
+          onOpenNotifications={() => setNotificationOpen(true)}
         />
         {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
         <SubTabBar />
@@ -169,6 +172,17 @@ export default function DashboardLayout({
           onClose={() => setProfileOpen(false)}
         >
           <ProfileBody />
+        </MobileSubPage>
+      )}
+      {/* 모바일 알림 오버레이 — 헤더 알림 벨 → 동일하게 MobileSubPage 슬라이드 인.
+          항목 클릭 시 onItemClick 으로 즉시 close (애니메이션 생략) + router.push.
+          PC 는 NotificationBell 자체 dropdown 이라 여기 도달하지 않음. */}
+      {notificationOpen && (
+        <MobileSubPage
+          title="알림"
+          onClose={() => setNotificationOpen(false)}
+        >
+          <NotificationsBody onItemClick={() => setNotificationOpen(false)} />
         </MobileSubPage>
       )}
     </div>

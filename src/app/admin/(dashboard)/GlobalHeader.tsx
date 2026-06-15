@@ -18,11 +18,15 @@ import type { Admin } from "@/lib/api/types";
 export function GlobalHeader({
   admin,
   onOpenProfile,
+  onOpenNotifications,
 }: {
   admin: Admin;
   // 모바일 헤더 사람 아이콘 — 누르면 layout 의 profile 오버레이 state on.
   // 라우트 push 대신 state 로 처리해 parent 페이지가 unmount 되지 않게.
   onOpenProfile: () => void;
+  // 모바일 알림 벨 — 누르면 layout 의 notification 오버레이 state on.
+  // PC 는 NotificationBell 이 내부 dropdown 으로 처리.
+  onOpenNotifications: () => void;
 }) {
   const { selectedBranchId, setSelectedBranchId, branches, isSuper } =
     useBranch();
@@ -60,7 +64,7 @@ export function GlobalHeader({
         </div>
       )}
       <div className="ml-auto flex items-center gap-2 lg:gap-3">
-        <NotificationBell />
+        <NotificationBell onMobileOpen={onOpenNotifications} />
         {/* 모바일 : 알림 옆 사람 아이콘 — state 기반 오버레이로 프로필 띄움
             (route 가 아니라 button → layout 의 profileOpen state on).
             그래야 슬라이드 인/아웃 동안 parent 페이지가 뒤에서 그대로 보임. */}
