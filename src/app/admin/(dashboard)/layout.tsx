@@ -20,6 +20,8 @@ import { GlobalHeader } from "./GlobalHeader";
 import { PageTitleProvider } from "./PageTitleProvider";
 import { MobileTabBar } from "./MobileTabBar";
 import { SubTabBar } from "./SubTabBar";
+import { MobileSubPage } from "./MobileSubPage";
+import { ProfileBody } from "./profile/ProfileBody";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -29,7 +31,11 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   const router = useRouter();
-  // 모바일 드로어 열림 상태 (데스크탑에선 사용 안 함)
+  // 모바일 프로필 오버레이 — 헤더 사람 아이콘 누르면 state on,
+  // MobileSubPage 가 fixed inset-0 z-50 으로 현재 페이지 위에 슬라이드 인.
+  // route 방식으로 /admin/profile 가면 parent 가 unmount 돼서 슬라이드 인/아웃
+  // 동안 뒤가 흰 배경으로 보이는 문제 해결.
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // 로그인한 관리자 정보 (사이드바 권한 분기 + 본문 페이지에서 캐시 재사용)
   const meQuery = useQuery({
@@ -128,7 +134,10 @@ export default function DashboardLayout({
                   Sidebar 자체가 hidden lg:flex 라 모바일에선 자동 비표시. */}
       <Sidebar admin={meQuery.data} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <GlobalHeader admin={meQuery.data} />
+        <GlobalHeader
+          admin={meQuery.data}
+          onOpenProfile={() => setProfileOpen(true)}
+        />
         {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
         <SubTabBar />
         {/* PC : 본문 배경 옅은 회색 + 페이지 콘텐츠 전체를 흰 카드로 감싸 사이드바/헤더(흰) 와 톤 통일.
@@ -150,6 +159,17 @@ export default function DashboardLayout({
           notes={pendingNotes}
           onClose={dismissReleaseNotes}
         />
+      )}
+      {/* 모바일 프로필 오버레이 — 헤더 사람 아이콘 → MobileSubPage 가 현재
+          페이지 위에 슬라이드 인. parent 페이지(대시보드 등) 가 그대로 mount
+          상태라 뒤에서 보이고, ← 누르면 슬라이드 아웃 후 unmount. */}
+      {profileOpen && (
+        <MobileSubPage
+          title="내 정보"
+          onClose={() => setProfileOpen(false)}
+        >
+          <ProfileBody />
+        </MobileSubPage>
       )}
     </div>
     </PageTitleProvider>

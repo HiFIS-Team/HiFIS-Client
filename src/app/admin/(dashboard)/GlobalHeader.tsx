@@ -15,7 +15,15 @@ import type { Admin } from "@/lib/api/types";
 // PC     : 지점 + 페이지 타이틀 + (우)알림벨 + 사용자 프로필 카드.
 //          페이지 타이틀은 PageTitleProvider 를 통해 페이지의 <PageTitle/> 에서 받음.
 //          프로필 카드(아바타 + 이름 + 역할) 는 PC 헤더 우측을 채워 휑함을 해소.
-export function GlobalHeader({ admin }: { admin: Admin }) {
+export function GlobalHeader({
+  admin,
+  onOpenProfile,
+}: {
+  admin: Admin;
+  // 모바일 헤더 사람 아이콘 — 누르면 layout 의 profile 오버레이 state on.
+  // 라우트 push 대신 state 로 처리해 parent 페이지가 unmount 되지 않게.
+  onOpenProfile: () => void;
+}) {
   const { selectedBranchId, setSelectedBranchId, branches, isSuper } =
     useBranch();
   const ownBranch = branches.find((b) => b.id === selectedBranchId);
@@ -53,14 +61,17 @@ export function GlobalHeader({ admin }: { admin: Admin }) {
       )}
       <div className="ml-auto flex items-center gap-2 lg:gap-3">
         <NotificationBell />
-        {/* 모바일 : 알림 옆 사람 아이콘 — 누르면 프로필 페이지로. */}
-        <Link
-          href="/admin/profile"
+        {/* 모바일 : 알림 옆 사람 아이콘 — state 기반 오버레이로 프로필 띄움
+            (route 가 아니라 button → layout 의 profileOpen state on).
+            그래야 슬라이드 인/아웃 동안 parent 페이지가 뒤에서 그대로 보임. */}
+        <button
+          type="button"
+          onClick={onOpenProfile}
           aria-label="내 정보"
           className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
         >
           <UserCircleIcon className="size-6" />
-        </Link>
+        </button>
         {/* PC : 사용자 프로필 카드 (이니셜 아바타 + 이름 + 역할). 클릭 시 프로필 페이지로. */}
         <Link
           href="/admin/profile"
