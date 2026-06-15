@@ -123,3 +123,13 @@ body {
 .animate-page-slide-out {
   animation: page-slide-out-right 0.25s ease-in forwards;
 }
+
+/* 전역 스크롤바 숨김 — 스크롤 동작(휠·터치·키보드) 은 그대로 유지하되 시각적
+   스크롤바만 모든 요소에서 제거. 모바일 톤·미니멀 어드민 UI 통일. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
