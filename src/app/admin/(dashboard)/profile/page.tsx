@@ -18,6 +18,7 @@ import { useToast } from "@/providers/ToastProvider";
 import { useBranch } from "@/providers/BranchProvider";
 import { adminRoleLabel } from "@/lib/format";
 import { PageTitle } from "../PageTitle";
+import { MobileSubPage } from "../MobileSubPage";
 import { PasswordChangeDialog } from "../PasswordChangeDialog";
 import { PushToggle } from "../PushToggle";
 
@@ -41,7 +42,7 @@ export default function AdminProfilePage() {
   if (!admin) return null;
 
   return (
-    <div>
+    <MobileSubPage title="내 정보">
       <PageTitle title="내 정보" />
 
       {/* 사용자 정보 카드 — 아바타(이니셜) + 이름 + 역할 */}
@@ -111,7 +112,7 @@ export default function AdminProfilePage() {
           <span className="ml-1 text-gray-300">(dev)</span>
         )}
       </p>
-    </div>
+    </MobileSubPage>
   );
 }
 
