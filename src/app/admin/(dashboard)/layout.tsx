@@ -141,7 +141,7 @@ export default function DashboardLayout({
         <SubTabBar />
         {/* PC : 본문 배경 옅은 회색 + 페이지 콘텐츠 전체를 흰 카드로 감싸 사이드바/헤더(흰) 와 톤 통일.
             모바일은 wrap 의 lg: 클래스가 적용 안 돼 기존처럼 흰 배경 + 평면. */}
-        <main className="flex-1 lg:bg-gray-50">
+        <main className="flex-1 pb-20 lg:bg-gray-50 lg:pb-0">
           <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-gray-200 lg:bg-white lg:p-8">
             {children}
           </div>
