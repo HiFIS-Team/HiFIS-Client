@@ -249,9 +249,11 @@ export function MemberForm({ branchId }: { branchId: string }) {
       /얼굴/.test(mutation.error.detail ?? "")
     ) {
       setFaceImage(null);
-      // 백엔드 detail 그대로 노출하면 다짐/브로제이 마다 문구가 달라 혼란 — 고정 안내문으로 통일.
+      // 백엔드 detail 그대로 노출 — 다짐/브로제이 모두 사용자 친화 메시지를 보내고
+      // (예: "사진이 너무 큽니다" / "얼굴 인식 실패…") 원인별로 다르게 안내해야 회원이
+      // 무엇 때문에 실패했는지 알 수 있음.
       setFaceError(
-        "얼굴 인증에 실패했어요. 정면을 보고 또렷하게 다시 찍어 주세요.",
+        mutation.error.detail ?? "얼굴 인증에 실패했어요. 다시 찍어 주세요.",
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
