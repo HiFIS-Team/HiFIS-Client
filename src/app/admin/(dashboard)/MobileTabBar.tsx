@@ -62,20 +62,13 @@ export const TABS: TabDef[] = [
     ],
   },
   {
-    href: "/admin/alimtalk-templates",
+    // 메시지(알림톡) 는 헤더 종이비행기 아이콘으로 이동 → 여기선 평가만.
+    href: "/admin/staff/facility-care",
     label: "업무",
     icon: BriefcaseIcon,
     iconActive: BriefcaseSolidIcon,
-    routes: [
-      "/admin/alimtalk-templates",
-      "/admin/messages",
-      "/admin/staff",
-    ],
-    subTabs: [
-      { href: "/admin/alimtalk-templates", label: "관리" },
-      { href: "/admin/messages", label: "이력" },
-      { href: "/admin/staff/facility-care", label: "평가" },
-    ],
+    routes: ["/admin/staff"],
+    subTabs: [{ href: "/admin/staff/facility-care", label: "평가" }],
   },
   {
     href: "/admin/passes",
