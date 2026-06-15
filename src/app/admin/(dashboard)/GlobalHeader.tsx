@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bars3Icon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { BuildingOffice2Icon } from "@heroicons/react/16/solid";
 import { useBranch } from "@/providers/BranchProvider";
 import { BranchPicker, branchShortName } from "@/components/BranchPicker";
@@ -15,13 +15,7 @@ import type { Admin } from "@/lib/api/types";
 // PC     : 지점 + 페이지 타이틀 + (우)알림벨 + 사용자 프로필 카드.
 //          페이지 타이틀은 PageTitleProvider 를 통해 페이지의 <PageTitle/> 에서 받음.
 //          프로필 카드(아바타 + 이름 + 역할) 는 PC 헤더 우측을 채워 휑함을 해소.
-export function GlobalHeader({
-  admin,
-  onOpenDrawer,
-}: {
-  admin: Admin;
-  onOpenDrawer: () => void;
-}) {
+export function GlobalHeader({ admin }: { admin: Admin }) {
   const { selectedBranchId, setSelectedBranchId, branches, isSuper } =
     useBranch();
   const ownBranch = branches.find((b) => b.id === selectedBranchId);
@@ -29,16 +23,7 @@ export function GlobalHeader({
   const initial = admin.name.charAt(0) || "?";
   return (
     <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 lg:gap-3 lg:px-6 lg:py-3">
-      {/* 햄버거 — 모바일만 */}
-      <button
-        type="button"
-        onClick={onOpenDrawer}
-        aria-label="메뉴 열기"
-        className="shrink-0 rounded-md p-1.5 text-gray-700 hover:bg-gray-100 lg:hidden"
-      >
-        <Bars3Icon className="size-6" />
-      </button>
-      {/* 지점 — 햄버거 옆. SUPER_ADMIN 은 셀렉터, FC 는 본인 지점 라벨(선택 불가). */}
+      {/* 지점 — 좌측. SUPER_ADMIN 은 셀렉터, FC 는 본인 지점 라벨(선택 불가). */}
       {branches.length > 0 && (
         <div className="min-w-0">
           {isSuper ? (

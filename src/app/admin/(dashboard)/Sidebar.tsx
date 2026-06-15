@@ -3,11 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { XMarkIcon } from "@heroicons/react/24/outline";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { adminRoleLabel } from "@/lib/format";
 import { useToast } from "@/providers/ToastProvider";
-import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 import { PasswordChangeDialog } from "./PasswordChangeDialog";
@@ -98,23 +96,12 @@ const NAV: NavGroup[] = [
   },
 ];
 
-// 모바일: 드로어 (open/onClose 제어). 데스크탑(lg+): 항상 sticky 표시.
-export function Sidebar({
-  admin,
-  open,
-  onClose,
-}: {
-  admin: Admin;
-  open: boolean;
-  onClose: () => void;
-}) {
+// PC(lg+) 전용 sticky 사이드바. 모바일은 하단 탭바 + 헤더 프로필 아이콘으로 대체.
+export function Sidebar({ admin }: { admin: Admin }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
   const [passwordOpen, setPasswordOpen] = useState(false);
-  // 모바일 드로어 열려있는 동안 뒤 페이지 스크롤 잠금. 데스크탑(lg+)은 open 이
-  // 항상 false 라 영향 없음 (드로어 토글은 모바일 햄버거에서만 호출됨).
-  useBodyScrollLock(open);
 
   function isActive(href: string): boolean {
     if (href === "/admin") return pathname === "/admin";
@@ -122,8 +109,6 @@ export function Sidebar({
   }
 
   function logout() {
-    // 모바일 드로어가 열린 채로 로그아웃하면 layout 이 즉시 unmount 되며 깜빡임 — 먼저 닫음
-    onClose();
     clearTokens();
     toast.success("로그아웃되었습니다.");
     router.replace("/admin/login");
@@ -131,41 +116,18 @@ export function Sidebar({
 
   return (
     <>
-      {/* 모바일 드로어 백드롭 — 항상 마운트, opacity 토글로 부드럽게 페이드.
-          (unmount 방식은 페이지 이동 시 즉시 사라지며 깜빡임 발생) */}
-      <div
-        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-200 lg:hidden ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        onClick={onClose}
-        aria-hidden
-      />
-      <aside
-        className={`fixed top-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:sticky lg:translate-x-0 lg:bg-white ${
-          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
-      >
-      {/* 사이드바 상단 — 브랜드(로고 + HiFIS) + 모바일 드로어 닫기. */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2">
-          {/* 정적 PNG — 추가 최적화 불필요 (Next.js static export) */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons/logo.png"
-            alt=""
-            aria-hidden="true"
-            className="size-7"
-          />
-          <span className="text-lg font-bold text-gray-900">HiFIS</span>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="메뉴 닫기"
-          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
-        >
-          <XMarkIcon className="size-5" />
-        </button>
+      <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-white lg:sticky lg:top-0 lg:flex">
+      {/* 사이드바 상단 — 브랜드(로고 + HiFIS). */}
+      <div className="flex items-center gap-2 px-5 py-4">
+        {/* 정적 PNG — 추가 최적화 불필요 (Next.js static export) */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icons/logo.png"
+          alt=""
+          aria-hidden="true"
+          className="size-7"
+        />
+        <span className="text-lg font-bold text-gray-900">HiFIS</span>
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
@@ -205,7 +167,6 @@ export function Sidebar({
                     <Link
                       key={item.href}
                       href={item.href}
-                      onClick={onClose}
                       className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                         isActive(item.href)
                           ? "bg-primary text-white"

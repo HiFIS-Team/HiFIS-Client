@@ -30,7 +30,6 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   // 모바일 드로어 열림 상태 (데스크탑에선 사용 안 함)
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // 로그인한 관리자 정보 (사이드바 권한 분기 + 본문 페이지에서 캐시 재사용)
   const meQuery = useQuery({
@@ -124,19 +123,12 @@ export default function DashboardLayout({
     <BranchProvider>
     <PageTitleProvider>
     <div className="min-h-screen bg-white lg:flex">
-      {/* 모바일 : 위로 헤더 → 아래로 사이드바(드로어) + main 의 vertical 흐름.
-          PC   : 좌측 사이드바(전체 높이) + 우측 inner 컨테이너(헤더 + main).
-                 sidebar 가 자체 sticky h-screen 이라 lg:flex 만으로 분기 가능. */}
-      <Sidebar
-        admin={meQuery.data}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      />
+      {/* 모바일 : 헤더 → 콘텐츠 → 하단 탭바 vertical 흐름 (사이드바 미표시).
+          PC    : 좌측 사이드바(전체 높이) + 우측 inner 컨테이너(헤더 + 콘텐츠).
+                  Sidebar 자체가 hidden lg:flex 라 모바일에선 자동 비표시. */}
+      <Sidebar admin={meQuery.data} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <GlobalHeader
-          admin={meQuery.data}
-          onOpenDrawer={() => setDrawerOpen(true)}
-        />
+        <GlobalHeader admin={meQuery.data} />
         {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
         <SubTabBar />
         {/* PC : 본문 배경 옅은 회색 + 페이지 콘텐츠 전체를 흰 카드로 감싸 사이드바/헤더(흰) 와 톤 통일.
