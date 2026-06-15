@@ -23,6 +23,13 @@ body {
   height: 100%;
 }
 
+/* 상·하단 overscroll 바운스 비활성화 — 모바일에서 페이지 상단에서 아래로 당기면
+   body 가 elastic 으로 밀려 내려오면서 sticky 헤더도 같이 따라오던 현상 차단.
+   PWA 키오스크·관리자 화면 모두 pull-to-refresh 가 필요 없어서 비용 없음. */
+body {
+  overscroll-behavior: none;
+}
+
 /* 등장 애니메이션 — 토스트·다이얼로그·패널 공용 */
 @keyframes toast-in {
   from {

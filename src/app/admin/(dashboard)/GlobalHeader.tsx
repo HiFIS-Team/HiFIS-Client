@@ -34,7 +34,7 @@ export function GlobalHeader({
   const { title } = usePageTitle();
   const initial = admin.name.charAt(0) || "?";
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 lg:gap-3 lg:px-6 lg:py-3">
+    <header className="fixed inset-x-0 top-0 z-20 flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 lg:sticky lg:inset-x-auto lg:gap-3 lg:px-6 lg:py-3">
       {/* 지점 — 좌측. SUPER_ADMIN 은 셀렉터, FC 는 본인 지점 라벨(선택 불가). */}
       {branches.length > 0 && (
         <div className="min-w-0">
