@@ -1,6 +1,7 @@
 "use client";
 
-import { Bars3Icon } from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { Bars3Icon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { BuildingOffice2Icon } from "@heroicons/react/16/solid";
 import { useBranch } from "@/providers/BranchProvider";
 import { BranchPicker, branchShortName } from "@/components/BranchPicker";
@@ -67,8 +68,19 @@ export function GlobalHeader({
       )}
       <div className="ml-auto flex items-center gap-2 lg:gap-3">
         <NotificationBell />
-        {/* PC : 사용자 프로필 카드 (이니셜 아바타 + 이름 + 역할). */}
-        <div className="hidden items-center gap-2 rounded-md py-1 pr-2 pl-1 lg:flex">
+        {/* 모바일 : 알림 옆 사람 아이콘 — 누르면 프로필 페이지로. */}
+        <Link
+          href="/admin/profile"
+          aria-label="내 정보"
+          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+        >
+          <UserCircleIcon className="size-6" />
+        </Link>
+        {/* PC : 사용자 프로필 카드 (이니셜 아바타 + 이름 + 역할). 클릭 시 프로필 페이지로. */}
+        <Link
+          href="/admin/profile"
+          className="hidden items-center gap-2 rounded-md py-1 pr-2 pl-1 transition-colors hover:bg-gray-100 lg:flex"
+        >
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
             {initial}
           </div>
@@ -76,7 +88,7 @@ export function GlobalHeader({
             <p className="text-sm font-semibold text-gray-900">{admin.name}</p>
             <p className="text-xs text-gray-500">{adminRoleLabel(admin)}</p>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );
