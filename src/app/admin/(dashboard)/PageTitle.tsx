@@ -29,7 +29,9 @@ export function PageTitle({ title }: { title: string }) {
     }
   }
   return (
-    <h1 className="flex items-center gap-2 text-2xl font-black tracking-tighter text-gray-900 lg:hidden">
+    <h1 className="hidden">
+      {/* 모바일·PC 둘 다 자체 자리에서는 숨김 — 위치 파악은 탭바·서브탭(모바일) /
+          헤더 페이지 타이틀(PC) 로 충분. PageTitleProvider 등록은 유지해 PC 헤더에 노출. */}
       {Icon && <Icon className="size-6 text-primary" />}
       {title}
     </h1>

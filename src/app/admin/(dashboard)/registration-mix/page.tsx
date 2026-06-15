@@ -31,7 +31,7 @@ export default function AdminRegistrationMixPage() {
   return (
     <div>
       <PageTitle title="신규·재등록" />
-      <p className="mt-1 text-sm text-gray-500 lg:hidden">
+      <p className="hidden">
         선택한 달 신청 중 신규와 재등록 비율입니다.
       </p>
 

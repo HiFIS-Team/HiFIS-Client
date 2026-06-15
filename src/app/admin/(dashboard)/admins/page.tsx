@@ -181,7 +181,7 @@ export default function AdminAdminsPage() {
   return (
     <div>
       <PageTitle title="관리자 관리" />
-      <p className="mt-1 text-sm text-gray-500 lg:hidden">
+      <p className="hidden">
         FC 가입 승인·거부 및 계정 관리.
       </p>
 

@@ -116,7 +116,7 @@ export default function AdminMessagesPage() {
   return (
     <div>
       <PageTitle title="알림톡 이력" />
-      <p className="mt-1 text-sm text-gray-500 lg:hidden">
+      <p className="hidden">
         발송된 알림톡 기록입니다. (최신순)
       </p>
 

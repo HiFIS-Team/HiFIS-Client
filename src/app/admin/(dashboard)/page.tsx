@@ -568,7 +568,7 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <PageTitle title="대시보드" />
-      <p className="mt-1 text-sm text-gray-500 lg:hidden">
+      <p className="hidden">
         {name ? `${name}님, 환영합니다.` : "환영합니다."}
       </p>
 

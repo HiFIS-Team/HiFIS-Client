@@ -21,7 +21,7 @@ export default function AdminMembershipExpiryPage() {
   return (
     <div>
       <PageTitle title="잔여 기간" />
-      <p className="mt-1 text-sm text-gray-500 lg:hidden">
+      <p className="hidden">
         오늘 시점 유효 회원의 회원권 잔여 기간 분포입니다.
       </p>
 

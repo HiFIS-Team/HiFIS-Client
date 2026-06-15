@@ -154,7 +154,7 @@ export default function AdminAlimtalkTemplatesPage() {
   return (
     <div>
       <PageTitle title="알림톡 관리" />
-      <p className="mt-1 text-sm text-gray-500 lg:hidden">
+      <p className="hidden">
         전역·지점이 모두 켜져 있을 때만 종류별로 켜고 끌 수 있어요.
       </p>
 
