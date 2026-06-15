@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
   CakeIcon,
+  HandRaisedIcon,
   CalendarDaysIcon,
   CalendarIcon,
   ChatBubbleLeftRightIcon,
@@ -568,9 +569,15 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <PageTitle title="대시보드" />
-      <p className="hidden">
-        {name ? `${name}님, 환영합니다.` : "환영합니다."}
-      </p>
+      {/* 홈 인사말 — GBX 톤(굵은 산세리프 + 좁은 자간) 으로 무게감. */}
+      <h1 className="text-3xl leading-[1.15] font-black tracking-tighter text-gray-900">
+        <span className="inline-flex items-center gap-2">
+          안녕하세요
+          <HandRaisedIcon className="size-7 text-primary" />
+        </span>
+        <br />
+        {name ? `${name}님!` : "환영합니다!"}
+      </h1>
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
