@@ -1,6 +1,7 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
+import { MobileSubPage } from "../MobileSubPage";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BuildingOffice2Icon, EnvelopeIcon } from "@heroicons/react/24/outline";
@@ -133,10 +134,10 @@ export default function AdminAdminsPage() {
   // 권한 가드 — FC는 접근 불가 (사이드바에서도 superOnly 로 숨김)
   if (!isSuper) {
     return (
-      <div>
+      <MobileSubPage title="관리자 관리">
         <PageTitle title="관리자 관리" />
         <p className="mt-2 text-gray-600">대표 관리자만 접근할 수 있습니다.</p>
-      </div>
+      </MobileSubPage>
     );
   }
 
@@ -179,7 +180,7 @@ export default function AdminAdminsPage() {
     });
 
   return (
-    <div>
+    <MobileSubPage title="관리자 관리">
       <PageTitle title="관리자 관리" />
       <p className="hidden">
         FC 가입 승인·거부 및 계정 관리.
@@ -311,6 +312,6 @@ export default function AdminAdminsPage() {
         }}
         onCancel={() => setConfirmTarget(null)}
       />
-    </div>
+    </MobileSubPage>
   );
 }

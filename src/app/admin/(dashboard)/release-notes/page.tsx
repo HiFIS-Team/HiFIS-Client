@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PageTitle } from "../PageTitle";
+import { MobileSubPage } from "../MobileSubPage";
 import {
   RELEASE_NOTES,
   semverCompare,
@@ -22,7 +23,7 @@ export default function AdminReleaseNotesPage() {
     : null;
 
   return (
-    <div>
+    <MobileSubPage title="패치 노트">
       <PageTitle title="패치 노트" />
       <p className="hidden">
         버전별 업데이트 내역을 다시 볼 수 있어요.
@@ -70,6 +71,6 @@ export default function AdminReleaseNotesPage() {
           onClose={() => setOpenVersion(null)}
         />
       )}
-    </div>
+    </MobileSubPage>
   );
 }
