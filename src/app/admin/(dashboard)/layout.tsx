@@ -132,8 +132,12 @@ export default function DashboardLayout({
         {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
         <SubTabBar />
         {/* PC : 본문 배경 옅은 회색 + 페이지 콘텐츠 전체를 흰 카드로 감싸 사이드바/헤더(흰) 와 톤 통일.
-            모바일은 wrap 의 lg: 클래스가 적용 안 돼 기존처럼 흰 배경 + 평면. */}
-        <main className="flex-1 pb-20 lg:bg-gray-50 lg:pb-0">
+            모바일은 wrap 의 lg: 클래스가 적용 안 돼 기존처럼 흰 배경 + 평면.
+            overflow-x-clip : translateX 슬라이드 인 애니메이션이 잠깐 카드를
+            화면 오른쪽 밖으로 밀어내는데, 그게 body 가로 스크롤바를 만들어
+            세로 뷰포트가 잠깐 줄어들고 → fixed bottom-0 인 MobileTabBar 가
+            스크롤바 높이만큼 아래로 내려갔다 올라오는 현상이 있었다. */}
+        <main className="flex-1 overflow-x-clip pb-20 lg:bg-gray-50 lg:pb-0">
           <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-gray-200 lg:bg-white lg:p-8">
             {children}
           </div>
