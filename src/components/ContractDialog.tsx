@@ -179,6 +179,13 @@ export function ContractDialog({
 
     const restoreSignature = await swapSignatureForCapture();
 
+    // 모바일 viewport 에서 캡처하면 신청서가 좁고 길게 늘어남.
+    // 캡처 동안만 paperRef 폭을 고정해 PC 와 같은 단정한 종이 모양으로 통일.
+    // windowWidth 도 같이 넘겨 sm: 미디어쿼리 분기까지 PC 톤으로 적용.
+    const CAPTURE_WIDTH = 720;
+    const originalWidth = el.style.width;
+    el.style.width = `${CAPTURE_WIDTH}px`;
+
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => resolve()),
     );
@@ -189,6 +196,8 @@ export function ContractDialog({
         // scale 1.5 — 종이가 길어서 2 로 잡으면 파일/픽셀 모두 부담. 1.5 도 글자 충분히 또렷.
         scale: 1.5,
         useCORS: true,
+        width: CAPTURE_WIDTH,
+        windowWidth: 800,
         ignoreElements: (n) =>
           n instanceof HTMLElement && n.dataset.captureIgnore === "true",
       });
@@ -198,6 +207,7 @@ export function ContractDialog({
         canvas.toBlob((b) => resolve(b), "image/png");
       });
     } finally {
+      el.style.width = originalWidth;
       restoreSignature();
     }
   }
