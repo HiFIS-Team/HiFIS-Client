@@ -18,6 +18,7 @@ import { BranchProvider } from "@/providers/BranchProvider";
 import { Sidebar } from "./Sidebar";
 import { GlobalHeader } from "./GlobalHeader";
 import { PageTitleProvider } from "./PageTitleProvider";
+import { MobileTabBar } from "./MobileTabBar";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -142,6 +143,8 @@ export default function DashboardLayout({
             {children}
           </div>
         </main>
+        {/* 모바일 전용 하단 5탭 — PC 는 lg:hidden 으로 숨고 기존 사이드바가 보임. */}
+        <MobileTabBar />
       </div>
       {pendingNotes && (
         <ReleaseNotesDialog
