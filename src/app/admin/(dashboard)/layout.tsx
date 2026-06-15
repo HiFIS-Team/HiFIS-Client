@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
@@ -32,6 +32,7 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   // 모바일 프로필 / 알림 오버레이 — 헤더 사람·벨 아이콘 누르면 state on,
   // MobileSubPage 가 fixed inset-0 z-50 으로 현재 페이지 위에 슬라이드 인.
   // 라우트 push 대신 state 로 가는 이유 : parent 페이지가 unmount 되면 슬라이드
@@ -154,7 +155,12 @@ export default function DashboardLayout({
             스크롤바 높이만큼 아래로 내려갔다 올라오는 현상이 있었다. */}
         <main className="flex-1 overflow-x-clip pb-20 lg:bg-gray-50 lg:pb-0">
           <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-gray-200 lg:bg-white lg:p-8">
-            {children}
+            {/* 페이지 전환 시 깜빡임 완화 — pathname 키로 매 라우트 변경마다
+                children 을 wrapping 한 div 가 remount → animate-fade-in 재실행
+                (opacity 0 → 1, 150ms). */}
+            <div key={pathname} className="animate-fade-in">
+              {children}
+            </div>
           </div>
         </main>
         {/* 모바일 전용 하단 5탭 — PC 는 lg:hidden 으로 숨고 기존 사이드바가 보임. */}
