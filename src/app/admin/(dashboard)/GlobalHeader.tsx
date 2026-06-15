@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { UserCircleIcon } from "@heroicons/react/24/outline";
+import { PaperAirplaneIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { BuildingOffice2Icon } from "@heroicons/react/16/solid";
 import { useBranch } from "@/providers/BranchProvider";
 import { BranchPicker, branchShortName } from "@/components/BranchPicker";
@@ -19,6 +19,7 @@ export function GlobalHeader({
   admin,
   onOpenProfile,
   onOpenNotifications,
+  onOpenAlimtalk,
 }: {
   admin: Admin;
   // 모바일 헤더 사람 아이콘 — 누르면 layout 의 profile 오버레이 state on.
@@ -27,6 +28,9 @@ export function GlobalHeader({
   // 모바일 알림 벨 — 누르면 layout 의 notification 오버레이 state on.
   // PC 는 NotificationBell 이 내부 dropdown 으로 처리.
   onOpenNotifications: () => void;
+  // 모바일 알림톡 아이콘 — 누르면 layout 의 alimtalk 오버레이 state on.
+  // PC 는 사이드바·라우트로 접근 — 헤더 아이콘 자체가 lg:hidden.
+  onOpenAlimtalk: () => void;
 }) {
   const { selectedBranchId, setSelectedBranchId, branches, isSuper } =
     useBranch();
@@ -65,6 +69,15 @@ export function GlobalHeader({
       )}
       <div className="ml-auto flex items-center gap-2 lg:gap-3">
         <NotificationBell onMobileOpen={onOpenNotifications} />
+        {/* 모바일 : 알림 ↔ 프로필 사이 메시지(알림톡) 아이콘 — state 기반 오버레이로 이력·관리. */}
+        <button
+          type="button"
+          onClick={onOpenAlimtalk}
+          aria-label="메시지"
+          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+        >
+          <PaperAirplaneIcon className="size-6" />
+        </button>
         {/* 모바일 : 알림 옆 사람 아이콘 — state 기반 오버레이로 프로필 띄움
             (route 가 아니라 button → layout 의 profileOpen state on).
             그래야 슬라이드 인/아웃 동안 parent 페이지가 뒤에서 그대로 보임. */}

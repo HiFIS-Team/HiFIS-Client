@@ -23,6 +23,7 @@ import { SubTabBar } from "./SubTabBar";
 import { MobileSubPage } from "./MobileSubPage";
 import { ProfileBody } from "./profile/ProfileBody";
 import { NotificationsBody } from "./NotificationBell";
+import { AlimtalkBody } from "./AlimtalkBody";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -39,6 +40,7 @@ export default function DashboardLayout({
   // 인/아웃 동안 뒤가 흰 배경으로 보이게 됨. state 면 parent 그대로 mount 유지.
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [alimtalkOpen, setAlimtalkOpen] = useState(false);
 
   // 로그인한 관리자 정보 (사이드바 권한 분기 + 본문 페이지에서 캐시 재사용)
   const meQuery = useQuery({
@@ -144,6 +146,7 @@ export default function DashboardLayout({
           admin={meQuery.data}
           onOpenProfile={() => setProfileOpen(true)}
           onOpenNotifications={() => setNotificationOpen(true)}
+          onOpenAlimtalk={() => setAlimtalkOpen(true)}
         />
         {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
         <SubTabBar />
@@ -192,6 +195,16 @@ export default function DashboardLayout({
           onClose={() => setNotificationOpen(false)}
         >
           <NotificationsBody onItemClick={() => setNotificationOpen(false)} />
+        </MobileSubPage>
+      )}
+      {/* 모바일 메시지(알림톡) 오버레이 — 헤더 종이비행기 아이콘 → 이력/관리 탭 wrap.
+          PC 는 헤더 아이콘 자체가 lg:hidden 이라 도달하지 않음. */}
+      {alimtalkOpen && (
+        <MobileSubPage
+          title="메시지"
+          onClose={() => setAlimtalkOpen(false)}
+        >
+          <AlimtalkBody />
         </MobileSubPage>
       )}
     </div>
