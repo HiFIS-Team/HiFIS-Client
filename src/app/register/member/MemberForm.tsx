@@ -822,7 +822,7 @@ export function MemberForm({ branchId }: { branchId: string }) {
                         aria-hidden="true"
                         className="size-5 shrink-0"
                       />
-                      <span>약관 동의 + 전자서명 완료</span>
+                      <span>약관·서명 완료</span>
                     </p>
                     <p className="mt-0.5 text-xs text-gray-500">
                       내용을 바꾸려면 다시 동의해 주세요.
