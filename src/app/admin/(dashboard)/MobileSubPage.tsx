@@ -44,15 +44,15 @@ export function MobileSubPage({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto bg-white lg:static lg:animate-none lg:overflow-visible lg:bg-transparent ${
+      className={`fixed inset-0 z-50 overflow-y-auto bg-white pt-12 lg:static lg:animate-none lg:overflow-visible lg:bg-transparent lg:pt-0 ${
         closing ? "animate-page-slide-out" : "animate-page-slide-in"
       }`}
       onAnimationEnd={handleAnimationEnd}
     >
-      {/* 헤더 sticky top-0 — 단일 scroll container (outer) 안에서 viewport 상단에
-          고정. flex 컨테이너로 안 감싸고 outer 가 직접 overflow-y-auto 라
-          body scroll 처럼 자연스러운 momentum / overscroll bounce 동작. */}
-      <header className="sticky top-0 z-10 flex h-12 items-center gap-1 border-b border-gray-200 bg-white px-2 lg:hidden">
+      {/* 헤더 fixed — sticky 면 overscroll bounce 때 같이 끌려오던 문제 (글로벌
+          헤더와 동일 패턴). outer 의 pt-12 가 fixed 헤더 자리만큼 padding 으로
+          밀어내 in-flow 콘텐츠가 헤더 뒤로 깔리지 않게 함. */}
+      <header className="fixed inset-x-0 top-0 z-20 flex h-12 items-center gap-1 border-b border-gray-200 bg-white px-2 lg:hidden">
         <button
           type="button"
           onClick={handleClose}
