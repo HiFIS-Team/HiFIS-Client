@@ -29,7 +29,7 @@ export function PageTitle({ title }: { title: string }) {
     }
   }
   return (
-    <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 lg:hidden">
+    <h1 className="flex items-center gap-2 text-2xl font-black tracking-tighter text-gray-900 lg:hidden">
       {Icon && <Icon className="size-6 text-primary" />}
       {title}
     </h1>

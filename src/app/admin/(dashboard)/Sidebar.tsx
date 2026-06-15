@@ -127,7 +127,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
           aria-hidden="true"
           className="size-7"
         />
-        <span className="text-lg font-bold text-gray-900">HiFIS</span>
+        <span className="text-lg font-black tracking-tighter text-gray-900">HiFIS</span>
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">

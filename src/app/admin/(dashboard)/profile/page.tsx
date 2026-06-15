@@ -51,7 +51,7 @@ export default function AdminProfilePage() {
             {admin.name.charAt(0) || "?"}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-bold text-gray-900">
+            <p className="truncate text-lg font-black tracking-tight text-gray-900">
               {admin.name}
             </p>
             <p className="text-sm text-gray-500">{adminRoleLabel(admin)}</p>

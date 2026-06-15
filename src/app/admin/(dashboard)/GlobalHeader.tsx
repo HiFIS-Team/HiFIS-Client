@@ -46,7 +46,7 @@ export function GlobalHeader({ admin }: { admin: Admin }) {
       {title && (
         <div className="hidden min-w-0 items-center lg:flex">
           <span className="mr-3 h-5 w-px bg-gray-200" aria-hidden />
-          <span className="truncate text-base font-semibold text-gray-800">
+          <span className="truncate text-base font-black tracking-tight text-gray-900">
             {title}
           </span>
         </div>

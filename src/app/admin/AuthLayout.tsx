@@ -63,7 +63,7 @@ export function AuthLayout({
             aria-hidden="true"
             className="size-10 shrink-0"
           />
-          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <h1 className="text-2xl font-black tracking-tighter text-gray-900">{title}</h1>
         </div>
         <div className="mt-8">{children}</div>
       </div>
