@@ -44,11 +44,14 @@ export function MobileSubPage({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col bg-white lg:static lg:animate-none lg:bg-transparent ${
+      className={`fixed inset-0 z-50 overflow-y-auto bg-white lg:static lg:animate-none lg:overflow-visible lg:bg-transparent ${
         closing ? "animate-page-slide-out" : "animate-page-slide-in"
       }`}
       onAnimationEnd={handleAnimationEnd}
     >
+      {/* 헤더 sticky top-0 — 단일 scroll container (outer) 안에서 viewport 상단에
+          고정. flex 컨테이너로 안 감싸고 outer 가 직접 overflow-y-auto 라
+          body scroll 처럼 자연스러운 momentum / overscroll bounce 동작. */}
       <header className="sticky top-0 z-10 flex h-12 items-center gap-1 border-b border-gray-200 bg-white px-2 lg:hidden">
         <button
           type="button"
@@ -62,9 +65,7 @@ export function MobileSubPage({
           {title}
         </h1>
       </header>
-      <div className="flex-1 overflow-y-auto px-4 py-4 lg:overflow-visible lg:px-0 lg:py-0">
-        {children}
-      </div>
+      <div className="px-4 py-4 lg:px-0 lg:py-0">{children}</div>
     </div>
   );
 }
