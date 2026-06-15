@@ -19,11 +19,13 @@ export function AlimtalkBody() {
   const [tab, setTab] = useState<Tab>("history");
   return (
     <>
-      {/* 상단 탭 — SubTabBar 와 동일한 underline 스타일로 톤 통일.
-          오버레이 내부라 sticky / fixed 불필요 — 스크롤되는 일반 요소. */}
+      {/* 상단 탭 — MobileSubPage 의 overflow-y-auto 컨테이너 (px-4 py-4) 안에서
+          헤더(h-12) 바로 아래에 박힘. -mx-4 -mt-4 로 컨테이너 padding 좌·상단을
+          상쇄해 가장자리까지. sticky 오프셋(-top-4)도 컨테이너 padding 만큼 끌어
+          올려야 sticky 위치 = padding-box-y=-16 = container-y=0 → 16px 갭 제거. */}
       <nav
-        aria-label="알림톡 섹션"
-        className="-mx-4 -mt-4 mb-2 flex gap-4 overflow-x-auto border-b border-gray-200 bg-white px-4 lg:mx-0 lg:mt-0"
+        aria-label="메시지 섹션"
+        className="sticky -top-4 z-10 -mx-4 -mt-4 mb-2 flex h-12 gap-4 overflow-x-auto border-b border-gray-200 bg-white px-4 lg:static lg:mx-0 lg:mt-0"
       >
         {TABS.map((t) => {
           const active = t.key === tab;
@@ -32,7 +34,7 @@ export function AlimtalkBody() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`relative flex shrink-0 items-center py-3 text-[15px] font-semibold tracking-tight transition-colors ${
+              className={`relative flex shrink-0 items-center text-[15px] font-semibold tracking-tight transition-colors ${
                 active ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -48,7 +50,15 @@ export function AlimtalkBody() {
         })}
       </nav>
 
-      {tab === "history" ? <AdminMessagesPage /> : <AdminAlimtalkTemplatesPage />}
+      {/* 탭 전환 시 깜빡임 완화 — tab key 로 wrapping div remount → animate-fade-in
+          재실행 (opacity 0 → 1). layout 의 페이지 전환과 동일 패턴. */}
+      <div key={tab} className="animate-fade-in">
+        {tab === "history" ? (
+          <AdminMessagesPage />
+        ) : (
+          <AdminAlimtalkTemplatesPage />
+        )}
+      </div>
     </>
   );
 }
