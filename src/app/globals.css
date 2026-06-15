@@ -75,6 +75,24 @@ body {
     transform: translateX(0);
   }
 }
+/* 풀스크린 서브 페이지 진입 — 우측에서 화면 폭만큼 슬라이드 인 (iOS 네비 스택 톤) */
+@keyframes page-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+/* 풀스크린 서브 페이지 종료 — 좌→우로 슬라이드 아웃 + unmount */
+@keyframes page-slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
 
 .animate-toast-in {
   animation: toast-in 0.18s ease-out;
@@ -90,4 +108,11 @@ body {
 }
 .animate-slide-in-right {
   animation: slide-in-right 0.22s ease-out;
+}
+.animate-page-slide-in {
+  animation: page-slide-in-right 0.25s ease-out;
+}
+/* forwards 로 끝 상태 유지 (translateX(100%)) — 애니메이션 끝나면 unmount */
+.animate-page-slide-out {
+  animation: page-slide-out-right 0.25s ease-in forwards;
 }
