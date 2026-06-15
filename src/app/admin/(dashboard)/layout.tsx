@@ -19,6 +19,7 @@ import { Sidebar } from "./Sidebar";
 import { GlobalHeader } from "./GlobalHeader";
 import { PageTitleProvider } from "./PageTitleProvider";
 import { MobileTabBar } from "./MobileTabBar";
+import { SubTabBar } from "./SubTabBar";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -136,6 +137,8 @@ export default function DashboardLayout({
           admin={meQuery.data}
           onOpenDrawer={() => setDrawerOpen(true)}
         />
+        {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
+        <SubTabBar />
         {/* PC : 본문 배경 옅은 회색 + 페이지 콘텐츠 전체를 흰 카드로 감싸 사이드바/헤더(흰) 와 톤 통일.
             모바일은 wrap 의 lg: 클래스가 적용 안 돼 기존처럼 흰 배경 + 평면. */}
         <main className="flex-1 lg:bg-gray-50">
