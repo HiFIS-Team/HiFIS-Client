@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ComponentType } from "react";
@@ -21,6 +20,21 @@ import { PageTitle } from "../PageTitle";
 import { MobileSubPage } from "../MobileSubPage";
 import { PasswordChangeDialog } from "../PasswordChangeDialog";
 import { PushToggle } from "../PushToggle";
+import { AdminsContent } from "../admins/AdminsContent";
+import { ReleaseNotesContent } from "../release-notes/ReleaseNotesContent";
+
+// 인라인 패널로 띄울 수 있는 서브 페이지 — 모바일에서만 사용.
+// PC 는 사이드바에서 직접 해당 라우트로 이동.
+type SubPanel = "admins" | "release-notes";
+
+const SUB_PANEL_TITLE: Record<SubPanel, string> = {
+  admins: "관리자 관리",
+  "release-notes": "패치 노트",
+};
+const SUB_PANEL_ROUTE: Record<SubPanel, string> = {
+  admins: "/admin/admins",
+  "release-notes": "/admin/release-notes",
+};
 
 // 헤더 우측 사람 아이콘으로 진입하는 프로필 페이지.
 // 사이드바 푸터에 흩어져 있던 항목들을 한 곳으로 모음:
@@ -31,11 +45,23 @@ export default function AdminProfilePage() {
   const { isSuper } = useBranch();
   const meQuery = useQuery({ queryKey: ["admin", "me"], queryFn: getMe });
   const [passwordOpen, setPasswordOpen] = useState(false);
+  // 모바일 인라인 패널 — 프로필 위에 슬라이드 인 (parent profile 그대로 mount)
+  const [subPanel, setSubPanel] = useState<SubPanel | null>(null);
 
   function logout() {
     clearTokens();
     toast.success("로그아웃되었습니다.");
     router.replace("/admin/login");
+  }
+
+  // 모바일 : state 로 인라인 패널 띄움 (parent 가 유지되니 슬라이드 인/아웃 동안 뒤가 보임)
+  // PC     : 그냥 라우트 push — 인라인 패널은 lg:hidden 가정
+  function openSubPage(panel: SubPanel) {
+    const isDesktop =
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 1024px)").matches;
+    if (isDesktop) router.push(SUB_PANEL_ROUTE[panel]);
+    else setSubPanel(panel);
   }
 
   const admin = meQuery.data;
@@ -79,16 +105,16 @@ export default function AdminProfilePage() {
           <PushToggle />
         </div>
         {isSuper && (
-          <MenuLink
+          <MenuButton
             icon={UserGroupIcon}
             label="관리자 관리"
-            href="/admin/admins"
+            onClick={() => openSubPage("admins")}
           />
         )}
-        <MenuLink
+        <MenuButton
           icon={NewspaperIcon}
           label="패치 노트"
-          href="/admin/release-notes"
+          onClick={() => openSubPage("release-notes")}
         />
       </section>
 
@@ -112,11 +138,25 @@ export default function AdminProfilePage() {
           <span className="ml-1 text-gray-300">(dev)</span>
         )}
       </p>
+
+      {/* 모바일 인라인 서브 패널 — fixed inset-0 z-50 로 프로필 위에 슬라이드 인.
+          profile 의 MobileSubPage 가 그대로 mount 상태라 진입·종료 애니메이션
+          내내 뒤가 보임 (iOS 네비 스택 톤). PC 에선 openSubPage 가 router.push
+          로 분기하므로 여기 도달하지 않음. */}
+      {subPanel && (
+        <MobileSubPage
+          title={SUB_PANEL_TITLE[subPanel]}
+          onClose={() => setSubPanel(null)}
+        >
+          {subPanel === "admins" && <AdminsContent />}
+          {subPanel === "release-notes" && <ReleaseNotesContent />}
+        </MobileSubPage>
+      )}
     </MobileSubPage>
   );
 }
 
-// 메뉴 항목 — 클릭 액션 (다이얼로그·콜백). danger 면 빨강 강조.
+// 메뉴 항목 — 클릭 액션 (다이얼로그·콜백·서브 패널). danger 면 빨강 강조.
 function MenuButton({
   icon: Icon,
   label,
@@ -144,27 +184,5 @@ function MenuButton({
       </span>
       <ChevronRightIcon className="size-4 shrink-0 text-gray-300" />
     </button>
-  );
-}
-
-// 메뉴 항목 — 다른 페이지로 이동.
-function MenuLink({
-  icon: Icon,
-  label,
-  href,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex w-full items-center gap-3 px-4 py-3.5 transition-colors hover:bg-gray-50"
-    >
-      <Icon className="size-5 shrink-0 text-gray-500" />
-      <span className="flex-1 text-sm font-medium text-gray-900">{label}</span>
-      <ChevronRightIcon className="size-4 shrink-0 text-gray-300" />
-    </Link>
   );
 }

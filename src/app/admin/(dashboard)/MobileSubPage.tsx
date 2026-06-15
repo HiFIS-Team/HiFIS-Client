@@ -4,39 +4,71 @@ import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useState, type ReactNode } from "react";
 
-// 프로필 페이지에서 진입하는 서브 페이지 (관리자 관리, 패치 노트 등) 의 모바일 풀스크린 wrapper.
+// route 기반 사용 (router.back() 경로) 에서만 의미 — child 가 ← 로 닫히는
+// 순간 module-level 로 신호 → 다음에 mount 되는 MobileSubPage (= router.back()
+// 으로 돌아온 parent)는 진입 애니메이션을 skip 하고 정적으로 등장.
+// inline (onClose 가 있는) 사용에선 parent 가 항상 mount 상태라 신호 불필요.
+let skipNextEnter = false;
+
+// 모바일 풀스크린 서브 페이지 wrapper. 두 가지 방식으로 사용:
+//   (a) 라우트 페이지 wrapper — onClose 미전달 → ← 누르면 router.back()
+//       예) /admin/admins, /admin/release-notes 등 직접 URL 진입 케이스
+//   (b) 인라인 panel — onClose 전달 → ← 누르면 callback (parent state 가
+//       unmount 결정). parent 가 그대로 mount 상태라 슬라이드 인/아웃 동안
+//       parent 가 뒤에서 보임 — 진짜 iOS 네비 스택 톤. 프로필 → 관리자 관리.
+//
 // 모바일 :
 //   - fixed inset-0 z-50 으로 layout 의 헤더·하단 탭바까지 전부 덮음
 //   - 진입 시 우측 → 좌측 슬라이드 인 (animate-page-slide-in)
-//   - ← 누르면 좌→우 슬라이드 아웃 (animate-page-slide-out) 후 router.back() 으로 unmount
+//   - ← 누르면 좌→우 슬라이드 아웃 (animate-page-slide-out) 후 close
 // PC(lg+) :
 //   - lg:static lg:bg-transparent 로 풀스크린 해제, layout 안에서 일반 페이지처럼
 //   - 자체 헤더는 lg:hidden — PC 는 layout 의 GlobalHeader 가 페이지 타이틀을 노출
 export function MobileSubPage({
   title,
+  onClose,
   children,
 }: {
   title: string;
+  onClose?: () => void;
   children: ReactNode;
 }) {
   const router = useRouter();
-  // closing : ← 누른 직후 → 슬라이드 아웃 애니메이션 적용 → onAnimationEnd 에서 라우터 back.
-  // 같은 요소에 transform 애니메이션을 in / out 으로 분리해야 자연스러움.
-  const [closing, setClosing] = useState(false);
+  // mode :
+  //   "in"     슬라이드 진입 (기본)
+  //   "static" 애니메이션 없이 그대로 (route 기반에서 child → parent 복귀 케이스)
+  //   "out"    슬라이드 종료 → onAnimationEnd 에서 close
+  const [mode, setMode] = useState<"in" | "static" | "out">(() => {
+    if (skipNextEnter) {
+      skipNextEnter = false;
+      return "static";
+    }
+    return "in";
+  });
 
   function handleClose() {
-    if (closing) return;
-    setClosing(true);
+    if (mode === "out") return;
+    // route 기반 사용일 때만 parent 의 재진입 애니메이션을 skip 시키는 신호.
+    if (!onClose) skipNextEnter = true;
+    setMode("out");
+  }
+
+  function handleAnimationEnd() {
+    if (mode !== "out") return;
+    if (onClose) onClose();
+    else router.back();
   }
 
   return (
     <div
       className={`fixed inset-0 z-50 flex flex-col bg-white lg:static lg:animate-none lg:bg-transparent ${
-        closing ? "animate-page-slide-out" : "animate-page-slide-in"
+        mode === "out"
+          ? "animate-page-slide-out"
+          : mode === "in"
+            ? "animate-page-slide-in"
+            : ""
       }`}
-      onAnimationEnd={() => {
-        if (closing) router.back();
-      }}
+      onAnimationEnd={handleAnimationEnd}
     >
       <header className="sticky top-0 z-10 flex items-center gap-1 border-b border-gray-200 bg-white px-2 py-2 lg:hidden">
         <button
