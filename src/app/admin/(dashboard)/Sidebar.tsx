@@ -36,11 +36,9 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    // 지점 관리는 프로필 메뉴로 이동 — 운영 그룹은 상품 관리만.
     label: "운영",
-    items: [
-      { href: "/admin/passes", label: "상품 관리" },
-      { href: "/admin/branches", label: "지점 관리", superOnly: true },
-    ],
+    items: [{ href: "/admin/passes", label: "상품 관리" }],
   },
   {
     label: "통계",

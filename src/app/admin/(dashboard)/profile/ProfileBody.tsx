@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ComponentType } from "react";
 import {
   ArrowRightStartOnRectangleIcon,
   BellIcon,
+  BuildingOffice2Icon,
   ChevronRightIcon,
   KeyIcon,
   NewspaperIcon,
@@ -114,6 +116,15 @@ export function ProfileBody() {
             onClick={() => openSubPage("admins")}
           />
         )}
+        {/* 지점 관리 — SUPER 전용. inline panel 까진 안 만들고 라우트 이동.
+            프로필 오버레이는 그대로 mount 유지 (← 으로 닫으면 /admin/branches 노출). */}
+        {isSuper && (
+          <MenuLink
+            icon={BuildingOffice2Icon}
+            label="지점 관리"
+            href="/admin/branches"
+          />
+        )}
         <MenuButton
           icon={NewspaperIcon}
           label="패치 노트"
@@ -187,5 +198,28 @@ function MenuButton({
       </span>
       <ChevronRightIcon className="size-4 shrink-0 text-gray-300" />
     </button>
+  );
+}
+
+// 메뉴 항목 — 라우트 이동 (Next.js Link). 프로필 오버레이는 그대로 유지된 채
+// 뒤 페이지가 바뀌고, ← 으로 오버레이 닫으면 이동한 페이지가 보임.
+function MenuLink({
+  icon: Icon,
+  label,
+  href,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-gray-50"
+    >
+      <Icon className="size-5 shrink-0 text-gray-500" />
+      <span className="flex-1 text-sm font-medium text-gray-900">{label}</span>
+      <ChevronRightIcon className="size-4 shrink-0 text-gray-300" />
+    </Link>
   );
 }

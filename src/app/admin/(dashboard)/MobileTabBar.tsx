@@ -78,14 +78,17 @@ export const TABS: TabDef[] = [
     ],
   },
   {
-    href: "/admin/passes",
+    // 지점은 프로필 메뉴로 옮김 — 상품 그룹은 4 종 타입으로 분리.
+    href: "/admin/passes/membership",
     label: "상품",
     icon: CubeIcon,
     iconActive: CubeSolidIcon,
-    routes: ["/admin/passes", "/admin/branches"],
+    routes: ["/admin/passes"],
     subTabs: [
-      { href: "/admin/passes", label: "상품" },
-      { href: "/admin/branches", label: "지점", superOnly: true },
+      { href: "/admin/passes/membership", label: "회원권" },
+      { href: "/admin/passes/pt", label: "수강권" },
+      { href: "/admin/passes/locker", label: "락커" },
+      { href: "/admin/passes/clothes", label: "운동복" },
     ],
   },
   {
