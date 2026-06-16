@@ -160,10 +160,24 @@ export default function StaffProjectsPage() {
     <div>
       <PageTitle title="프로젝트" />
 
-      <h1 className="mt-4 flex items-center gap-2 text-2xl font-black tracking-tighter text-gray-900">
-        <RocketLaunchIcon className="size-6 text-primary" />
-        프로젝트
-      </h1>
+      {/* 페이지 헤더 — 제목 좌, 새 프로젝트 + 아이콘 우. SubTabBar (업무 6 tab)
+          가 꽉 차서 거기 우측엔 못 박으니, 페이지 헤더 라인에 자연스럽게 묶음.
+          모바일·PC 동일 위치. */}
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <h1 className="flex items-center gap-2 text-2xl font-black tracking-tighter text-gray-900">
+          <RocketLaunchIcon className="size-6 text-primary" />
+          프로젝트
+        </h1>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          disabled={!myName}
+          aria-label="새 프로젝트"
+          className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
+        >
+          <PlusIcon className="size-5" />
+        </button>
+      </div>
       <p className="mt-1 text-sm text-gray-500">
         진행 중{" "}
         <span className="font-semibold text-gray-900 tabular-nums">
@@ -175,17 +189,6 @@ export default function StaffProjectsPage() {
           {myLeadCount}개
         </span>
       </p>
-
-      <div className="mt-5 flex justify-end">
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          disabled={!myName}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
-        >
-          <PlusIcon className="size-4" />새 프로젝트
-        </button>
-      </div>
 
       {/* 진행 중 */}
       <section className="mt-6">
