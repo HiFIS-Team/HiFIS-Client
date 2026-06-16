@@ -12,6 +12,20 @@
   --color-primary: #7c3aed; /* violet-600 */
   --color-primary-hover: #6d28d9; /* violet-700 */
 
+  /* 다크 톤 시맨틱 토큰 (짐박스 풍) —
+       surface : 페이지 / body 배경 (pure black)
+       card    : 카드·다이얼로그 surface (살짝 띄움)
+       card-hover : 카드 hover 강조
+       line    : border / divider
+       fg      : 본문 텍스트 (off-white)
+       muted   : 보조 텍스트 (gray-400 톤) */
+  --color-surface: #000;
+  --color-card: #0a0a0a;
+  --color-card-hover: #141414;
+  --color-line: #1f1f1f;
+  --color-fg: #fafafa;
+  --color-muted: #a3a3a3;
+
   /* 본문 폰트 — Pretendard (한국어 UI 표준, self-host) */
   --font-sans:
     "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont,
@@ -21,6 +35,12 @@
 html,
 body {
   height: 100%;
+}
+
+/* body 기본 배경·텍스트 — 다크 톤. */
+body {
+  background: var(--color-surface);
+  color: var(--color-fg);
 }
 
 /* 상·하단 overscroll 바운스 비활성화 — 모바일에서 페이지 상단에서 아래로 당기면

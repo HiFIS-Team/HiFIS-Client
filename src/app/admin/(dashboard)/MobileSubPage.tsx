@@ -48,7 +48,7 @@ export function MobileSubPage({
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-white pt-12 lg:static lg:animate-none lg:overflow-visible lg:bg-transparent lg:pt-0 ${
+      className={`fixed inset-0 z-50 bg-surface pt-12 lg:static lg:animate-none lg:overflow-visible lg:bg-transparent lg:pt-0 ${
         noScroll ? "overflow-hidden" : "overflow-y-auto"
       } ${closing ? "animate-page-slide-out" : "animate-page-slide-in"}`}
       onAnimationEnd={handleAnimationEnd}
@@ -56,16 +56,16 @@ export function MobileSubPage({
       {/* 헤더 fixed — sticky 면 overscroll bounce 때 같이 끌려오던 문제 (글로벌
           헤더와 동일 패턴). outer 의 pt-12 가 fixed 헤더 자리만큼 padding 으로
           밀어내 in-flow 콘텐츠가 헤더 뒤로 깔리지 않게 함. */}
-      <header className="fixed inset-x-0 top-0 z-20 flex h-12 items-center gap-1 border-b border-gray-200 bg-white px-2 lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-20 flex h-12 items-center gap-1 border-b border-line bg-card px-2 lg:hidden">
         <button
           type="button"
           onClick={handleClose}
           aria-label="뒤로"
-          className="rounded-md p-2 text-gray-700 hover:bg-gray-100"
+          className="rounded-md p-2 text-fg hover:bg-card-hover"
         >
           <ArrowLeftIcon className="size-5" />
         </button>
-        <h1 className="text-base font-black tracking-tight text-gray-900">
+        <h1 className="text-base font-black tracking-tight text-fg">
           {title}
         </h1>
       </header>

@@ -134,7 +134,7 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="주요 탭"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-card pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       {TABS.map((tab) => {
         const active = isActive(pathname, tab);
@@ -144,7 +144,7 @@ export function MobileTabBar() {
             key={tab.href}
             href={tab.href}
             className={`flex flex-col items-center gap-0.5 py-2 text-xs font-medium ${
-              active ? "text-primary" : "text-gray-500"
+              active ? "text-fg" : "text-muted"
             }`}
           >
             <Icon className="size-6" />

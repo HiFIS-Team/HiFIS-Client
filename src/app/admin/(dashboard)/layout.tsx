@@ -133,7 +133,7 @@ export default function DashboardLayout({
   return (
     <BranchProvider>
     <PageTitleProvider>
-    <div className="min-h-screen bg-white lg:flex">
+    <div className="min-h-screen bg-surface lg:flex">
       {/* 모바일 : 헤더 → 콘텐츠 → 하단 탭바 vertical 흐름 (사이드바 미표시).
           PC    : 좌측 사이드바(전체 높이) + 우측 inner 컨테이너(헤더 + 콘텐츠).
                   Sidebar 자체가 hidden lg:flex 라 모바일에선 자동 비표시. */}
@@ -150,14 +150,13 @@ export default function DashboardLayout({
         />
         {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
         <SubTabBar />
-        {/* PC : 본문 배경 옅은 회색 + 페이지 콘텐츠 전체를 흰 카드로 감싸 사이드바/헤더(흰) 와 톤 통일.
-            모바일은 wrap 의 lg: 클래스가 적용 안 돼 기존처럼 흰 배경 + 평면.
+        {/* PC : 본문 영역을 페이지 surface 와 살짝 띄운 카드(card) 로 분리해 사이드바·헤더와 톤 통일.
+            모바일은 wrap 의 lg: 클래스가 적용 안 돼 평면.
             overflow-x-clip : translateX 슬라이드 인 애니메이션이 잠깐 카드를
-            화면 오른쪽 밖으로 밀어내는데, 그게 body 가로 스크롤바를 만들어
-            세로 뷰포트가 잠깐 줄어들고 → fixed bottom-0 인 MobileTabBar 가
-            스크롤바 높이만큼 아래로 내려갔다 올라오는 현상이 있었다. */}
-        <main className="flex-1 overflow-x-clip pb-20 lg:bg-gray-50 lg:pb-0">
-          <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-gray-200 lg:bg-white lg:p-8">
+            화면 오른쪽 밖으로 밀어내 body 가로 스크롤바가 생기고 세로
+            뷰포트가 잠깐 줄어들어 MobileTabBar 가 흔들리던 현상 차단. */}
+        <main className="flex-1 overflow-x-clip pb-20 lg:bg-surface lg:pb-0">
+          <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-line lg:bg-card lg:p-8">
             {/* 페이지 전환 시 깜빡임 완화 — pathname 키로 매 라우트 변경마다
                 children 을 wrapping 한 div 가 remount → animate-fade-in 재실행
                 (opacity 0 → 1, 150ms). */}

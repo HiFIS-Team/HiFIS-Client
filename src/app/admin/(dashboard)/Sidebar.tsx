@@ -113,7 +113,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
 
   return (
     <>
-      <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-gray-200 bg-white lg:sticky lg:top-0 lg:flex">
+      <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-card lg:sticky lg:top-0 lg:flex">
       {/* 사이드바 상단 — 브랜드(로고 + HiFIS). */}
       <div className="flex items-center gap-2 px-5 py-4">
         {/* 정적 PNG — 추가 최적화 불필요 (Next.js static export) */}
@@ -124,7 +124,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
           aria-hidden="true"
           className="size-7"
         />
-        <span className="text-lg font-black tracking-tighter text-gray-900">HiFIS</span>
+        <span className="text-lg font-black tracking-tighter text-fg">HiFIS</span>
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
@@ -137,7 +137,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
           return (
             <div key={gi}>
               {group.label && (
-                <p className="px-3 pb-1 text-xs font-semibold text-gray-400">
+                <p className="px-3 pb-1 text-xs font-semibold text-muted">
                   {group.label}
                 </p>
               )}
@@ -148,13 +148,13 @@ export function Sidebar({ admin }: { admin: Admin }) {
                     return (
                       <div
                         key={item.href}
-                        className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-gray-400"
+                        className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted opacity-60"
                         aria-disabled="true"
                         title="준비중"
                       >
                         {Icon && <Icon className="size-4 shrink-0" />}
                         <span className="flex-1 truncate">{item.label}</span>
-                        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                        <span className="rounded-full bg-card-hover px-1.5 py-0.5 text-[10px] font-medium text-muted">
                           준비중
                         </span>
                       </div>
@@ -167,7 +167,7 @@ export function Sidebar({ admin }: { admin: Admin }) {
                       className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                         isActive(item.href)
                           ? "bg-primary text-white"
-                          : "text-gray-700 hover:bg-gray-100"
+                          : "text-fg hover:bg-card-hover"
                       }`}
                     >
                       {Icon && <Icon className="size-4 shrink-0" />}
@@ -181,18 +181,18 @@ export function Sidebar({ admin }: { admin: Admin }) {
         })}
       </nav>
 
-      <div className="border-t border-gray-200 px-5 py-4">
+      <div className="border-t border-line px-5 py-4">
         {/* 모바일 : 이름·역할 표시. PC 는 헤더 프로필 카드에 같은 정보가 있어 숨김. */}
         <div className="lg:hidden">
-          <p className="truncate text-sm font-semibold text-gray-900">
+          <p className="truncate text-sm font-semibold text-fg">
             {admin.name}
           </p>
-          <p className="text-xs text-gray-500">{adminRoleLabel(admin)}</p>
+          <p className="text-xs text-muted">{adminRoleLabel(admin)}</p>
         </div>
         <button
           type="button"
           onClick={() => setPasswordOpen(true)}
-          className="mt-3 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 lg:mt-0"
+          className="mt-3 w-full rounded-md border border-line px-3 py-1.5 text-sm font-medium text-fg hover:bg-card-hover lg:mt-0"
         >
           비밀번호 변경
         </button>
@@ -200,16 +200,16 @@ export function Sidebar({ admin }: { admin: Admin }) {
         <button
           type="button"
           onClick={logout}
-          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          className="mt-2 w-full rounded-md border border-line px-3 py-1.5 text-sm font-medium text-fg hover:bg-card-hover"
         >
           로그아웃
         </button>
         {/* 빌드 버전 — next.config 에서 package.json version 주입.
             NEXT_PUBLIC_APP_ENV=dev 면 옆에 (dev) 표시. */}
-        <p className="mt-3 text-center text-[10px] text-gray-400">
+        <p className="mt-3 text-center text-[10px] text-muted">
           v{process.env.NEXT_PUBLIC_APP_VERSION}
           {process.env.NEXT_PUBLIC_APP_ENV === "dev" && (
-            <span className="ml-1 text-gray-300">(dev)</span>
+            <span className="ml-1 opacity-60">(dev)</span>
           )}
         </p>
       </div>

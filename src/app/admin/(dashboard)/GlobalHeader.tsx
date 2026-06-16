@@ -38,7 +38,7 @@ export function GlobalHeader({
   const { title } = usePageTitle();
   const initial = admin.name.charAt(0) || "?";
   return (
-    <header className="fixed inset-x-0 top-0 z-20 flex h-12 items-center gap-2 border-b border-gray-200 bg-white px-3 lg:sticky lg:inset-x-auto lg:h-auto lg:gap-3 lg:px-6 lg:py-3">
+    <header className="fixed inset-x-0 top-0 z-20 flex h-12 items-center gap-2 border-b border-line bg-card px-3 lg:sticky lg:inset-x-auto lg:h-auto lg:gap-3 lg:px-6 lg:py-3">
       {/* 지점 — 좌측. SUPER_ADMIN 은 셀렉터, FC 는 본인 지점 라벨(선택 불가). */}
       {branches.length > 0 && (
         <div className="min-w-0">
@@ -49,8 +49,8 @@ export function GlobalHeader({
               branches={branches}
             />
           ) : ownBranch ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-700">
-              <BuildingOffice2Icon className="size-4 shrink-0 text-gray-400" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-fg">
+              <BuildingOffice2Icon className="size-4 shrink-0 text-muted" />
               <span className="min-w-0 flex-1 truncate text-left">
                 {branchShortName(ownBranch.name)}
               </span>
@@ -61,8 +61,8 @@ export function GlobalHeader({
       {/* PC : 페이지 타이틀 (지점 옆 구분선 + 본문 제목). 모바일 hidden. */}
       {title && (
         <div className="hidden min-w-0 items-center lg:flex">
-          <span className="mr-3 h-5 w-px bg-gray-200" aria-hidden />
-          <span className="truncate text-base font-black tracking-tight text-gray-900">
+          <span className="mr-3 h-5 w-px bg-line" aria-hidden />
+          <span className="truncate text-base font-black tracking-tight text-fg">
             {title}
           </span>
         </div>
@@ -74,7 +74,7 @@ export function GlobalHeader({
           type="button"
           onClick={onOpenAlimtalk}
           aria-label="메시지"
-          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+          className="rounded-md p-1.5 text-muted hover:bg-card-hover hover:text-fg lg:hidden"
         >
           <PaperAirplaneIcon className="size-6" />
         </button>
@@ -85,21 +85,21 @@ export function GlobalHeader({
           type="button"
           onClick={onOpenProfile}
           aria-label="내 정보"
-          className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+          className="rounded-md p-1.5 text-muted hover:bg-card-hover hover:text-fg lg:hidden"
         >
           <UserCircleIcon className="size-6" />
         </button>
         {/* PC : 사용자 프로필 카드 (이니셜 아바타 + 이름 + 역할). 클릭 시 프로필 페이지로. */}
         <Link
           href="/admin/profile"
-          className="hidden items-center gap-2 rounded-md py-1 pr-2 pl-1 transition-colors hover:bg-gray-100 lg:flex"
+          className="hidden items-center gap-2 rounded-md py-1 pr-2 pl-1 transition-colors hover:bg-card-hover lg:flex"
         >
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
             {initial}
           </div>
           <div className="text-left leading-tight">
-            <p className="text-sm font-semibold text-gray-900">{admin.name}</p>
-            <p className="text-xs text-gray-500">{adminRoleLabel(admin)}</p>
+            <p className="text-sm font-semibold text-fg">{admin.name}</p>
+            <p className="text-xs text-muted">{adminRoleLabel(admin)}</p>
           </div>
         </Link>
       </div>

@@ -25,7 +25,7 @@ export function SubTabBar() {
           영향 안 받게 헤더와 동일한 패턴. lg:hidden 이라 PC 영향 없음. */}
       <nav
         aria-label="하위 페이지"
-        className="fixed inset-x-0 top-12 z-10 flex h-12 gap-4 overflow-x-auto border-b border-gray-200 bg-white px-4 lg:hidden"
+        className="fixed inset-x-0 top-12 z-10 flex h-12 gap-4 overflow-x-auto border-b border-line bg-card px-4 lg:hidden"
       >
         {items.map((sub) => {
           const active =
@@ -35,14 +35,14 @@ export function SubTabBar() {
               key={sub.href}
               href={sub.href}
               className={`relative flex shrink-0 items-center text-[15px] font-semibold tracking-tight transition-colors ${
-                active ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
+                active ? "text-fg" : "text-muted hover:text-fg"
               }`}
             >
               {sub.label}
               {/* 활성 밑줄 — 글자 폭에 정확히 맞고 살짝 두꺼움(2.5px) 으로 또렷 */}
               <span
                 aria-hidden="true"
-                className={`pointer-events-none absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-gray-900 transition-opacity ${
+                className={`pointer-events-none absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-fg transition-opacity ${
                   active ? "opacity-100" : "opacity-0"
                 }`}
               />

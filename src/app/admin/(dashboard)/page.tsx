@@ -34,9 +34,9 @@ const RECENT_TYPE_META: Record<
   string,
   { icon: ComponentType<{ className?: string }>; chipClass: string }
 > = {
-  예약: { icon: CalendarIcon, chipClass: "bg-blue-50 text-blue-600" },
-  회원: { icon: UsersIcon, chipClass: "bg-green-50 text-green-600" },
-  PT: { icon: BoltIcon, chipClass: "bg-violet-50 text-primary" },
+  예약: { icon: CalendarIcon, chipClass: "bg-blue-500/10 text-blue-400" },
+  회원: { icon: UsersIcon, chipClass: "bg-green-500/10 text-green-400" },
+  PT: { icon: BoltIcon, chipClass: "bg-primary/10 text-primary" },
 };
 
 // 요약 숫자 카드 — 아이콘 + 라벨 + 큰 숫자 + 부가 정보 (브랜드 톤 보라 테두리)
@@ -45,7 +45,7 @@ function StatCard({
   value,
   hint,
   icon: Icon,
-  iconClassName = "text-gray-400",
+  iconClassName = "text-muted",
 }: {
   label: string;
   value: number;
@@ -54,13 +54,13 @@ function StatCard({
   iconClassName?: string;
 }) {
   return (
-    <div className="rounded-xl border border-violet-200 bg-white p-4">
+    <div className="rounded-xl border border-line bg-card p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{label}</p>
+        <p className="text-sm text-muted">{label}</p>
         <Icon className={`size-5 ${iconClassName}`} />
       </div>
-      <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
+      <p className="mt-1 text-2xl font-bold text-fg">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
@@ -80,25 +80,25 @@ function TodoCard({
     <div
       className={`rounded-xl border p-4 ${
         active
-          ? "border-amber-200 bg-amber-50"
-          : "border-violet-200 bg-white"
+          ? "border-amber-500/30 bg-amber-500/10"
+          : "border-line bg-card"
       }`}
     >
       <div className="flex items-center justify-between">
         <p
           className={`text-sm font-medium ${
-            active ? "text-amber-800" : "text-gray-500"
+            active ? "text-amber-200" : "text-muted"
           }`}
         >
           {label}
         </p>
         <Icon
-          className={`size-5 ${active ? "text-amber-500" : "text-gray-400"}`}
+          className={`size-5 ${active ? "text-amber-400" : "text-muted"}`}
         />
       </div>
       <p
         className={`mt-1 text-2xl font-bold ${
-          active ? "text-amber-900" : "text-gray-900"
+          active ? "text-amber-100" : "text-fg"
         }`}
       >
         {value}
@@ -132,8 +132,8 @@ function MonthlyTrendChart({
     monthPts > 0 ? Math.max(4, Math.round((monthPts / max) * V_MAX)) : 0;
 
   return (
-    <section className="flex h-full flex-col rounded-xl border border-violet-200 p-5">
-      <h3 className="text-base font-semibold text-gray-900">
+    <section className="flex h-full flex-col rounded-xl border border-line bg-card p-5">
+      <h3 className="text-base font-semibold text-fg">
         이번 달 가입 추이
       </h3>
 
@@ -151,7 +151,7 @@ function MonthlyTrendChart({
           count={monthPts}
           max={max}
           unit="건"
-          barClass="bg-violet-300"
+          barClass="bg-violet-400"
         />
       </div>
 
@@ -169,11 +169,11 @@ function MonthlyTrendChart({
           count={monthPts}
           unit="건"
           barPx={ptBarPx}
-          barClass="bg-violet-300"
+          barClass="bg-violet-400"
         />
       </div>
 
-      <p className="mt-6 text-right text-xs text-gray-400 lg:mt-3">
+      <p className="mt-6 text-right text-xs text-muted lg:mt-3">
         오늘 {todayLabel}
       </p>
     </section>
@@ -197,8 +197,8 @@ function HorizontalBar({
   const pct = max > 0 ? (count / max) * 100 : 0;
   return (
     <div className="flex items-center gap-5 text-sm">
-      <span className="w-10 shrink-0 text-gray-500">{label}</span>
-      <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-100">
+      <span className="w-10 shrink-0 text-muted">{label}</span>
+      <div className="h-3 flex-1 overflow-hidden rounded-full bg-card-hover">
         {count > 0 && (
           <div
             style={{ width: `${Math.max(2, pct)}%` }}
@@ -206,7 +206,7 @@ function HorizontalBar({
           />
         )}
       </div>
-      <span className="w-14 shrink-0 text-right tabular-nums text-gray-900">
+      <span className="w-14 shrink-0 text-right tabular-nums text-fg">
         {count}
         {unit}
       </span>
@@ -231,7 +231,7 @@ function VerticalBar({
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <span className="text-sm font-semibold tabular-nums text-gray-900">
+      <span className="text-sm font-semibold tabular-nums text-fg">
         {count}
         {unit}
       </span>
@@ -239,7 +239,7 @@ function VerticalBar({
         style={{ height: `${barPx}px` }}
         className={`w-10 rounded-t ${barClass}`}
       />
-      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
     </div>
   );
 }
@@ -251,27 +251,27 @@ function BirthdayCard({
   list: { id: string; name: string; phone: string }[];
 }) {
   return (
-    <section className="rounded-xl border border-violet-200 p-5">
+    <section className="rounded-xl border border-line bg-card p-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-gray-900">오늘 생일자</h3>
+        <h3 className="text-base font-semibold text-fg">오늘 생일자</h3>
         <CakeIcon className="size-5 text-pink-400" />
       </div>
       {list.length === 0 ? (
-        <p className="mt-3 text-sm text-gray-400">오늘 생일자가 없습니다.</p>
+        <p className="mt-3 text-sm text-muted">오늘 생일자가 없습니다.</p>
       ) : (
         <>
-          <p className="mt-1 text-2xl font-bold text-gray-900">
+          <p className="mt-1 text-2xl font-bold text-fg">
             {list.length}명
           </p>
           <ul className="mt-3 space-y-1.5">
             {list.slice(0, 5).map((p) => (
               <li key={p.id} className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-gray-900">{p.name}</span>
-                <span className="text-gray-400">{formatPhone(p.phone)}</span>
+                <span className="font-medium text-fg">{p.name}</span>
+                <span className="text-muted">{formatPhone(p.phone)}</span>
               </li>
             ))}
             {list.length > 5 && (
-              <li className="text-xs text-gray-400">외 {list.length - 5}명</li>
+              <li className="text-xs text-muted">외 {list.length - 5}명</li>
             )}
           </ul>
         </>
@@ -289,10 +289,10 @@ function GenderCard({ byGender }: { byGender: Record<string, number> }) {
   const femalePct = total > 0 ? 100 - malePct : 0;
 
   return (
-    <section className="rounded-xl border border-violet-200 p-5">
-      <h3 className="text-base font-semibold text-gray-900">성별 분포</h3>
+    <section className="rounded-xl border border-line bg-card p-5">
+      <h3 className="text-base font-semibold text-fg">성별 분포</h3>
       {total === 0 ? (
-        <p className="mt-3 text-sm text-gray-400">데이터가 없습니다.</p>
+        <p className="mt-3 text-sm text-muted">데이터가 없습니다.</p>
       ) : (
         <>
           <div className="mt-4 flex justify-center">
@@ -304,7 +304,7 @@ function GenderCard({ byGender }: { byGender: Record<string, number> }) {
                 r="15.915"
                 fill="none"
                 strokeWidth="4"
-                className="stroke-violet-300"
+                className="stroke-violet-400/30"
               />
               <circle
                 cx="18"
@@ -321,19 +321,19 @@ function GenderCard({ byGender }: { byGender: Record<string, number> }) {
                 y="18"
                 textAnchor="middle"
                 dominantBaseline="central"
-                className="fill-gray-900 text-[7px] font-bold"
+                className="fill-[color:var(--color-fg)] text-[7px] font-bold"
               >
                 {total}명
               </text>
             </svg>
           </div>
           <div className="mt-3 flex justify-center gap-4 text-sm">
-            <span className="flex items-center gap-1.5 text-gray-700">
+            <span className="flex items-center gap-1.5 text-fg">
               <span className="inline-block size-2.5 rounded-sm bg-primary" />
               남 {male} · {malePct}%
             </span>
-            <span className="flex items-center gap-1.5 text-gray-700">
-              <span className="inline-block size-2.5 rounded-sm bg-violet-300" />
+            <span className="flex items-center gap-1.5 text-fg">
+              <span className="inline-block size-2.5 rounded-sm bg-violet-400" />
               여 {female} · {femalePct}%
             </span>
           </div>
@@ -361,21 +361,21 @@ function AgeRangeCard({
   const max = Math.max(...counts, 1);
 
   return (
-    <section className="rounded-xl border border-violet-200 p-5">
-      <h3 className="text-base font-semibold text-gray-900">연령대 분포</h3>
+    <section className="rounded-xl border border-line bg-card p-5">
+      <h3 className="text-base font-semibold text-fg">연령대 분포</h3>
       <div className="mt-4 space-y-2">
         {buckets.map((b, i) => {
           const count = counts[i];
           return (
             <div key={b.key} className="flex items-center gap-2 text-sm">
-              <span className="w-12 shrink-0 text-gray-500">{b.label}</span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+              <span className="w-12 shrink-0 text-muted">{b.label}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-card-hover">
                 <div
                   style={{ width: `${(count / max) * 100}%` }}
                   className="h-full rounded-full bg-primary"
                 />
               </div>
-              <span className="w-8 shrink-0 text-right text-gray-700">
+              <span className="w-8 shrink-0 text-right text-fg">
                 {count}
               </span>
             </div>
@@ -432,7 +432,7 @@ function MonthlyAwardCard({
     // 슬라이드 인 (글씨가 아니라 네모칸 자체가 이동되는 느낌).
     <section
       key={current?.id ?? "empty"}
-      className="animate-slide-in-right relative rounded-xl border border-violet-200 p-5"
+      className="animate-slide-in-right relative rounded-xl border border-line bg-card p-5"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
@@ -443,22 +443,22 @@ function MonthlyAwardCard({
           >
             <Icon className={`size-5 ${iconTextClass}`} />
           </span>
-          <h3 className="truncate text-base font-semibold text-gray-900">
+          <h3 className="truncate text-base font-semibold text-fg">
             {label}
           </h3>
           {/* 라벨 옆 지점명 — 현재 보고 있는 지점 */}
-          <span className="shrink-0 text-sm text-gray-500">
+          <span className="shrink-0 text-sm text-muted">
             {current ? branchShortName(current.name) : "—"}
           </span>
         </div>
-        <span className="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+        <span className="shrink-0 rounded-full bg-card-hover px-1.5 py-0.5 text-[10px] font-medium text-muted">
           준비중
         </span>
       </div>
 
       {/* 본문 — 사람 이름만 큰 글씨로. 데이터 들어오면 채워짐. */}
       <div className="mt-4 min-h-[3.5rem] pr-10">
-        <p className="text-2xl font-bold text-gray-400">—</p>
+        <p className="text-2xl font-bold text-muted">—</p>
       </div>
 
       {/* 우측 가운데 화살표 — 누르면 다음 지점으로 (rotate). 좌측 스와이프도 동일. */}
@@ -467,13 +467,13 @@ function MonthlyAwardCard({
           type="button"
           onClick={() => go(1)}
           aria-label="다음 지점"
-          className="absolute top-1/2 right-3 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-700"
+          className="absolute top-1/2 right-3 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-card-hover text-muted ring-1 ring-line hover:text-fg"
         >
           <ChevronRightIcon className="size-4" />
         </button>
       )}
 
-      <p className="mt-3 text-xs text-gray-500">{description}</p>
+      <p className="mt-3 text-xs text-muted">{description}</p>
     </section>
   );
 }
@@ -570,7 +570,7 @@ export default function AdminDashboardPage() {
     <div>
       <PageTitle title="대시보드" />
       {/* 홈 인사말 — GBX 톤(굵은 산세리프 + 좁은 자간) 으로 무게감. */}
-      <h1 className="text-3xl leading-[1.15] font-black tracking-tighter text-gray-900">
+      <h1 className="text-3xl leading-[1.15] font-black tracking-tighter text-fg">
         <span className="inline-flex items-center gap-2">
           안녕하세요
           <HandRaisedIcon className="size-7 text-primary" />
@@ -607,7 +607,7 @@ export default function AdminDashboardPage() {
       </div>
 
       <section className="mt-6">
-        <h2 className="text-base font-semibold text-gray-900">회원 상태</h2>
+        <h2 className="text-base font-semibold text-fg">회원 상태</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <StatCard
             label="활성"
@@ -619,7 +619,7 @@ export default function AdminDashboardPage() {
             label="만료"
             value={expiredCount}
             icon={XCircleIcon}
-            iconClassName="text-gray-400"
+            iconClassName="text-muted"
           />
           <StatCard
             label="홀딩"
@@ -631,7 +631,7 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-base font-semibold text-gray-900">처리할 일</h2>
+        <h2 className="text-base font-semibold text-fg">처리할 일</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <TodoCard
             label="만기 임박 (7일 내)"
@@ -654,7 +654,7 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-base font-semibold text-gray-900">회원 분석</h2>
+        <h2 className="text-base font-semibold text-fg">회원 분석</h2>
         {/* 가입 추이도 회원 분석 범주라 같은 grid 에 합침.
             mobile 1col → sm 2col → lg 4col 로 적당히 채워짐. */}
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -669,29 +669,29 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-base font-semibold text-gray-900">이달의 우수사원</h2>
+        <h2 className="text-base font-semibold text-fg">이달의 우수사원</h2>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
           <MonthlyAwardCard
             label="피드백왕"
             description="회원 피드백 점수가 가장 높은 사원"
             icon={HandThumbUpIcon}
-            iconBgClass="bg-amber-50"
-            iconTextClass="text-amber-500"
+            iconBgClass="bg-amber-500/10"
+            iconTextClass="text-amber-400"
             branches={branches}
           />
           <MonthlyAwardCard
             label="친절왕"
             description="회원 친절도 점수가 가장 높은 사원"
             icon={HeartIcon}
-            iconBgClass="bg-rose-50"
-            iconTextClass="text-rose-500"
+            iconBgClass="bg-rose-500/10"
+            iconTextClass="text-rose-400"
             branches={branches}
           />
           <MonthlyAwardCard
             label="종합왕"
             description="모든 지표 합산 1위 사원"
             icon={TrophyIcon}
-            iconBgClass="bg-violet-50"
+            iconBgClass="bg-primary/10"
             iconTextClass="text-primary"
             branches={branches}
           />
@@ -699,17 +699,17 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-base font-semibold text-gray-900">최근 신청</h2>
-        <div className="mt-3 rounded-xl border border-violet-200">
+        <h2 className="text-base font-semibold text-fg">최근 신청</h2>
+        <div className="mt-3 rounded-xl border border-line bg-card">
           {recent.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-              <div className="flex size-10 items-center justify-center rounded-full bg-gray-100">
-                <InboxIcon className="size-5 text-gray-400" />
+              <div className="flex size-10 items-center justify-center rounded-full bg-card-hover">
+                <InboxIcon className="size-5 text-muted" />
               </div>
-              <p className="text-sm text-gray-500">최근 신청이 없습니다.</p>
+              <p className="text-sm text-muted">최근 신청이 없습니다.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-line">
               {recent.map((item) => {
                 const meta = RECENT_TYPE_META[item.type];
                 const Icon = meta.icon;
@@ -724,10 +724,10 @@ export default function AdminDashboardPage() {
                       <Icon className="size-3" />
                       {item.type}
                     </span>
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-fg">
                       {item.name}
                     </span>
-                    <span className="ml-auto text-gray-500">
+                    <span className="ml-auto text-muted">
                       {formatDate(item.created_at)}
                     </span>
                   </li>
