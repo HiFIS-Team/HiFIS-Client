@@ -3,7 +3,6 @@
 import { PageTitle } from "../PageTitle";
 import { useMemo, useState, type ComponentType } from "react";
 import {
-  BuildingOffice2Icon,
   CalendarDaysIcon,
   ChatBubbleBottomCenterTextIcon,
   FlagIcon,
@@ -37,16 +36,16 @@ function StatDetailChart({
 }) {
   const total = items.reduce((sum, x) => sum + x.count, 0);
   return (
-    <section className="rounded-xl border border-gray-200 p-5">
+    <section className="rounded-xl border border-line bg-card p-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
+        <h2 className="flex items-center gap-1.5 text-base font-semibold text-fg">
           {Icon && <Icon className="size-4 text-primary" />}
           {title}
         </h2>
-        <span className="text-sm text-gray-500">총 {total}건</span>
+        <span className="text-sm text-muted">총 {total}건</span>
       </div>
       {items.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-500">
+        <p className="mt-4 text-sm text-muted">
           기타에 직접 입력된 항목이 없습니다.
         </p>
       ) : (
@@ -56,12 +55,12 @@ function StatDetailChart({
             return (
               <div key={item.label}>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-700">{item.label}</span>
-                  <span className="text-gray-500">
+                  <span className="text-fg">{item.label}</span>
+                  <span className="text-muted">
                     {item.count}건 · {pct}%
                   </span>
                 </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-card-hover">
                   <div
                     className="h-full rounded-full bg-primary"
                     style={{ width: `${pct}%` }}
@@ -139,9 +138,9 @@ export default function AdminStatsPage() {
 
       <div className="mt-6">
         {isLoading ? (
-          <p className="text-sm text-gray-500">불러오는 중…</p>
+          <p className="text-sm text-muted">불러오는 중…</p>
         ) : isError ? (
-          <p className="text-sm text-gray-500">통계를 불러오지 못했습니다.</p>
+          <p className="text-sm text-muted">통계를 불러오지 못했습니다.</p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2">
             <StatChart

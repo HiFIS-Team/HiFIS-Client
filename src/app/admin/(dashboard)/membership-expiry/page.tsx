@@ -27,9 +27,9 @@ export default function AdminMembershipExpiryPage() {
 
       <div className="mt-6">
         {expiryQuery.isLoading ? (
-          <p className="text-sm text-gray-500">불러오는 중…</p>
+          <p className="text-sm text-muted">불러오는 중…</p>
         ) : expiryQuery.isError ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             잔여 기간 통계를 불러오지 못했습니다.
           </p>
         ) : expiryQuery.data ? (

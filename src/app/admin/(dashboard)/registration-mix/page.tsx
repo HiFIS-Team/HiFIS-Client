@@ -4,7 +4,6 @@ import { PageTitle } from "../PageTitle";
 import { useMemo, useState } from "react";
 import {
   BoltIcon,
-  BuildingOffice2Icon,
   CalendarDaysIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
@@ -49,9 +48,9 @@ export default function AdminRegistrationMixPage() {
 
       <div className="mt-6">
         {categoryQuery.isLoading ? (
-          <p className="text-sm text-gray-500">불러오는 중…</p>
+          <p className="text-sm text-muted">불러오는 중…</p>
         ) : categoryQuery.isError ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             통계를 불러오지 못했습니다.
           </p>
         ) : categoryQuery.data ? (

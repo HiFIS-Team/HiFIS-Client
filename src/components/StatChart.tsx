@@ -29,7 +29,7 @@ export function StatBars({
   }
 
   if (items.length === 0) {
-    return <p className="text-sm text-gray-500">데이터가 없습니다.</p>;
+    return <p className="text-sm text-muted">데이터가 없습니다.</p>;
   }
   return (
     <div className="space-y-3">
@@ -55,19 +55,19 @@ export function StatBars({
               }`}
             >
               <div className="flex items-baseline justify-between gap-2 text-sm">
-                <span className="min-w-0 truncate text-gray-700">
+                <span className="min-w-0 truncate text-fg">
                   {item.label}
                   {item.price != null && (
-                    <span className="ml-1 text-gray-400">
+                    <span className="ml-1 text-muted">
                       ({formatWon(item.price)})
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 text-gray-500">
+                <span className="shrink-0 text-muted">
                   {item.count}건 · {pct}%
                 </span>
               </div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-card-hover">
                 <div
                   className="h-full rounded-full bg-primary"
                   style={{ width: `${pct}%` }}
@@ -75,7 +75,7 @@ export function StatBars({
               </div>
             </Row>
             {hasRevenue && isExpanded && (
-              <p className="mt-1 text-right text-xs text-gray-500">
+              <p className="mt-1 text-right text-xs text-muted">
                 매출 {formatWon(item.revenue!)}
               </p>
             )}
@@ -98,13 +98,13 @@ export function StatChart({
   icon?: ComponentType<{ className?: string }>;
 }) {
   return (
-    <section className="rounded-xl border border-gray-200 p-5">
+    <section className="rounded-xl border border-line bg-card p-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="flex items-center gap-1.5 text-base font-semibold text-gray-900">
+        <h2 className="flex items-center gap-1.5 text-base font-semibold text-fg">
           {Icon && <Icon className="size-4 text-primary" />}
           {title}
         </h2>
-        <span className="text-sm text-gray-500">총 {data.total}건</span>
+        <span className="text-sm text-muted">총 {data.total}건</span>
       </div>
       <div className="mt-4">
         <StatBars items={data.items} total={data.total} />

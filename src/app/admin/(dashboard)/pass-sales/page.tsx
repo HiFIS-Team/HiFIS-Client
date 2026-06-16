@@ -4,7 +4,6 @@ import { PageTitle } from "../PageTitle";
 import { useMemo, useState, type ComponentType } from "react";
 import {
   BoltIcon,
-  BuildingOffice2Icon,
   CalendarDaysIcon,
   LockClosedIcon,
   ShoppingBagIcon,
@@ -92,7 +91,7 @@ export default function AdminPassSalesPage() {
 
       {/* 탭 줄 — 카드 밖. 4개를 flex-1 로 균등 분할해 폭에 맞춰 줄어들게.
           모바일에서는 패딩만 좁혀(px-2) 한 줄에 다 들어가고 가로 스크롤 불필요. */}
-      <div className="mt-6 flex border-b border-gray-200">
+      <div className="mt-6 flex border-b border-line">
         {passTabs.map((t) => {
           const isActive = t.key === passTab;
           const Icon = t.icon;
@@ -104,7 +103,7 @@ export default function AdminPassSalesPage() {
               className={`-mb-px flex flex-1 items-center justify-center gap-1.5 border-b-2 px-2 py-2 text-sm font-medium whitespace-nowrap sm:px-4 ${
                 isActive
                   ? "border-primary text-primary"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
+                  : "border-transparent text-muted hover:text-fg"
               }`}
             >
               <Icon className="size-4" />
@@ -117,9 +116,9 @@ export default function AdminPassSalesPage() {
       {/* 통계 — 통계 페이지의 유입경로/방문목적과 동일한 StatChart (헤더 좌: 제목, 우: 총 N건). */}
       <div className="mt-4">
         {passSalesQuery.isLoading ? (
-          <p className="text-sm text-gray-500">불러오는 중…</p>
+          <p className="text-sm text-muted">불러오는 중…</p>
         ) : passSalesQuery.isError ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             상품 판매 통계를 불러오지 못했습니다.
           </p>
         ) : passSalesQuery.data ? (
