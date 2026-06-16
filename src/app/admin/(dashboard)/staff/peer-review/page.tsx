@@ -178,6 +178,7 @@ export default function StaffPeerReviewPage() {
         <MobileSubPage
           title={`${openColleague.name} 평가`}
           onClose={() => setOpenId(null)}
+          noScroll
         >
           <ReviewForm
             colleague={openColleague}

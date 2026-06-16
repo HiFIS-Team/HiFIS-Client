@@ -21,10 +21,14 @@ import { useState, type ReactNode } from "react";
 export function MobileSubPage({
   title,
   onClose,
+  noScroll = false,
   children,
 }: {
   title: string;
   onClose?: () => void;
+  // 콘텐츠가 화면에 다 들어가는 짧은 폼 (예: 동료 평가) 에서 overscroll bounce
+  // 와 불필요한 스크롤을 막을 때 true. 기본은 false (스크롤 허용).
+  noScroll?: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -44,9 +48,9 @@ export function MobileSubPage({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto bg-white pt-12 lg:static lg:animate-none lg:overflow-visible lg:bg-transparent lg:pt-0 ${
-        closing ? "animate-page-slide-out" : "animate-page-slide-in"
-      }`}
+      className={`fixed inset-0 z-50 bg-white pt-12 lg:static lg:animate-none lg:overflow-visible lg:bg-transparent lg:pt-0 ${
+        noScroll ? "overflow-hidden" : "overflow-y-auto"
+      } ${closing ? "animate-page-slide-out" : "animate-page-slide-in"}`}
       onAnimationEnd={handleAnimationEnd}
     >
       {/* 헤더 fixed — sticky 면 overscroll bounce 때 같이 끌려오던 문제 (글로벌
