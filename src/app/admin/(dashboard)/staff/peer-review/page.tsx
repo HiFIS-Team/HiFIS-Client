@@ -210,7 +210,7 @@ function ReviewForm({
     score >= 1 && strength.trim().length > 0 && improvement.trim().length > 0;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className={`mx-auto max-w-2xl ${!locked ? "pb-24" : ""}`}>
       <header className="mb-5">
         <p className="text-xs font-medium text-gray-500">평가 대상</p>
         <p className="mt-0.5 text-lg font-bold tracking-tight text-gray-900">
@@ -228,9 +228,14 @@ function ReviewForm({
         </div>
       )}
 
-      {/* 점수 — 1-5 별점 */}
+      {/* 점수 — 1-5 별점 (별 하나당 4점 → 최대 20점) */}
       <section>
-        <label className="text-sm font-semibold text-gray-900">점수</label>
+        <label className="text-sm font-semibold text-gray-900">
+          점수{" "}
+          <span className="ml-1 text-xs font-normal text-gray-400">
+            (별 하나당 4점입니다)
+          </span>
+        </label>
         <div className="mt-2 flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((n) => {
             const filled = n <= score;
@@ -299,21 +304,26 @@ function ReviewForm({
         />
       </section>
 
+      {/* 제출 액션 바 — viewport 하단에 고정.
+          MobileSubPage 안에서 fixed inset-x-0 bottom-0 로 viewport 에 박힘.
+          제출됨 (locked) 케이스에선 안내·버튼 모두 의미 없으니 렌더하지 않음. */}
       {!locked && (
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
-          <button
-            type="button"
-            onClick={() =>
-              canSubmit && onSubmit({ score, strength, improvement })
-            }
-            disabled={!canSubmit}
-            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            제출하기
-          </button>
-          <p className="text-xs text-gray-400 sm:my-auto sm:mr-2">
-            제출 후엔 수정할 수 없어요.
-          </p>
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+            <p className="text-xs text-gray-400">
+              제출 후엔 수정할 수 없어요.
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                canSubmit && onSubmit({ score, strength, improvement })
+              }
+              disabled={!canSubmit}
+              className="shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              제출하기
+            </button>
+          </div>
         </div>
       )}
     </div>
