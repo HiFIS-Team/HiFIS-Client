@@ -242,6 +242,7 @@ export default function StaffProjectsPage() {
             isLeader={openProject.leaderName === myName}
             onUpdate={(patch) => updateProject(openProject.id, patch)}
             onDelete={() => deleteProject(openProject.id)}
+            onClose={() => setOpenId(null)}
           />
         </MobileSubPage>
       )}
@@ -327,26 +328,25 @@ function ProjectCard({
   );
 }
 
-// 상세 — 주도자 권한이면 진척도·완료·삭제 컨트롤, 아니면 read-only.
+// 상세 — 주도자 권한이면 진척도·저장·삭제 컨트롤, 아니면 read-only.
+// 슬라이더는 local state 만. 저장 버튼이 진척도 + status (>=100 → done / 미만
+// → active) 한꺼번에 반영하고 오버레이 닫음. ← 으로 나가면 슬라이더 변경은
+// 저장 안 됨 (cancel 동작).
 function ProjectDetail({
   project,
   isLeader,
   onUpdate,
   onDelete,
+  onClose,
 }: {
   project: Project;
   isLeader: boolean;
   onUpdate: (patch: Partial<Project>) => void;
   onDelete: () => void;
+  onClose: () => void;
 }) {
   const [progress, setProgress] = useState(project.progress);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const done = project.status === "done";
-
-  function commitProgress(next: number) {
-    setProgress(next);
-    onUpdate({ progress: next });
-  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -418,33 +418,28 @@ function ProjectDetail({
           step={5}
           value={progress}
           onChange={(e) => setProgress(parseInt(e.target.value, 10))}
-          onMouseUp={() => commitProgress(progress)}
-          onTouchEnd={() => commitProgress(progress)}
-          disabled={!isLeader || done}
+          disabled={!isLeader}
           className="mt-2 w-full accent-primary disabled:opacity-50"
         />
       </section>
 
-      {/* 액션 — 주도자만 */}
+      {/* 액션 — 주도자만. 저장 버튼이 슬라이더 값 + status 분기 (>=100 → done /
+          미만 → active) 한 번에 반영하고 오버레이 닫음. ← 으로 나가면 cancel. */}
       {isLeader && (
         <section className="mt-6 flex flex-col gap-2 sm:flex-row">
-          {done ? (
-            <button
-              type="button"
-              onClick={() => onUpdate({ status: "active" })}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              진행 중으로 되돌리기
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onUpdate({ status: "done", progress: 100 })}
-              className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
-            >
-              완료 처리
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              onUpdate({
+                progress,
+                status: progress >= 100 ? "done" : "active",
+              });
+              onClose();
+            }}
+            className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
+          >
+            저장
+          </button>
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
