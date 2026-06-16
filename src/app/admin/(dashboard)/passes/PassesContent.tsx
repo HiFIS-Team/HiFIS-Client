@@ -62,7 +62,7 @@ function Chip({
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-        accent ? "bg-violet-50 text-primary" : "bg-gray-50 text-gray-600"
+        accent ? "bg-primary/10 text-primary" : "bg-card-hover text-muted"
       }`}
     >
       {children}
@@ -217,10 +217,10 @@ export function PassesContent({ type }: { type: PassType }) {
             {passes.map((p) => (
               <article
                 key={p.id}
-                className="rounded-xl border border-gray-200 p-5"
+                className="rounded-xl border border-line bg-card p-5"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-lg font-bold text-gray-900">{p.name}</h2>
+                  <h2 className="text-lg font-bold text-fg">{p.name}</h2>
                   <div className="flex shrink-0 gap-2">
                     <RowActionButton onClick={() => setFormTarget(p)}>
                       수정
@@ -233,22 +233,22 @@ export function PassesContent({ type }: { type: PassType }) {
                     </RowActionButton>
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 px-3 py-4 text-center">
+                <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-card-hover px-3 py-4 text-center">
                   <div className="min-w-0">
-                    <p className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                    <p className="flex items-center justify-center gap-1 text-xs text-muted">
                       <BanknotesIcon className="size-3.5" />
                       현금가
                     </p>
-                    <p className="mt-1 truncate text-base font-bold tabular-nums text-gray-900">
+                    <p className="mt-1 truncate text-base font-bold tabular-nums text-fg">
                       {formatWon(p.cash_price)}
                     </p>
                   </div>
                   <div className="min-w-0">
-                    <p className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                    <p className="flex items-center justify-center gap-1 text-xs text-muted">
                       <CreditCardIcon className="size-3.5" />
                       카드가
                     </p>
-                    <p className="mt-1 truncate text-base font-bold tabular-nums text-gray-900">
+                    <p className="mt-1 truncate text-base font-bold tabular-nums text-fg">
                       {formatWon(p.card_price)}
                     </p>
                   </div>

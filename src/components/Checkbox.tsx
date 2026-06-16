@@ -23,9 +23,13 @@ export function Checkbox({
           className={`mt-0.5 size-5 shrink-0 accent-primary ${className}`}
           {...rest}
         />
-        <span className="text-base text-gray-900">{label}</span>
+        <span className="text-base text-gray-900 dark:text-fg">{label}</span>
       </label>
-      {error && <p className="mt-1.5 ml-8 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-1.5 ml-8 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

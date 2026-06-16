@@ -150,14 +150,14 @@ export function PassFormDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10"
       onClick={onCancel}
     >
       <div
-        className="animate-dialog-in flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-md flex-col rounded-xl border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
+        <h2 className="border-b border-line px-6 py-4 text-lg font-bold text-fg">
           {title}
         </h2>
         <form
@@ -194,10 +194,10 @@ export function PassFormDialog({
             {/* 이용 기간 — 단위 토글(개월/일/시간) + 값 한 필드.
                 단위 바꿔도 입력값은 유지 (검증 시 단위에 맞춰 max 적용). */}
             <div>
-              <label className="flex items-center gap-1 text-sm/6 font-medium text-gray-900">
+              <label className="flex items-center gap-1 text-sm/6 font-medium text-fg">
                 이용 기간
               </label>
-              <div className="mt-2 flex gap-1.5 rounded-md bg-gray-100 p-1">
+              <div className="mt-2 flex gap-1.5 rounded-md bg-card-hover p-1">
                 {(["months", "days", "hours"] as const).map((u) => (
                   <button
                     key={u}
@@ -205,8 +205,8 @@ export function PassFormDialog({
                     onClick={() => setDurationUnit(u)}
                     className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
                       durationUnit === u
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
+                        ? "bg-card text-primary shadow-sm ring-1 ring-line"
+                        : "text-muted hover:text-fg"
                     }`}
                   >
                     {UNIT_META[u].label}
@@ -227,11 +227,11 @@ export function PassFormDialog({
               </div>
             </div>
             {showProvides && (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                <p className="text-sm font-semibold text-gray-900">
+              <div className="rounded-lg border border-line bg-card-hover px-4 py-3">
+                <p className="text-sm font-semibold text-fg">
                   무료 제공
                 </p>
-                <p className="mt-0.5 text-xs text-gray-500">
+                <p className="mt-0.5 text-xs text-muted">
                   체크 시 신청자가 이 상품을 선택하면 해당 상품이 무료로 함께
                   제공돼요. 다른 상품 선택 UI는 자동으로 차단됩니다.
                 </p>
@@ -256,11 +256,11 @@ export function PassFormDialog({
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+          <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+              className="rounded-md px-4 py-2 text-sm font-semibold text-muted hover:bg-card-hover hover:text-fg"
             >
               취소
             </button>
