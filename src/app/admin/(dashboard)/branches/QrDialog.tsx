@@ -94,7 +94,7 @@ export function QrDialog({
           <button
             type="button"
             onClick={download}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary bg-primary/15 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/25"
           >
             <ArrowDownTrayIcon className="size-4" />
             PNG 다운로드

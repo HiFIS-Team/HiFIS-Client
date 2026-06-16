@@ -94,7 +94,7 @@ export function GlobalHeader({
           href="/admin/profile"
           className="hidden items-center gap-2 rounded-md py-1 pr-2 pl-1 transition-colors hover:bg-card-hover lg:flex"
         >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
             {initial}
           </div>
           <div className="text-left leading-tight">

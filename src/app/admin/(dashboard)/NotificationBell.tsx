@@ -52,7 +52,7 @@ const NOTIFICATION_META: Record<
   },
   PT_APPLICATION: {
     icon: BoltIcon,
-    bgClass: "bg-primary/10",
+    bgClass: "bg-primary/15",
     iconClass: "text-primary",
   },
   FC_SIGNUP: {
@@ -287,7 +287,7 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
               type="button"
               onClick={() => handleItemClick(n)}
               className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-card-hover ${
-                n.is_read ? "" : "bg-primary/10"
+                n.is_read ? "" : "bg-primary/15"
               }`}
             >
               {/* 타입별 아이콘 칩 */}

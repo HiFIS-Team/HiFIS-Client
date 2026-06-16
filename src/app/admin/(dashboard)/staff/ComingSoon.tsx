@@ -18,7 +18,7 @@ export function ComingSoon({
     <div>
       <PageTitle title={title} />
       <div className="mt-10 flex flex-col items-center gap-4 px-4 text-center">
-        <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
+        <div className="flex size-16 items-center justify-center rounded-full bg-primary/15">
           <Icon className="size-8 text-primary" />
         </div>
         <h2 className="text-xl font-black tracking-tight text-fg">

@@ -152,7 +152,7 @@ export default function StaffFacilityCarePage() {
       {/* 카드 그리드 — 그룹별. 한 번 탭 = 즉시 기록 (카톡 대비 5배+ 빠름).
           카드 상태 :
             - 안 함     : border-line + bg-card (default surface)
-            - 오늘 했음 : border-line + bg-card-hover (subtle 채움)
+            - 오늘 했음 : border-primary + bg-primary/15 (다크 위에서 또렷)
           카운트는 아래 "오늘의 일지" 줄로 옮겨 한 줄에 같이 노출. */}
       <div className="mt-2 space-y-6">
         {TASK_GROUPS.map((group) => (
@@ -171,7 +171,7 @@ export default function StaffFacilityCarePage() {
                     disabled={!myName}
                     className={`flex items-center justify-between gap-1.5 rounded-xl border p-3 text-left transition-colors disabled:opacity-50 ${
                       count > 0
-                        ? "border-line bg-card-hover"
+                        ? "border-primary bg-primary/15"
                         : "border-line bg-card hover:bg-card-hover"
                     }`}
                   >
@@ -179,7 +179,7 @@ export default function StaffFacilityCarePage() {
                       {task.label}
                     </p>
                     {count > 0 && (
-                      <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-primary">
+                      <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-primary">
                         {count}
                       </span>
                     )}
@@ -249,7 +249,7 @@ export default function StaffFacilityCarePage() {
           <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line bg-card">
             {filteredFeed.map((log) => (
               <li key={log.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary bg-primary/15">
                   <CheckIcon className="size-4 text-primary" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -309,7 +309,7 @@ export default function StaffFacilityCarePage() {
                 type="button"
                 onClick={submitCustom}
                 disabled={!customInput.trim()}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+                className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25 disabled:opacity-50"
               >
                 등록
               </button>
@@ -371,7 +371,7 @@ export default function StaffFacilityCarePage() {
               <button
                 type="button"
                 onClick={submitSupply}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+                className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25"
               >
                 제출
               </button>

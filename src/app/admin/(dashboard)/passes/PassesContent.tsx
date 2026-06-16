@@ -62,7 +62,7 @@ function Chip({
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-        accent ? "bg-primary/10 text-primary" : "bg-card-hover text-muted"
+        accent ? "bg-primary/15 text-primary" : "bg-card-hover text-muted"
       }`}
     >
       {children}
@@ -183,7 +183,7 @@ export function PassesContent({ type }: { type: PassType }) {
           type="button"
           onClick={() => setFormTarget("new")}
           disabled={!branchId}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold whitespace-nowrap text-white hover:bg-primary-hover disabled:opacity-60"
+          className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold whitespace-nowrap text-primary hover:bg-primary/25 disabled:opacity-60"
         >
           {typeLabel} 등록
         </button>
@@ -197,7 +197,7 @@ export function PassesContent({ type }: { type: PassType }) {
           onClick={() => setFormTarget("new")}
           disabled={!branchId}
           aria-label={`${typeLabel} 등록`}
-          className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
+          className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/15 disabled:opacity-40"
         >
           <PlusIcon className="size-5" />
         </button>

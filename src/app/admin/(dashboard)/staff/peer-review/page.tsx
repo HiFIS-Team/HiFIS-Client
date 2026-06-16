@@ -115,7 +115,7 @@ export default function StaffPeerReviewPage() {
       <PageTitle title="동료 평가" />
 
       {/* 동료 카드 그리드 — 제출 완료 / 미제출 두 상태.
-          제출 완료: border-primary/30 + bg-primary/10 + ✓ 체크
+          제출 완료: border-primary + bg-primary/15 + ✓ 체크 (다크 위 또렷)
           미제출: border-line + bg-card
           평가 월·제출 카운트는 그리드 아래로 옮김 — 페이지 상단을 비워 카드가
           SubTabBar 와 가깝게. */}
@@ -131,7 +131,7 @@ export default function StaffPeerReviewPage() {
               onClick={() => setOpenId(c.id)}
               className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-colors ${
                 submitted
-                  ? "border-primary/30 bg-primary/10"
+                  ? "border-primary bg-primary/15"
                   : "border-line bg-card hover:bg-card-hover"
               }`}
             >
@@ -255,7 +255,7 @@ function ReviewForm({
                 className={`rounded-md p-1 transition-colors ${
                   locked
                     ? "cursor-default"
-                    : "hover:bg-primary/10 active:scale-95"
+                    : "hover:bg-primary/15 active:scale-95"
                 }`}
               >
                 <Icon
@@ -324,7 +324,7 @@ function ReviewForm({
                 canSubmit && onSubmit({ score, strength, improvement })
               }
               disabled={!canSubmit}
-              className="shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="shrink-0 rounded-lg border border-primary bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
             >
               제출하기
             </button>

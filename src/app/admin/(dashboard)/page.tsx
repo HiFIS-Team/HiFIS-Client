@@ -36,7 +36,7 @@ const RECENT_TYPE_META: Record<
 > = {
   예약: { icon: CalendarIcon, chipClass: "bg-blue-500/10 text-blue-400" },
   회원: { icon: UsersIcon, chipClass: "bg-green-500/10 text-green-400" },
-  PT: { icon: BoltIcon, chipClass: "bg-primary/10 text-primary" },
+  PT: { icon: BoltIcon, chipClass: "bg-primary/15 text-primary" },
 };
 
 // 요약 숫자 카드 — 아이콘 + 라벨 + 큰 숫자 + 부가 정보 (브랜드 톤 보라 테두리)
@@ -691,7 +691,7 @@ export default function AdminDashboardPage() {
             label="종합왕"
             description="모든 지표 합산 1위 사원"
             icon={TrophyIcon}
-            iconBgClass="bg-primary/10"
+            iconBgClass="bg-primary/15"
             iconTextClass="text-primary"
             branches={branches}
           />

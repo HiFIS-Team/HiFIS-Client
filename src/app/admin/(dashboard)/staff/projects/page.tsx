@@ -235,10 +235,10 @@ export default function StaffProjectsPage() {
               type="button"
               onClick={() => setFilterOpen((v) => !v)}
               aria-label="필터"
-              className={`flex size-9 items-center justify-center rounded-md transition-colors ${
+              className={`flex size-9 items-center justify-center rounded-md border transition-colors ${
                 statusFilter === "done"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted hover:bg-card-hover hover:text-fg"
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-transparent text-muted hover:bg-card-hover hover:text-fg"
               }`}
             >
               <AdjustmentsHorizontalIcon className="size-5" />
@@ -256,10 +256,10 @@ export default function StaffProjectsPage() {
                         setStatusFilter(s);
                         setFilterOpen(false);
                       }}
-                      className={`block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                      className={`block w-full rounded-md border px-2 py-1.5 text-left text-sm transition-colors ${
                         selected
-                          ? "bg-primary/10 font-semibold text-primary"
-                          : "text-fg hover:bg-card-hover"
+                          ? "border-primary bg-primary/15 font-semibold text-primary"
+                          : "border-transparent text-fg hover:bg-card-hover"
                       }`}
                     >
                       {label}
@@ -274,7 +274,7 @@ export default function StaffProjectsPage() {
             onClick={() => setCreateOpen(true)}
             disabled={!myName}
             aria-label="새 프로젝트"
-            className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
+            className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/15 disabled:opacity-40"
           >
             <PlusIcon className="size-5" />
           </button>
@@ -363,7 +363,7 @@ function ProjectCard({
             {project.title}
           </p>
           {isLeader && (
-            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="shrink-0 rounded-full border border-primary bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
               주도
             </span>
           )}
@@ -388,8 +388,8 @@ function ProjectCard({
             />
           </div>
           <span
-            className={`shrink-0 text-[11px] tabular-nums ${
-              done ? "text-muted" : "text-primary"
+            className={`shrink-0 text-xs font-semibold tabular-nums ${
+              done ? "text-muted" : "text-fg"
             }`}
           >
             {project.progress}%
@@ -427,7 +427,7 @@ function ProjectDetail({
         <p className="mt-0.5 text-lg font-bold tracking-tight text-fg">
           {project.leaderName}
           {isLeader && (
-            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+            <span className="ml-2 rounded-full border border-primary bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
               나
             </span>
           )}
@@ -452,7 +452,7 @@ function ProjectDetail({
               key={name}
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
                 name === project.leaderName
-                  ? "bg-primary/10 text-primary"
+                  ? "border border-primary bg-primary/15 text-primary"
                   : "bg-card-hover text-fg"
               }`}
             >
@@ -479,7 +479,7 @@ function ProjectDetail({
       <section className="mt-6">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-fg">진척도</p>
-          <span className="text-sm font-bold tabular-nums text-primary">
+          <span className="text-base font-bold tabular-nums text-fg">
             {progress}%
           </span>
         </div>
@@ -508,7 +508,7 @@ function ProjectDetail({
               });
               onClose();
             }}
-            className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
+            className="flex-1 rounded-lg border border-primary bg-primary/15 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/25"
           >
             저장
           </button>
@@ -622,7 +622,7 @@ function CreateProjectDialog({
                     disabled={isMe}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                       selected
-                        ? "border-primary bg-primary/10 text-primary"
+                        ? "border-primary bg-primary/15 text-primary"
                         : "border-line bg-card-hover text-muted hover:text-fg"
                     } ${isMe ? "cursor-default opacity-100" : ""}`}
                   >
@@ -669,7 +669,7 @@ function CreateProjectDialog({
               })
             }
             disabled={!canSubmit}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+            className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25 disabled:opacity-50"
           >
             등록
           </button>

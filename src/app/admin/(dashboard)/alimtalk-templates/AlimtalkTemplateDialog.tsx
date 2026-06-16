@@ -226,7 +226,7 @@ export function AlimtalkTemplateDialog({
                     onClick={() => insertVariable(v.key)}
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors ${
                       isEdit
-                        ? "cursor-pointer border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
+                        ? "cursor-pointer border-primary bg-primary/15 text-primary hover:bg-primary/25"
                         : "cursor-default border-line bg-card-hover text-muted"
                     }`}
                     title={v.label}
@@ -263,7 +263,7 @@ export function AlimtalkTemplateDialog({
                   type="button"
                   onClick={handleSave}
                   disabled={saving || !isDirty}
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+                  className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25 disabled:opacity-60"
                 >
                   {saving ? "저장 중…" : "저장"}
                 </button>
@@ -273,7 +273,7 @@ export function AlimtalkTemplateDialog({
             <button
               type="button"
               onClick={onClose}
-              className="ml-auto rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+              className="ml-auto rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25"
             >
               닫기
             </button>

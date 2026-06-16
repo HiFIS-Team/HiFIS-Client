@@ -182,7 +182,7 @@ export function BranchFormDialog({
             <button
               type="submit"
               disabled={loading}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+              className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25 disabled:opacity-60"
             >
               {loading ? "처리 중…" : "저장"}
             </button>

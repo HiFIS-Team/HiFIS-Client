@@ -247,10 +247,10 @@ export default function AdminMembersPage() {
             type="button"
             onClick={() => setFilterOpen((v) => !v)}
             aria-label="필터"
-            className={`flex size-9 items-center justify-center rounded-md transition-colors ${
+            className={`flex size-9 items-center justify-center rounded-md border transition-colors ${
               statusFilter
-                ? "bg-primary/10 text-primary"
-                : "text-muted hover:bg-card-hover hover:text-fg"
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-transparent text-muted hover:bg-card-hover hover:text-fg"
             }`}
           >
             <AdjustmentsHorizontalIcon className="size-5" />
@@ -267,10 +267,10 @@ export default function AdminMembersPage() {
                       setStatusFilter(active ? "" : s.value);
                       setFilterOpen(false);
                     }}
-                    className={`block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                    className={`block w-full rounded-md border px-2 py-1.5 text-left text-sm transition-colors ${
                       active
-                        ? "bg-primary/10 font-semibold text-primary"
-                        : "text-fg hover:bg-card-hover"
+                        ? "border-primary bg-primary/15 font-semibold text-primary"
+                        : "border-transparent text-fg hover:bg-card-hover"
                     }`}
                   >
                     {s.label}
@@ -300,13 +300,13 @@ export default function AdminMembersPage() {
       {/* 적용된 필터 칩 — 검색바 아래에 시각화. × 로 즉시 해제. */}
       {statusFilter && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
             {STATUS_FILTERS.find((s) => s.value === statusFilter)?.label}
             <button
               type="button"
               onClick={() => setStatusFilter("")}
               aria-label="필터 해제"
-              className="ml-0.5 rounded-full p-0.5 hover:bg-primary/10"
+              className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20"
             >
               <XMarkIcon className="size-3.5" />
             </button>

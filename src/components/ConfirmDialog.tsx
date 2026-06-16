@@ -65,7 +65,7 @@ export function ConfirmDialog({
           className={`mx-auto flex size-12 items-center justify-center rounded-full ${
             danger
               ? "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400"
-              : "bg-violet-50 text-primary dark:bg-primary/10"
+              : "bg-violet-50 text-primary dark:bg-primary/15"
           }`}
         >
           <Icon className="size-6" />
@@ -119,10 +119,10 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading || !requirementMet}
-            className={`rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 ${
+            className={`rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-60 ${
               danger
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-primary hover:bg-primary-hover"
+                ? "border-red-500 bg-red-500/15 text-red-300 hover:bg-red-500/25"
+                : "border-primary bg-primary/15 text-primary hover:bg-primary/25"
             }`}
           >
             {loading ? "처리 중…" : confirmLabel}

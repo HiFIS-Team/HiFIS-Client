@@ -164,10 +164,10 @@ export function Sidebar({ admin }: { admin: Admin }) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-2.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
                         isActive(item.href)
-                          ? "bg-primary text-white"
-                          : "text-fg hover:bg-card-hover"
+                          ? "border-primary bg-primary/15 text-primary"
+                          : "border-transparent text-fg hover:bg-card-hover"
                       }`}
                     >
                       {Icon && <Icon className="size-4 shrink-0" />}
