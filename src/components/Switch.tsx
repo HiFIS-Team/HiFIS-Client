@@ -21,7 +21,7 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-        checked ? "bg-primary" : "bg-gray-300"
+        checked ? "bg-primary" : "bg-line"
       } ${disabled ? "cursor-wait opacity-60" : ""}`}
     >
       <span

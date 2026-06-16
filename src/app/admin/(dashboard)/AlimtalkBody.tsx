@@ -25,7 +25,7 @@ export function AlimtalkBody() {
           으로 in-flow. */}
       <nav
         aria-label="메시지 섹션"
-        className="fixed inset-x-0 top-12 z-20 flex h-12 gap-4 overflow-x-auto border-b border-gray-200 bg-white px-4 lg:static"
+        className="fixed inset-x-0 top-12 z-20 flex h-12 gap-4 overflow-x-auto border-b border-line bg-card px-4 lg:static"
       >
         {TABS.map((t) => {
           const active = t.key === tab;
@@ -35,13 +35,13 @@ export function AlimtalkBody() {
               type="button"
               onClick={() => setTab(t.key)}
               className={`relative flex shrink-0 items-center text-[15px] font-semibold tracking-tight transition-colors ${
-                active ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
+                active ? "text-fg" : "text-muted hover:text-fg"
               }`}
             >
               {t.label}
               <span
                 aria-hidden="true"
-                className={`pointer-events-none absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-gray-900 transition-opacity ${
+                className={`pointer-events-none absolute inset-x-0 -bottom-px h-[2.5px] rounded-full bg-fg transition-opacity ${
                   active ? "opacity-100" : "opacity-0"
                 }`}
               />

@@ -142,8 +142,8 @@ export default function AdminAlimtalkTemplatesPage() {
       <span
         className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
           enabled
-            ? "bg-green-50 text-green-700"
-            : "bg-gray-100 text-gray-500"
+            ? "bg-green-500/15 text-green-300"
+            : "bg-card-hover text-muted"
         }`}
       >
         {enabled ? "발송 중" : "발송 중지"}
@@ -159,8 +159,8 @@ export default function AdminAlimtalkTemplatesPage() {
       </p>
 
       {blockReason && (
-        <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
-          <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
+        <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-200">
+          <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-400" />
           <p>{blockReason}</p>
         </div>
       )}
@@ -198,15 +198,15 @@ export default function AdminAlimtalkTemplatesPage() {
               {items.map((t) => (
                 <li
                   key={t.id}
-                  className="rounded-xl border border-gray-200 p-4"
+                  className="rounded-xl border border-line bg-card p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate font-semibold text-gray-900">
+                    <p className="truncate font-semibold text-fg">
                       {triggerLabel(t.trigger_type)}
                     </p>
                     <StatusChip enabled={t.is_enabled} />
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-muted">
                     마지막 수정 {formatDateTime(t.updated_at)}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2">
@@ -241,9 +241,9 @@ export default function AdminAlimtalkTemplatesPage() {
             </ul>
 
             {/* 데스크탑: 테이블 */}
-            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
+            <div className="hidden overflow-x-auto rounded-xl border border-line bg-card lg:block">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
+                <thead className="sticky top-0 z-10 bg-card-hover text-muted">
                   <tr>
                     <Th>종류</Th>
                     <Th>상태</Th>
@@ -251,16 +251,16 @@ export default function AdminAlimtalkTemplatesPage() {
                     <Th> </Th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-line">
                   {items.map((t) => (
-                    <tr key={t.id} className="text-gray-800">
+                    <tr key={t.id} className="text-fg">
                       <Td className="font-medium">
                         {triggerLabel(t.trigger_type)}
                       </Td>
                       <Td>
                         <StatusChip enabled={t.is_enabled} />
                       </Td>
-                      <Td className="text-gray-500">
+                      <Td className="text-muted">
                         {formatDateTime(t.updated_at)}
                       </Td>
                       <Td>

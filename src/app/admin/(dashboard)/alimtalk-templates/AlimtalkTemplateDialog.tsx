@@ -122,19 +122,19 @@ export function AlimtalkTemplateDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">{triggerLabel}</h2>
-          <p className="mt-0.5 text-xs text-gray-500">
+        <div className="border-b border-line px-6 py-4">
+          <h2 className="text-lg font-bold text-fg">{triggerLabel}</h2>
+          <p className="mt-0.5 text-xs text-muted">
             {isEdit ? "본문 수정" : "본문 보기"}
             {template.body === null && (
-              <span className="ml-2 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+              <span className="ml-2 rounded-full bg-card-hover px-1.5 py-0.5 text-[10px] font-medium text-muted">
                 디폴트 본문
               </span>
             )}
@@ -146,8 +146,8 @@ export function AlimtalkTemplateDialog({
               헤더·푸터의 {name} {branch_name} 등은 발송 시 자동 치환 — 보기에선 placeholder 그대로. */}
           {template.header_template && (
             <div>
-              <p className="text-xs font-medium text-gray-500">헤더 (자동)</p>
-              <div className="mt-1 rounded-md bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap text-gray-500">
+              <p className="text-xs font-medium text-muted">헤더 (자동)</p>
+              <div className="mt-1 rounded-md bg-card-hover px-3 py-2 text-sm whitespace-pre-wrap text-muted">
                 {template.header_template}
               </div>
             </div>
@@ -157,7 +157,7 @@ export function AlimtalkTemplateDialog({
           <div>
             <label
               htmlFor="alimtalk-body"
-              className="block text-sm font-medium text-gray-900"
+              className="block text-sm font-medium text-fg"
             >
               본문
             </label>
@@ -170,12 +170,12 @@ export function AlimtalkTemplateDialog({
               onChange={(e) => setBody(e.target.value)}
               className={`mt-2 block w-full resize-y rounded-md border-0 px-3 py-2.5 text-sm outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 ${
                 isEdit
-                  ? "bg-white text-gray-900 outline-gray-300 focus:outline-primary"
-                  : "bg-gray-50 text-gray-700 outline-gray-200"
+                  ? "bg-card-hover text-fg outline-line focus:outline-primary"
+                  : "bg-card-hover text-muted outline-line"
               }`}
             />
             {isEdit && (
-              <p className="mt-1 text-right text-xs text-gray-400">
+              <p className="mt-1 text-right text-xs text-muted">
                 {body.length}자
               </p>
             )}
@@ -183,8 +183,8 @@ export function AlimtalkTemplateDialog({
 
           {template.footer_template && (
             <div>
-              <p className="text-xs font-medium text-gray-500">푸터 (자동)</p>
-              <div className="mt-1 rounded-md bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap text-gray-500">
+              <p className="text-xs font-medium text-muted">푸터 (자동)</p>
+              <div className="mt-1 rounded-md bg-card-hover px-3 py-2 text-sm whitespace-pre-wrap text-muted">
                 {template.footer_template}
               </div>
             </div>
@@ -193,15 +193,15 @@ export function AlimtalkTemplateDialog({
           {/* 미리보기 — 헤더+본문+푸터 조립된 실제 발송 형태. 본문 변경 300ms 후 갱신. */}
           <div>
             <div className="flex items-baseline justify-between">
-              <p className="text-sm font-medium text-gray-900">미리보기</p>
+              <p className="text-sm font-medium text-fg">미리보기</p>
               {previewing && (
-                <span className="text-xs text-gray-400">불러오는 중…</span>
+                <span className="text-xs text-muted">불러오는 중…</span>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-muted">
               실제 발송될 형태 (헤더·푸터 포함, 더미값으로 미리 채워짐).
             </p>
-            <div className="mt-2 min-h-[6rem] rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm whitespace-pre-wrap text-gray-700">
+            <div className="mt-2 min-h-[6rem] rounded-md border border-line bg-card-hover px-3 py-2.5 text-sm whitespace-pre-wrap text-fg">
               {preview ?? (previewing ? "" : "—")}
             </div>
           </div>
@@ -209,10 +209,10 @@ export function AlimtalkTemplateDialog({
           {/* 변수 칩 — 수정 모드에선 클릭으로 삽입 */}
           {template.variables.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-fg">
                 사용 가능한 변수
               </p>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-xs text-muted">
                 {isEdit
                   ? "칩을 누르면 본문 커서 위치에 삽입돼요."
                   : "이 트리거에서 본문에 쓸 수 있는 변수 목록이에요."}
@@ -226,13 +226,13 @@ export function AlimtalkTemplateDialog({
                     onClick={() => insertVariable(v.key)}
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors ${
                       isEdit
-                        ? "cursor-pointer border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
-                        : "cursor-default border-gray-200 bg-gray-50 text-gray-600"
+                        ? "cursor-pointer border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
+                        : "cursor-default border-line bg-card-hover text-muted"
                     }`}
                     title={v.label}
                   >
                     <span className="font-mono">{`{${v.key}}`}</span>
-                    <span className="text-gray-500">{v.label}</span>
+                    <span className="text-muted">{v.label}</span>
                   </button>
                 ))}
               </div>
@@ -240,14 +240,14 @@ export function AlimtalkTemplateDialog({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-6 py-4">
           {isEdit ? (
             <>
               <button
                 type="button"
                 onClick={handleRestoreDefault}
                 disabled={saving || body === template.default_body}
-                className="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-card-hover hover:text-fg disabled:opacity-40"
               >
                 디폴트 복원
               </button>
@@ -255,7 +255,7 @@ export function AlimtalkTemplateDialog({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                  className="rounded-md px-4 py-2 text-sm font-semibold text-muted hover:bg-card-hover hover:text-fg"
                 >
                   취소
                 </button>

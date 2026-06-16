@@ -3,7 +3,6 @@
 import { PageTitle } from "../PageTitle";
 import { useEffect, useState } from "react";
 import {
-  BuildingOffice2Icon,
   MagnifyingGlassIcon,
   TagIcon,
 } from "@heroicons/react/24/outline";
@@ -36,7 +35,7 @@ function MsgStatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-        ok ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+        ok ? "bg-green-500/15 text-green-300" : "bg-red-500/15 text-red-300"
       }`}
     >
       {ok ? "성공" : "실패"}
@@ -161,25 +160,25 @@ export default function AdminMessagesPage() {
               {filteredMessages.map((m) => (
                 <li
                   key={m.id}
-                  className="rounded-xl border border-gray-200 p-4"
+                  className="rounded-xl border border-line bg-card p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-fg">
                         {enumLabel(triggerTypes, m.trigger_type)}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted">
                         {formatPhone(m.recipient)}
                       </p>
                     </div>
                     <MsgStatusBadge status={m.status} />
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm text-gray-600">
+                  <p className="mt-3 line-clamp-2 text-sm text-muted">
                     {m.content}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-2">
                     {/* 모바일은 좌측 메타를 두 줄(지점 / 시각)로 정돈해 우측 버튼 가로 공간 확보 */}
-                    <div className="min-w-0 text-xs text-gray-400">
+                    <div className="min-w-0 text-xs text-muted">
                       {isSuper && (
                         <p className="truncate">{branchName(m.branch_id)}</p>
                       )}
@@ -207,9 +206,9 @@ export default function AdminMessagesPage() {
             </ul>
 
             {/* 데스크탑: 기존 테이블 */}
-            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
+            <div className="hidden overflow-x-auto rounded-xl border border-line bg-card lg:block">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
+                <thead className="sticky top-0 z-10 bg-card-hover text-muted">
                 <tr>
                   <Th>발송 시각</Th>
                   <Th>지점</Th>
@@ -220,10 +219,10 @@ export default function AdminMessagesPage() {
                   <Th> </Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-line">
                 {filteredMessages.map((m) => (
-                  <tr key={m.id} className="text-gray-800">
-                    <Td className="text-gray-500">
+                  <tr key={m.id} className="text-fg">
+                    <Td className="text-muted">
                       {formatDateTime(m.sent_at)}
                     </Td>
                     <Td>{branchName(m.branch_id)}</Td>
@@ -233,7 +232,7 @@ export default function AdminMessagesPage() {
                       <MsgStatusBadge status={m.status} />
                     </Td>
                     <Td>
-                      <span className="block max-w-[12rem] truncate text-gray-600">
+                      <span className="block max-w-[12rem] truncate text-muted">
                         {m.content}
                       </span>
                     </Td>
