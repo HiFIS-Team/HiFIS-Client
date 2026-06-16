@@ -182,6 +182,7 @@ export default function StaffPeerReviewPage() {
           <ReviewForm
             colleague={openColleague}
             existing={openReview}
+            isSelf={openColleague.name === myName}
             onSubmit={(draft) => handleSubmit(openColleague.id, draft)}
           />
         </MobileSubPage>
@@ -192,13 +193,16 @@ export default function StaffPeerReviewPage() {
 
 // 한 동료에 대한 평가 폼 — 점수 (1-5 별) + 잘한점 + 개선점.
 // 제출되면 (existing 있음) read-only 로 표시 + 잠금 안내.
+// isSelf : 본인 평가 케이스 — 환산 안내가 다름 (별 하나당 1점, 최대 5점).
 function ReviewForm({
   colleague,
   existing,
+  isSelf,
   onSubmit,
 }: {
   colleague: Colleague;
   existing: Review | null;
+  isSelf: boolean;
   onSubmit: (draft: Omit<Review, "submittedAt">) => void;
 }) {
   const locked = !!existing;
@@ -228,12 +232,14 @@ function ReviewForm({
         </div>
       )}
 
-      {/* 점수 — 1-5 별점 (별 하나당 4점 → 최대 20점) */}
+      {/* 점수 — 1-5 별점.
+          본인 평가는 환산 가중치 낮음 (별 하나당 1점, 최대 5점),
+          동료 평가는 별 하나당 4점 (최대 20점). 안내문만 분기. */}
       <section>
         <label className="text-sm font-semibold text-gray-900">
           점수{" "}
           <span className="ml-1 text-xs font-normal text-gray-400">
-            (별 하나당 4점입니다)
+            (별 하나당 {isSelf ? "1점" : "4점"}입니다)
           </span>
         </label>
         <div className="mt-2 flex items-center gap-1">
