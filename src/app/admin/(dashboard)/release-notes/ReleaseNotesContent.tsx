@@ -27,7 +27,7 @@ export function ReleaseNotesContent() {
       <p className="hidden">버전별 업데이트 내역을 다시 볼 수 있어요.</p>
 
       {sorted.length === 0 ? (
-        <p className="mt-6 text-sm text-gray-500">등록된 노트가 없습니다.</p>
+        <p className="mt-6 text-sm text-muted">등록된 노트가 없습니다.</p>
       ) : (
         <div className="mt-6 grid gap-3">
           {sorted.map((n) => {
@@ -39,17 +39,17 @@ export function ReleaseNotesContent() {
                 key={n.version}
                 type="button"
                 onClick={() => setOpenVersion(n.version)}
-                className="rounded-xl border border-gray-200 p-5 text-left transition-colors hover:bg-gray-50"
+                className="rounded-xl border border-line bg-card p-5 text-left transition-colors hover:bg-card-hover"
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <h2 className="text-base font-semibold text-gray-900">
+                  <h2 className="text-base font-semibold text-fg">
                     v{n.version}
                   </h2>
-                  <span className="shrink-0 text-xs text-gray-500">
+                  <span className="shrink-0 text-xs text-muted">
                     {n.date}
                   </span>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm text-gray-600">
+                <p className="mt-2 line-clamp-2 text-sm text-muted">
                   {previewTitles.join(" · ")}
                   {rest > 0 && ` 외 ${rest}건`}
                 </p>

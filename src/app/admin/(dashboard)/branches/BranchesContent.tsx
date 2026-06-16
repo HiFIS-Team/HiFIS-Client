@@ -50,16 +50,16 @@ function MessengerRow({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-gray-500">알림톡 발송자</span>
+      <span className="text-muted">알림톡 발송자</span>
       {messenger ? (
-        <span className="font-medium text-gray-900">
+        <span className="font-medium text-fg">
           {messenger.name}{" "}
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted">
             ({POSITION_LABEL[messenger.position] ?? messenger.position})
           </span>
         </span>
       ) : (
-        <span className="text-gray-400">미설정</span>
+        <span className="text-muted">미설정</span>
       )}
     </div>
   );
@@ -69,7 +69,7 @@ function MessengerRow({
 function LinkRow({ label, url }: { label: string; url: string | null }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-gray-500">{label}</span>
+      <span className="text-muted">{label}</span>
       {url ? (
         <a
           href={url}
@@ -80,7 +80,7 @@ function LinkRow({ label, url }: { label: string; url: string | null }) {
           열기 →
         </a>
       ) : (
-        <span className="text-gray-400">없음</span>
+        <span className="text-muted">없음</span>
       )}
     </div>
   );
@@ -90,8 +90,8 @@ function LinkRow({ label, url }: { label: string; url: string | null }) {
 function StatCell({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="mt-0.5 text-lg font-bold text-gray-900">{value}</p>
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-0.5 text-lg font-bold text-fg">{value}</p>
     </div>
   );
 }
@@ -229,7 +229,7 @@ export function BranchesContent() {
     return (
       <div>
         <PageTitle title="지점 관리" />
-        <p className="mt-2 text-gray-600">대표 관리자만 접근할 수 있습니다.</p>
+        <p className="mt-2 text-muted">대표 관리자만 접근할 수 있습니다.</p>
       </div>
     );
   }
@@ -248,17 +248,17 @@ export function BranchesContent() {
       <p className="hidden">선택한 지점의 정보를 관리합니다.</p>
 
       {/* 전역 알림톡 마스터 — 비상 정지. 끄면 모든 지점 발송이 즉시 차단됨. */}
-      <section className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-5 py-4">
+      <section className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-card px-5 py-4">
         <div className="flex items-start gap-3">
           <ChatBubbleLeftRightIcon className="size-5 shrink-0 text-primary" />
           <div>
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-fg">
               전역 알림톡 발송{" "}
               <span
                 className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
                   systemConfigQuery.data?.messaging_enabled
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
+                    ? "bg-green-500/15 text-green-300"
+                    : "bg-red-500/15 text-red-300"
                 }`}
               >
                 {systemConfigQuery.isLoading
@@ -268,7 +268,7 @@ export function BranchesContent() {
                     : "OFF"}
               </span>
             </p>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-muted">
               끄면 모든 지점의 알림톡 발송이 즉시 차단돼요. (지점별 토글과 함께
               켜져 있어야 발송)
             </p>
@@ -298,9 +298,9 @@ export function BranchesContent() {
         {!branch ? (
           <TableMessage>지점을 선택해 주세요.</TableMessage>
         ) : (
-          <article className="rounded-xl border border-gray-200 p-5">
+          <article className="rounded-xl border border-line bg-card p-5">
             <div className="flex items-start justify-between gap-2">
-              <h2 className="flex items-center gap-1.5 text-lg font-bold text-gray-900">
+              <h2 className="flex items-center gap-1.5 text-lg font-bold text-fg">
                 <MapPinIcon className="size-5 text-primary" />
                 {branch.name}
               </h2>
@@ -310,7 +310,7 @@ export function BranchesContent() {
                   onClick={() => setQrTarget(branch)}
                   aria-label="QR 코드 보기"
                   title="QR 코드"
-                  className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  className="rounded-md p-1.5 text-muted hover:bg-card-hover hover:text-fg"
                 >
                   <QrCodeIcon className="size-5" />
                 </button>
@@ -319,12 +319,12 @@ export function BranchesContent() {
                 </RowActionButton>
               </div>
             </div>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
               <PhoneIcon className="size-4" />
               {branch.phone}
             </p>
 
-            <div className="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-gray-50 px-2 py-2.5 text-center">
+            <div className="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-card-hover px-2 py-2.5 text-center">
               <StatCell label="회원" value={c.members} />
               <StatCell label="PT" value={c.pts} />
               <StatCell label="예약" value={c.reservations} />
@@ -336,10 +336,10 @@ export function BranchesContent() {
               <MessengerRow messenger={branch.messenger} />
               {/* 지점 알림톡 토글 — 전역이 꺼져 있으면 disabled. */}
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">
+                <span className="text-muted">
                   알림톡 발송
                   {!masterOn && (
-                    <span className="ml-1.5 text-xs text-gray-400">
+                    <span className="ml-1.5 text-xs text-muted">
                       (전역 OFF)
                     </span>
                   )}

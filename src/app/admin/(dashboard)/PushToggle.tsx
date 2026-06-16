@@ -42,13 +42,13 @@ export function PushToggle() {
         type="button"
         onClick={handleClick}
         disabled={isBusy || blockedByDenial}
-        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm font-medium text-fg hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Icon className="size-4" />
         {isBusy ? "처리 중…" : label}
       </button>
       {blockedByDenial && (
-        <p className="mt-1 text-[11px] text-gray-500">
+        <p className="mt-1 text-[11px] text-muted">
           브라우저 설정에서 알림을 허용해야 켤 수 있습니다.
         </p>
       )}

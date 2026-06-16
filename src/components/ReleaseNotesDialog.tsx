@@ -18,18 +18,18 @@ const TYPE_META: Record<
 > = {
   feature: {
     label: "새 기능",
-    chipClass: "bg-violet-50 text-primary",
+    chipClass: "bg-primary/15 text-primary",
     dotClass: "bg-primary",
   },
   improvement: {
     label: "개선",
-    chipClass: "bg-sky-50 text-sky-700",
-    dotClass: "bg-sky-500",
+    chipClass: "bg-sky-500/15 text-sky-300",
+    dotClass: "bg-sky-400",
   },
   fix: {
     label: "버그 수정",
-    chipClass: "bg-amber-50 text-amber-700",
-    dotClass: "bg-amber-500",
+    chipClass: "bg-amber-500/15 text-amber-300",
+    dotClass: "bg-amber-400",
   },
 };
 
@@ -46,23 +46,23 @@ export function ReleaseNotesDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 — Sparkles 아이콘 칩 + 제목 (닫기 X 는 푸터 "확인" 으로 대체) */}
-        <div className="flex items-start gap-3 border-b border-gray-200 px-6 py-5">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-violet-50">
+        <div className="flex items-start gap-3 border-b border-line px-6 py-5">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
             <SparklesIcon className="size-5 text-primary" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold text-gray-900">
+            <h2 className="text-base font-bold text-fg">
               새 업데이트가 적용됐어요
             </h2>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="mt-0.5 text-xs text-muted">
               최근 변경 사항을 확인해 주세요.
             </p>
           </div>
@@ -75,7 +75,7 @@ export function ReleaseNotesDialog({
           ))}
         </div>
 
-        <div className="flex justify-end border-t border-gray-200 px-6 py-4">
+        <div className="flex justify-end border-t border-line px-6 py-4">
           <button
             type="button"
             onClick={onClose}
@@ -99,8 +99,8 @@ function VersionSection({ note }: { note: ReleaseNote }) {
   return (
     <section>
       <div className="flex items-baseline gap-2">
-        <h3 className="text-sm font-bold text-gray-900">v{note.version}</h3>
-        <span className="text-xs text-gray-400">{note.date}</span>
+        <h3 className="text-sm font-bold text-fg">v{note.version}</h3>
+        <span className="text-xs text-muted">{note.date}</span>
       </div>
       <div className="mt-4 space-y-5">
         <CategoryGroup type="feature" items={grouped.feature} />
@@ -136,12 +136,12 @@ function CategoryGroup({
               className={`mt-2 inline-block size-1.5 shrink-0 rounded-full ${meta.dotClass}`}
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-fg">
                 {item.title}
               </p>
               <div className="mt-1 space-y-1.5">
                 {item.description.map((para, j) => (
-                  <p key={j} className="text-sm/6 text-gray-600">
+                  <p key={j} className="text-sm/6 text-muted">
                     {para}
                   </p>
                 ))}

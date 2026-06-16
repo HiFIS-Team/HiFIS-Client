@@ -96,14 +96,14 @@ export function BranchFormDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10"
       onClick={onCancel}
     >
       <div
-        className="animate-dialog-in flex max-h-full w-full max-w-md flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-md flex-col rounded-xl border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
+        <h2 className="border-b border-line px-6 py-4 text-lg font-bold text-fg">
           {title}
         </h2>
         <form
@@ -165,17 +165,17 @@ export function BranchFormDialog({
                 disabled={messengerDisabled}
               />
               {messengerHint && (
-                <p className="mt-1.5 text-sm text-gray-500">
+                <p className="mt-1.5 text-sm text-muted">
                   {messengerHint}
                 </p>
               )}
             </div>
           </div>
-          <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+          <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+              className="rounded-md px-4 py-2 text-sm font-semibold text-muted hover:bg-card-hover hover:text-fg"
             >
               취소
             </button>

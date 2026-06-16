@@ -58,33 +58,35 @@ export function QrDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="animate-dialog-in flex max-h-full w-full max-w-sm flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-sm flex-col rounded-xl border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
+        <h2 className="border-b border-line px-6 py-4 text-lg font-bold text-fg">
           {branch.name} 등록 QR
         </h2>
 
         <div className="flex flex-col items-center gap-4 px-6 py-6">
-          <div className="rounded-lg border border-gray-200 p-2">
+          {/* QR 자체가 흰 배경(light:#ffffff) 이라 컨테이너도 흰 유지 — 다크에서
+              떠 보이지만 인쇄 톤 일관 + 스캔 인식률 우선. */}
+          <div className="rounded-lg border border-line bg-white p-2">
             <canvas ref={canvasRef} className="block" />
           </div>
-          <p className="break-all text-center text-xs text-gray-500">{url}</p>
-          <p className="text-center text-sm text-gray-600">
+          <p className="break-all text-center text-xs text-muted">{url}</p>
+          <p className="text-center text-sm text-fg">
             매장에 부착해두면 회원이 스캔 → 본인 폰에서 회원가입·PT 신청서를
             작성합니다.
           </p>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
           <button
             type="button"
             onClick={copyUrl}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-2 text-sm font-medium text-fg hover:bg-card-hover"
           >
             <ClipboardIcon className="size-4" />
             URL 복사

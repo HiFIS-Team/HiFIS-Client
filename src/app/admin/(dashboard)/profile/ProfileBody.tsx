@@ -79,22 +79,22 @@ export function ProfileBody() {
       <PageTitle title="내 정보" />
 
       {/* 사용자 정보 카드 — 아바타(이니셜) + 이름 + 역할 */}
-      <section className="mt-4 rounded-xl border border-gray-200 bg-white p-5">
+      <section className="mt-4 rounded-xl border border-line bg-card p-5">
         <div className="flex items-center gap-4">
           <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
             {admin.name.charAt(0) || "?"}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-black tracking-tight text-gray-900">
+            <p className="truncate text-lg font-black tracking-tight text-fg">
               {admin.name}
             </p>
-            <p className="text-sm text-gray-500">{adminRoleLabel(admin)}</p>
+            <p className="text-sm text-muted">{adminRoleLabel(admin)}</p>
           </div>
         </div>
       </section>
 
       {/* 운영 메뉴 */}
-      <section className="mt-5 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <section className="mt-5 divide-y divide-line overflow-hidden rounded-xl border border-line bg-card">
         <MenuButton
           icon={KeyIcon}
           label="비밀번호 변경"
@@ -102,10 +102,10 @@ export function ProfileBody() {
         />
         {/* 푸시 알림 토글 — PushToggle 컴포넌트가 자체 ON/OFF 처리 */}
         <div className="flex items-center gap-3 px-4 py-3.5">
-          <BellIcon className="size-5 shrink-0 text-gray-500" />
+          <BellIcon className="size-5 shrink-0 text-muted" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-gray-900">푸시 알림</p>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="text-sm font-medium text-fg">푸시 알림</p>
+            <p className="mt-0.5 text-xs text-muted">
               새 신청·예약 등 도착 시 푸시로 알림
             </p>
           </div>
@@ -135,7 +135,7 @@ export function ProfileBody() {
       </section>
 
       {/* 로그아웃 — 별도 섹션 분리해 강조 */}
-      <section className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <section className="mt-4 overflow-hidden rounded-xl border border-line bg-card">
         <MenuButton
           icon={ArrowRightStartOnRectangleIcon}
           label="로그아웃"
@@ -148,10 +148,10 @@ export function ProfileBody() {
         <PasswordChangeDialog onClose={() => setPasswordOpen(false)} />
       )}
 
-      <p className="mt-8 text-center text-[10px] text-gray-400">
+      <p className="mt-8 text-center text-[10px] text-muted">
         v{process.env.NEXT_PUBLIC_APP_VERSION}
         {process.env.NEXT_PUBLIC_APP_ENV === "dev" && (
-          <span className="ml-1 text-gray-300">(dev)</span>
+          <span className="ml-1 opacity-60">(dev)</span>
         )}
       </p>
 
@@ -189,17 +189,17 @@ function MenuButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-gray-50"
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-card-hover"
     >
       <Icon
-        className={`size-5 shrink-0 ${danger ? "text-red-500" : "text-gray-500"}`}
+        className={`size-5 shrink-0 ${danger ? "text-red-400" : "text-muted"}`}
       />
       <span
-        className={`flex-1 text-sm font-medium ${danger ? "text-red-600" : "text-gray-900"}`}
+        className={`flex-1 text-sm font-medium ${danger ? "text-red-400" : "text-fg"}`}
       >
         {label}
       </span>
-      <ChevronRightIcon className="size-4 shrink-0 text-gray-300" />
+      <ChevronRightIcon className="size-4 shrink-0 text-muted opacity-50" />
     </button>
   );
 }

@@ -53,14 +53,17 @@ function positionRank(position: string | null): number {
 
 function AdminStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    ACTIVE: { label: "활성", cls: "bg-green-100 text-green-700" },
-    PENDING_APPROVAL: { label: "승인 대기", cls: "bg-amber-100 text-amber-700" },
+    ACTIVE: { label: "활성", cls: "bg-green-500/15 text-green-300" },
+    PENDING_APPROVAL: {
+      label: "승인 대기",
+      cls: "bg-amber-500/15 text-amber-300",
+    },
     PENDING_EMAIL: {
       label: "이메일 인증 대기",
-      cls: "bg-gray-100 text-gray-600",
+      cls: "bg-card-hover text-muted",
     },
   };
-  const s = map[status] ?? { label: status, cls: "bg-gray-100 text-gray-600" };
+  const s = map[status] ?? { label: status, cls: "bg-card-hover text-muted" };
   return (
     <span
       className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${s.cls}`}
@@ -127,7 +130,7 @@ export function AdminsContent() {
     return (
       <>
         <PageTitle title="관리자 관리" />
-        <p className="mt-2 text-gray-600">대표 관리자만 접근할 수 있습니다.</p>
+        <p className="mt-2 text-muted">대표 관리자만 접근할 수 있습니다.</p>
       </>
     );
   }
@@ -187,11 +190,11 @@ export function AdminsContent() {
             {visibleAdmins.map((a) => (
               <article
                 key={a.id}
-                className="rounded-xl border border-gray-200 p-5"
+                className="rounded-xl border border-line bg-card p-5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h2 className="flex items-center gap-2 truncate text-lg font-bold text-gray-900">
+                    <h2 className="flex items-center gap-2 truncate text-lg font-bold text-fg">
                       {a.name}
                       {/* 활성 계정 한정 — online 이면 녹색 "접속중", offline 이면
                           회색으로 마지막 접속 시각 (예: "방금 전", "5분 전").
@@ -200,8 +203,8 @@ export function AdminsContent() {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                             a.is_online
-                              ? "bg-green-50 text-green-700"
-                              : "bg-gray-100 text-gray-500"
+                              ? "bg-green-500/15 text-green-300"
+                              : "bg-card-hover text-muted"
                           }`}
                           title={
                             a.is_online
@@ -213,7 +216,7 @@ export function AdminsContent() {
                         >
                           <span
                             className={`size-1.5 rounded-full ${
-                              a.is_online ? "bg-green-500" : "bg-gray-400"
+                              a.is_online ? "bg-green-400" : "bg-muted"
                             }`}
                             aria-hidden="true"
                           />
@@ -221,12 +224,12 @@ export function AdminsContent() {
                         </span>
                       )}
                     </h2>
-                    <p className="mt-0.5 text-sm text-gray-500">
+                    <p className="mt-0.5 text-sm text-muted">
                       {adminRoleLabel(a)}
                       {a.branch_id ? ` · ${branchName(a.branch_id)}` : ""}
                     </p>
-                    <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-600">
-                      <EnvelopeIcon className="size-4 shrink-0" />
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-fg">
+                      <EnvelopeIcon className="size-4 shrink-0 text-muted" />
                       <span className="truncate">{a.email}</span>
                     </p>
                   </div>
@@ -234,7 +237,7 @@ export function AdminsContent() {
                 </div>
 
                 <div className="mt-6 flex min-h-[2rem] items-center justify-between gap-2">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted">
                     가입일 {formatDate(a.created_at)}
                   </p>
                   <div className="flex gap-2">
