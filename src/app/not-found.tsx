@@ -6,13 +6,13 @@ import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 py-10 text-center">
-      <div className="flex size-20 items-center justify-center rounded-full bg-violet-50 text-primary">
+      <div className="flex size-20 items-center justify-center rounded-full bg-violet-50 text-primary dark:bg-primary/10">
         <QuestionMarkCircleIcon className="size-12" />
       </div>
-      <h1 className="mt-6 text-2xl font-bold text-gray-900">
+      <h1 className="mt-6 text-2xl font-bold text-gray-900 dark:text-fg">
         페이지를 찾을 수 없습니다
       </h1>
-      <p className="mt-3 text-base text-gray-600">
+      <p className="mt-3 text-base text-gray-600 dark:text-muted">
         주소를 다시 확인해 주세요.
       </p>
       <button

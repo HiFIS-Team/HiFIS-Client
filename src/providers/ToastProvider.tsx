@@ -89,18 +89,20 @@ function ToastItem({
 }) {
   const isSuccess = toast.type === "success";
   return (
-    <div className="animate-toast-in pointer-events-auto flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
+    <div className="animate-toast-in pointer-events-auto flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg dark:border-line dark:bg-card">
       {isSuccess ? (
-        <CheckCircleIcon className="size-5 shrink-0 text-green-500" />
+        <CheckCircleIcon className="size-5 shrink-0 text-green-500 dark:text-green-400" />
       ) : (
-        <XCircleIcon className="size-5 shrink-0 text-red-500" />
+        <XCircleIcon className="size-5 shrink-0 text-red-500 dark:text-red-400" />
       )}
-      <p className="flex-1 text-sm text-gray-800">{toast.message}</p>
+      <p className="flex-1 text-sm text-gray-800 dark:text-fg">
+        {toast.message}
+      </p>
       <button
         type="button"
         onClick={onClose}
         aria-label="닫기"
-        className="shrink-0 text-gray-400 hover:text-gray-600"
+        className="shrink-0 text-gray-400 hover:text-gray-600 dark:text-muted dark:hover:text-fg"
       >
         <XMarkIcon className="size-4" />
       </button>

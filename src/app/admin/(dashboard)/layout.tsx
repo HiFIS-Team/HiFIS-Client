@@ -122,8 +122,11 @@ export default function DashboardLayout({
 
   if (meQuery.isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-sm text-gray-500">
-        <ArrowPathIcon className="size-6 animate-spin text-gray-400" />
+      <div
+        data-theme="dark"
+        className="flex min-h-screen flex-col items-center justify-center gap-3 bg-surface text-sm text-muted"
+      >
+        <ArrowPathIcon className="size-6 animate-spin text-muted" />
         불러오는 중…
       </div>
     );

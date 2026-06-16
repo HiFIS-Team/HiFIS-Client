@@ -151,15 +151,13 @@ export default function StaffFacilityCarePage() {
 
       {/* 카드 그리드 — 그룹별. 한 번 탭 = 즉시 기록 (카톡 대비 5배+ 빠름).
           카드 상태 :
-            - 안 함     : border-gray-200 + bg-white (default surface)
-            - 오늘 했음 : border-gray-200 + bg-gray-50 (subtle 채움)
-            - 방금(30분): border-primary/30 + bg-primary/5 (강조)
-          색은 모두 opacity 기반이라 다크 테마 전환 시 그대로 따라옴.
+            - 안 함     : border-line + bg-card (default surface)
+            - 오늘 했음 : border-line + bg-card-hover (subtle 채움)
           카운트는 아래 "오늘의 일지" 줄로 옮겨 한 줄에 같이 노출. */}
       <div className="mt-2 space-y-6">
         {TASK_GROUPS.map((group) => (
           <section key={group.label}>
-            <h2 className="px-1 text-xs font-bold tracking-tight text-gray-500 uppercase">
+            <h2 className="px-1 text-xs font-bold tracking-tight text-muted uppercase">
               {group.label}
             </h2>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -173,11 +171,11 @@ export default function StaffFacilityCarePage() {
                     disabled={!myName}
                     className={`flex items-center justify-between gap-1.5 rounded-xl border p-3 text-left transition-colors disabled:opacity-50 ${
                       count > 0
-                        ? "border-gray-200 bg-gray-50"
-                        : "border-gray-200 bg-white hover:bg-gray-50"
+                        ? "border-line bg-card-hover"
+                        : "border-line bg-card hover:bg-card-hover"
                     }`}
                   >
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-fg">
                       {task.label}
                     </p>
                     {count > 0 && (
@@ -198,7 +196,7 @@ export default function StaffFacilityCarePage() {
             type="button"
             onClick={() => setCustomOpen(true)}
             disabled={!myName}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line bg-card px-4 py-3 text-sm font-medium text-muted transition-colors hover:bg-card-hover hover:text-fg disabled:opacity-50"
           >
             <PlusIcon className="size-4" />
             기타 업무 직접 입력
@@ -212,17 +210,17 @@ export default function StaffFacilityCarePage() {
           한 일 M개 (본인만). 활성 카운트는 font-semibold 로 강조. */}
       <section className="mt-8">
         <div className="flex items-baseline justify-between gap-2 px-1">
-          <h2 className="text-xs font-bold tracking-tight text-gray-500 uppercase">
+          <h2 className="text-xs font-bold tracking-tight text-muted uppercase">
             오늘의 일지
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             <button
               type="button"
               onClick={() => setFeedFilter("all")}
               className={`tabular-nums transition-colors ${
                 feedFilter === "all"
-                  ? "font-semibold text-gray-900"
-                  : "hover:text-gray-700"
+                  ? "font-semibold text-fg"
+                  : "hover:text-fg"
               }`}
             >
               오늘 {todayLogs.length}건
@@ -234,7 +232,7 @@ export default function StaffFacilityCarePage() {
               className={`tabular-nums transition-colors ${
                 feedFilter === "mine"
                   ? "font-semibold text-primary"
-                  : "hover:text-gray-700"
+                  : "hover:text-fg"
               }`}
             >
               내가 한 일 {myTodayCount}개
@@ -242,26 +240,26 @@ export default function StaffFacilityCarePage() {
           </p>
         </div>
         {filteredFeed.length === 0 ? (
-          <p className="mt-2 rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+          <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
             {feedFilter === "mine"
               ? "오늘 내가 한 기록이 없어요."
               : "아직 기록이 없어요."}
           </p>
         ) : (
-          <ul className="mt-2 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line bg-card">
             {filteredFeed.map((log) => (
               <li key={log.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <CheckIcon className="size-4 text-primary" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-gray-900">
+                  <p className="truncate text-sm font-medium text-fg">
                     {log.taskLabel}
                     {log.supplyItem && (
-                      <span className="text-gray-500"> · {log.supplyItem}</span>
+                      <span className="text-muted"> · {log.supplyItem}</span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted">
                     {log.userName}
                     {typeof log.supplyAmount === "number" && (
                       <span className="ml-1 font-medium text-primary">
@@ -270,7 +268,7 @@ export default function StaffFacilityCarePage() {
                     )}
                   </p>
                 </div>
-                <span className="shrink-0 text-xs text-gray-400">
+                <span className="shrink-0 text-xs text-muted">
                   {timeAgo(new Date(log.timestamp).toISOString())}
                 </span>
               </li>
@@ -281,10 +279,10 @@ export default function StaffFacilityCarePage() {
 
       {/* 기타 업무 입력 다이얼로그 */}
       {customOpen && (
-        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10">
-          <div className="animate-dialog-in flex w-full max-w-md flex-col rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-bold text-gray-900">기타 업무 입력</h3>
-            <p className="mt-1 text-xs text-gray-500">예: 정수기 청소, 거울 닦기</p>
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10">
+          <div className="animate-dialog-in flex w-full max-w-md flex-col rounded-xl border border-line bg-card p-5 shadow-xl">
+            <h3 className="text-base font-bold text-fg">기타 업무 입력</h3>
+            <p className="mt-1 text-xs text-muted">예: 정수기 청소, 거울 닦기</p>
             <input
               type="text"
               autoFocus
@@ -294,7 +292,7 @@ export default function StaffFacilityCarePage() {
                 if (e.key === "Enter") submitCustom();
               }}
               placeholder="한 줄로 적어주세요"
-              className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+              className="mt-3 w-full rounded-lg border border-line bg-card-hover px-3 py-2.5 text-sm text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -303,7 +301,7 @@ export default function StaffFacilityCarePage() {
                   setCustomOpen(false);
                   setCustomInput("");
                 }}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-md border border-line px-4 py-2 text-sm font-medium text-fg hover:bg-card-hover"
               >
                 취소
               </button>
@@ -322,15 +320,15 @@ export default function StaffFacilityCarePage() {
 
       {/* 비품 관리 입력 다이얼로그 — 시킨 것 + 금액. 두 값 다 있어야 등록 활성. */}
       {supplyOpen && (
-        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10">
-          <div className="animate-dialog-in flex w-full max-w-md flex-col rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-base font-bold text-gray-900">비품 관리</h3>
-            <p className="mt-1 text-xs text-gray-500">
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10">
+          <div className="animate-dialog-in flex w-full max-w-md flex-col rounded-xl border border-line bg-card p-5 shadow-xl">
+            <h3 className="text-base font-bold text-fg">비품 관리</h3>
+            <p className="mt-1 text-xs text-muted">
               시킬 게 없어서 확인만 한 거면 빈 칸으로 둬도 돼요. 시킨 게 있으면
               품목·금액을 같이 적어주세요.
             </p>
 
-            <label className="mt-4 block text-xs font-semibold text-gray-700">
+            <label className="mt-4 block text-xs font-semibold text-fg">
               시킨 것
             </label>
             <input
@@ -339,10 +337,10 @@ export default function StaffFacilityCarePage() {
               value={supplyItem}
               onChange={(e) => setSupplyItem(e.target.value)}
               placeholder="예: A4 용지, 운동복, 수건"
-              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-line bg-card-hover px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
             />
 
-            <label className="mt-4 block text-xs font-semibold text-gray-700">
+            <label className="mt-4 block text-xs font-semibold text-fg">
               금액 (원)
             </label>
             <input
@@ -355,7 +353,7 @@ export default function StaffFacilityCarePage() {
                 if (e.key === "Enter") submitSupply();
               }}
               placeholder="예: 30000"
-              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-line bg-card-hover px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
             />
 
             <div className="mt-5 flex justify-end gap-2">
@@ -366,7 +364,7 @@ export default function StaffFacilityCarePage() {
                   setSupplyItem("");
                   setSupplyAmount("");
                 }}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-md border border-line px-4 py-2 text-sm font-medium text-fg hover:bg-card-hover"
               >
                 취소
               </button>

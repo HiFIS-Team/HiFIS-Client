@@ -21,13 +21,13 @@ export function ComingSoon({
         <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
           <Icon className="size-8 text-primary" />
         </div>
-        <h2 className="text-xl font-black tracking-tight text-gray-900">
+        <h2 className="text-xl font-black tracking-tight text-fg">
           {title}
         </h2>
-        <p className="max-w-sm text-sm leading-relaxed text-gray-500">
+        <p className="max-w-sm text-sm leading-relaxed text-muted">
           {description}
         </p>
-        <span className="mt-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+        <span className="mt-2 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300">
           준비중
         </span>
       </div>

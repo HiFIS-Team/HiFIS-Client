@@ -204,23 +204,23 @@ export default function StaffProjectsPage() {
       <div className="relative mt-2">
         <MagnifyingGlassIcon
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-gray-400"
+          className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted"
         />
         <input
           type="search"
           placeholder="제목 또는 멤버 검색"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 bg-white py-3 pr-4 pl-11 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+          className="w-full rounded-xl border border-line bg-card py-3 pr-4 pl-11 text-[15px] text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
         />
       </div>
 
       {/* 카운트 줄 — 좌측 카운트, 우측에 ⚙ 필터 + + 새 프로젝트 작게.
           회원/PT 필터 버튼 톤 (border 없는 size-9 아이콘) 그대로. */}
       <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted">
           진행 중{" "}
-          <span className="font-semibold text-gray-900 tabular-nums">
+          <span className="font-semibold text-fg tabular-nums">
             {totalActiveCount}개
           </span>
           {" · "}
@@ -238,13 +238,13 @@ export default function StaffProjectsPage() {
               className={`flex size-9 items-center justify-center rounded-md transition-colors ${
                 statusFilter === "done"
                   ? "bg-primary/10 text-primary"
-                  : "text-gray-500 hover:bg-gray-100"
+                  : "text-muted hover:bg-card-hover hover:text-fg"
               }`}
             >
               <AdjustmentsHorizontalIcon className="size-5" />
             </button>
             {filterOpen && (
-              <div className="animate-panel-in absolute top-full right-0 z-30 mt-2 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+              <div className="animate-panel-in absolute top-full right-0 z-30 mt-2 w-40 overflow-hidden rounded-xl border border-line bg-card p-1.5 shadow-lg">
                 {(["active", "done"] as const).map((s) => {
                   const label = s === "active" ? "진행 중" : "완료";
                   const selected = statusFilter === s;
@@ -259,7 +259,7 @@ export default function StaffProjectsPage() {
                       className={`block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                         selected
                           ? "bg-primary/10 font-semibold text-primary"
-                          : "text-gray-700 hover:bg-gray-50"
+                          : "text-fg hover:bg-card-hover"
                       }`}
                     >
                       {label}
@@ -285,7 +285,7 @@ export default function StaffProjectsPage() {
           렌더. 섹션 헤더는 필터 popover 가 이미 상태를 보여주니 생략. */}
       <section className="mt-6">
         {visibleProjects.length === 0 ? (
-          <p className="mt-2 rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+          <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
             {statusFilter === "active"
               ? "진행 중인 프로젝트가 없어요."
               : "완료된 프로젝트가 없어요."}
@@ -350,14 +350,14 @@ function ProjectCard({
         onClick={onClick}
         className={`w-full rounded-xl border p-4 text-left transition-colors ${
           done
-            ? "border-gray-200 bg-gray-50"
-            : "border-gray-200 bg-white hover:bg-gray-50"
+            ? "border-line bg-card-hover"
+            : "border-line bg-card hover:bg-card-hover"
         }`}
       >
         <div className="flex items-start justify-between gap-2">
           <p
             className={`flex-1 truncate text-sm font-semibold ${
-              done ? "text-gray-500" : "text-gray-900"
+              done ? "text-muted" : "text-fg"
             }`}
           >
             {project.title}
@@ -370,26 +370,26 @@ function ProjectCard({
         </div>
         <p
           className={`mt-1 flex items-center gap-1 text-[11px] ${
-            overdue ? "text-red-500" : "text-gray-500"
+            overdue ? "text-red-400" : "text-muted"
           }`}
         >
           <CalendarIcon className="size-3" />
           {ddayLabel(project.deadline, project.status)}
         </p>
-        <p className="mt-2 flex items-center gap-1 truncate text-[11px] text-gray-500">
+        <p className="mt-2 flex items-center gap-1 truncate text-[11px] text-muted">
           <UserGroupIcon className="size-3 shrink-0" />
           <span className="truncate">{project.memberNames.join(", ")}</span>
         </p>
         <div className="mt-3 flex items-center gap-2">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-card-hover">
             <div
-              className={`h-full rounded-full ${done ? "bg-gray-400" : "bg-primary"}`}
+              className={`h-full rounded-full ${done ? "bg-muted" : "bg-primary"}`}
               style={{ width: `${project.progress}%` }}
             />
           </div>
           <span
             className={`shrink-0 text-[11px] tabular-nums ${
-              done ? "text-gray-500" : "text-primary"
+              done ? "text-muted" : "text-primary"
             }`}
           >
             {project.progress}%
@@ -423,8 +423,8 @@ function ProjectDetail({
   return (
     <div className="mx-auto max-w-2xl">
       <header className="mb-5">
-        <p className="text-xs font-medium text-gray-500">주도자</p>
-        <p className="mt-0.5 text-lg font-bold tracking-tight text-gray-900">
+        <p className="text-xs font-medium text-muted">주도자</p>
+        <p className="mt-0.5 text-lg font-bold tracking-tight text-fg">
           {project.leaderName}
           {isLeader && (
             <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
@@ -435,17 +435,17 @@ function ProjectDetail({
       </header>
 
       {/* 마감일 */}
-      <section className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
-        <p className="text-[11px] font-medium text-gray-500">마감일</p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-          <CalendarIcon className="size-4 text-gray-400" />
+      <section className="rounded-lg border border-line bg-card-hover px-3 py-2.5">
+        <p className="text-[11px] font-medium text-muted">마감일</p>
+        <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-fg">
+          <CalendarIcon className="size-4 text-muted" />
           {ddayLabel(project.deadline, project.status)}
         </p>
       </section>
 
       {/* 함께하는 인원 */}
       <section className="mt-4">
-        <p className="text-xs font-semibold text-gray-500">함께하는 인원</p>
+        <p className="text-xs font-semibold text-muted">함께하는 인원</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {project.memberNames.map((name) => (
             <span
@@ -453,7 +453,7 @@ function ProjectDetail({
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
                 name === project.leaderName
                   ? "bg-primary/10 text-primary"
-                  : "bg-gray-100 text-gray-700"
+                  : "bg-card-hover text-fg"
               }`}
             >
               {name === project.leaderName && (
@@ -468,8 +468,8 @@ function ProjectDetail({
       {/* 설명 */}
       {project.description && (
         <section className="mt-5">
-          <p className="text-xs font-semibold text-gray-500">설명</p>
-          <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-gray-700">
+          <p className="text-xs font-semibold text-muted">설명</p>
+          <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-fg">
             {project.description}
           </p>
         </section>
@@ -478,7 +478,7 @@ function ProjectDetail({
       {/* 진척도 — 주도자만 슬라이더 가능 */}
       <section className="mt-6">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900">진척도</p>
+          <p className="text-sm font-semibold text-fg">진척도</p>
           <span className="text-sm font-bold tabular-nums text-primary">
             {progress}%
           </span>
@@ -515,7 +515,7 @@ function ProjectDetail({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-red-500/30 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/10"
           >
             <TrashIcon className="size-4" />
             삭제
@@ -572,42 +572,42 @@ function CreateProjectDialog({
   }
 
   return (
-    <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-10">
-      <div className="animate-dialog-in flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-xl">
-        <header className="border-b border-gray-200 px-5 py-4">
-          <h2 className="text-base font-bold text-gray-900">새 프로젝트</h2>
+    <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-10">
+      <div className="animate-dialog-in flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-xl border border-line bg-card shadow-xl">
+        <header className="border-b border-line px-5 py-4">
+          <h2 className="text-base font-bold text-fg">새 프로젝트</h2>
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div>
-            <label className="text-xs font-semibold text-gray-700">
-              제목 <span className="text-red-500">*</span>
+            <label className="text-xs font-semibold text-fg">
+              제목 <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="예: 새 회원 환영 키트 제작"
-              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-line bg-card-hover px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
             />
           </div>
 
           <div className="mt-4">
-            <label className="text-xs font-semibold text-gray-700">
-              마감일 <span className="text-red-500">*</span>
+            <label className="text-xs font-semibold text-fg">
+              마감일 <span className="text-red-400">*</span>
             </label>
             <input
               type="date"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-line bg-card-hover px-3 py-2 text-sm text-fg focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
             />
           </div>
 
           <div className="mt-4">
-            <label className="text-xs font-semibold text-gray-700">
+            <label className="text-xs font-semibold text-fg">
               함께하는 인원
             </label>
-            <p className="mt-0.5 text-[11px] text-gray-400">
+            <p className="mt-0.5 text-[11px] text-muted">
               본인은 주도자로 자동 포함돼요.
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -623,12 +623,12 @@ function CreateProjectDialog({
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                       selected
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                        : "border-line bg-card-hover text-muted hover:text-fg"
                     } ${isMe ? "cursor-default opacity-100" : ""}`}
                   >
                     {m.name}
                     {isMe && (
-                      <span className="ml-1 text-[10px] text-gray-400">
+                      <span className="ml-1 text-[10px] text-muted">
                         (본인)
                       </span>
                     )}
@@ -639,21 +639,21 @@ function CreateProjectDialog({
           </div>
 
           <div className="mt-4">
-            <label className="text-xs font-semibold text-gray-700">설명</label>
+            <label className="text-xs font-semibold text-fg">설명</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
               placeholder="프로젝트 내용·목표를 적어주세요"
-              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm leading-relaxed focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-line bg-card-hover px-3 py-2 text-sm leading-relaxed text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
             />
           </div>
         </div>
-        <footer className="flex justify-end gap-2 border-t border-gray-200 px-5 py-3">
+        <footer className="flex justify-end gap-2 border-t border-line px-5 py-3">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-line px-4 py-2 text-sm font-medium text-fg hover:bg-card-hover"
           >
             취소
           </button>

@@ -115,8 +115,8 @@ export default function StaffPeerReviewPage() {
       <PageTitle title="동료 평가" />
 
       {/* 동료 카드 그리드 — 제출 완료 / 미제출 두 상태.
-          제출 완료: border-primary/30 + bg-primary/5 + ✓ 체크
-          미제출: border-gray-200 + bg-white
+          제출 완료: border-primary/30 + bg-primary/10 + ✓ 체크
+          미제출: border-line + bg-card
           평가 월·제출 카운트는 그리드 아래로 옮김 — 페이지 상단을 비워 카드가
           SubTabBar 와 가깝게. */}
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -131,21 +131,21 @@ export default function StaffPeerReviewPage() {
               onClick={() => setOpenId(c.id)}
               className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-colors ${
                 submitted
-                  ? "border-primary/30 bg-primary/5"
-                  : "border-gray-200 bg-white hover:bg-gray-50"
+                  ? "border-primary/30 bg-primary/10"
+                  : "border-line bg-card hover:bg-card-hover"
               }`}
             >
               <div className="flex items-start justify-between gap-1.5">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">
+                  <p className="truncate text-sm font-semibold text-fg">
                     {c.name}
                     {isMe && (
-                      <span className="ml-1 text-[10px] font-medium text-gray-400">
+                      <span className="ml-1 text-[10px] font-medium text-muted">
                         (본인)
                       </span>
                     )}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-gray-500">{c.position}</p>
+                  <p className="mt-0.5 text-[11px] text-muted">{c.position}</p>
                 </div>
                 {submitted && (
                   <CheckCircleIcon className="size-4 shrink-0 text-primary" />
@@ -153,7 +153,7 @@ export default function StaffPeerReviewPage() {
               </div>
               <p
                 className={`mt-1 text-[11px] ${
-                  submitted ? "text-primary" : "text-gray-400"
+                  submitted ? "text-primary" : "text-muted"
                 }`}
               >
                 {submitted ? "제출 완료" : "작성 전"}
@@ -164,9 +164,9 @@ export default function StaffPeerReviewPage() {
       </div>
 
       {/* 그리드 아래 카운트 줄 — 페이지 상단을 카드로 비워두기 위해 여기로 이동. */}
-      <p className="mt-4 text-center text-xs text-gray-500">
+      <p className="mt-4 text-center text-xs text-muted">
         {monthLabel} 평가 ·{" "}
-        <span className="font-semibold text-gray-900 tabular-nums">
+        <span className="font-semibold text-fg tabular-nums">
           {submittedCount} / {colleagues.length}
         </span>{" "}
         제출
@@ -215,18 +215,18 @@ function ReviewForm({
   return (
     <div className={`mx-auto max-w-2xl ${!locked ? "pb-24" : ""}`}>
       <header className="mb-5">
-        <p className="text-xs font-medium text-gray-500">평가 대상</p>
-        <p className="mt-0.5 text-lg font-bold tracking-tight text-gray-900">
+        <p className="text-xs font-medium text-muted">평가 대상</p>
+        <p className="mt-0.5 text-lg font-bold tracking-tight text-fg">
           {colleague.name}{" "}
-          <span className="text-sm font-normal text-gray-500">
+          <span className="text-sm font-normal text-muted">
             · {colleague.position}
           </span>
         </p>
       </header>
 
       {locked && (
-        <div className="mb-5 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-600">
-          <LockClosedIcon className="mt-0.5 size-4 shrink-0 text-gray-400" />
+        <div className="mb-5 flex items-start gap-2 rounded-lg border border-line bg-card-hover px-3 py-2.5 text-sm text-muted">
+          <LockClosedIcon className="mt-0.5 size-4 shrink-0 text-muted" />
           <p>제출 완료된 평가는 수정할 수 없어요.</p>
         </div>
       )}
@@ -235,9 +235,9 @@ function ReviewForm({
           본인 평가는 환산 가중치 낮음 (별 하나당 1점, 최대 5점),
           동료 평가는 별 하나당 4점 (최대 20점). 안내문만 분기. */}
       <section>
-        <label className="text-sm font-semibold text-gray-900">
+        <label className="text-sm font-semibold text-fg">
           점수{" "}
-          <span className="ml-1 text-xs font-normal text-gray-400">
+          <span className="ml-1 text-xs font-normal text-muted">
             (별 하나당 {isSelf ? "1점" : "4점"}입니다)
           </span>
         </label>
@@ -255,16 +255,16 @@ function ReviewForm({
                 className={`rounded-md p-1 transition-colors ${
                   locked
                     ? "cursor-default"
-                    : "hover:bg-primary/5 active:scale-95"
+                    : "hover:bg-primary/10 active:scale-95"
                 }`}
               >
                 <Icon
-                  className={`size-7 ${filled ? "text-amber-400" : "text-gray-300"}`}
+                  className={`size-7 ${filled ? "text-amber-400" : "text-line"}`}
                 />
               </button>
             );
           })}
-          <span className="ml-2 text-sm font-medium tabular-nums text-gray-700">
+          <span className="ml-2 text-sm font-medium tabular-nums text-fg">
             {score > 0 ? `${score} / 5` : "선택"}
           </span>
         </div>
@@ -272,7 +272,7 @@ function ReviewForm({
 
       {/* 잘한점 */}
       <section className="mt-6">
-        <label htmlFor="strength" className="text-sm font-semibold text-gray-900">
+        <label htmlFor="strength" className="text-sm font-semibold text-fg">
           잘한점
         </label>
         <textarea
@@ -282,8 +282,8 @@ function ReviewForm({
           readOnly={locked}
           rows={4}
           placeholder="이번 달 인상 깊었던 잘한 점을 적어주세요"
-          className={`mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none ${
-            locked ? "cursor-default bg-gray-50" : ""
+          className={`mt-2 w-full rounded-lg border border-line bg-card-hover px-3 py-2.5 text-sm leading-relaxed text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none ${
+            locked ? "cursor-default opacity-80" : ""
           }`}
         />
       </section>
@@ -292,7 +292,7 @@ function ReviewForm({
       <section className="mt-5">
         <label
           htmlFor="improvement"
-          className="text-sm font-semibold text-gray-900"
+          className="text-sm font-semibold text-fg"
         >
           개선점
         </label>
@@ -303,8 +303,8 @@ function ReviewForm({
           readOnly={locked}
           rows={4}
           placeholder="앞으로 더 좋아질 수 있는 점을 적어주세요"
-          className={`mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none ${
-            locked ? "cursor-default bg-gray-50" : ""
+          className={`mt-2 w-full rounded-lg border border-line bg-card-hover px-3 py-2.5 text-sm leading-relaxed text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none ${
+            locked ? "cursor-default opacity-80" : ""
           }`}
         />
       </section>
@@ -313,9 +313,9 @@ function ReviewForm({
           MobileSubPage 안에서 fixed inset-x-0 bottom-0 로 viewport 에 박힘.
           제출됨 (locked) 케이스에선 안내·버튼 모두 의미 없으니 렌더하지 않음. */}
       {!locked && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white px-4 py-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card px-4 py-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted">
               제출 후엔 수정할 수 없어요.
             </p>
             <button
