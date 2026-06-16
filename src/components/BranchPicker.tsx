@@ -36,24 +36,24 @@ export function BranchPicker({
   return (
     <Listbox value={value ?? ""} onChange={onChange}>
       <div className="relative">
-        <ListboxButton className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[open]:bg-gray-100">
-          <BuildingOffice2Icon className="size-4 shrink-0 text-gray-400" />
+        <ListboxButton className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-fg transition-colors hover:bg-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[open]:bg-card-hover">
+          <BuildingOffice2Icon className="size-4 shrink-0 text-muted" />
           <span className="min-w-0 flex-1 truncate text-left">
             {selected ? branchShortName(selected.name) : "지점"}
           </span>
-          <ChevronUpDownIcon className="size-4 shrink-0 text-gray-400" />
+          <ChevronUpDownIcon className="size-4 shrink-0 text-muted" />
         </ListboxButton>
         <ListboxOptions
           anchor={false}
           modal={false}
           transition
-          className="absolute top-full left-0 z-[60] mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[closed]:opacity-0 data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in"
+          className="absolute top-full left-0 z-[60] mt-1 max-h-60 w-full overflow-auto rounded-md bg-card py-1 shadow-lg ring-1 ring-line focus:outline-none data-[closed]:opacity-0 data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in"
         >
           {branches.map((b) => (
             <ListboxOption
               key={b.id}
               value={b.id}
-              className="group relative flex cursor-default items-center gap-2 py-2 pr-9 pl-3 text-sm text-gray-900 select-none data-[focus]:bg-primary data-[focus]:text-white"
+              className="group relative flex cursor-default items-center gap-2 py-2 pr-9 pl-3 text-sm text-fg select-none data-[focus]:bg-primary data-[focus]:text-white"
             >
               <span className="min-w-0 flex-1 truncate group-data-[selected]:font-semibold">
                 {branchShortName(b.name)}

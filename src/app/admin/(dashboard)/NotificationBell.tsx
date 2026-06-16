@@ -42,35 +42,35 @@ const NOTIFICATION_META: Record<
 > = {
   RESERVATION: {
     icon: CalendarIcon,
-    bgClass: "bg-blue-50",
-    iconClass: "text-blue-500",
+    bgClass: "bg-blue-500/10",
+    iconClass: "text-blue-400",
   },
   MEMBER: {
     icon: UsersIcon,
-    bgClass: "bg-green-50",
-    iconClass: "text-green-500",
+    bgClass: "bg-green-500/10",
+    iconClass: "text-green-400",
   },
   PT_APPLICATION: {
     icon: BoltIcon,
-    bgClass: "bg-violet-50",
+    bgClass: "bg-primary/10",
     iconClass: "text-primary",
   },
   FC_SIGNUP: {
     icon: UserPlusIcon,
-    bgClass: "bg-amber-50",
-    iconClass: "text-amber-500",
+    bgClass: "bg-amber-500/10",
+    iconClass: "text-amber-400",
   },
   // 백엔드가 EXPIRY 같은 추가 타입 보낼 수도 있어 폴백 둠
   EXPIRY: {
     icon: ClockIcon,
-    bgClass: "bg-rose-50",
-    iconClass: "text-rose-500",
+    bgClass: "bg-rose-500/10",
+    iconClass: "text-rose-400",
   },
 };
 const FALLBACK_META = {
   icon: BellIcon,
-  bgClass: "bg-gray-100",
-  iconClass: "text-gray-500",
+  bgClass: "bg-card-hover",
+  iconClass: "text-muted",
 };
 
 // 뱃지 폴링 간격 (밀리초). 30초마다 unread-count 재조회.
@@ -149,7 +149,7 @@ export function NotificationBell({
         type="button"
         onClick={handleBellClick}
         aria-label="알림"
-        className="relative rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+        className="relative rounded-md p-1.5 text-muted hover:bg-card-hover hover:text-fg"
       >
         <BellIcon className="size-5" />
         {unreadCount > 0 && (
@@ -163,9 +163,9 @@ export function NotificationBell({
           모바일 케이스에선 handleBellClick 이 setPcOpen 안 부르니까 mount 자체
           안 되지만, 안전하게 lg:block 으로 한 번 더 차단. */}
       {pcOpen && (
-        <div className="animate-panel-in absolute top-full right-0 z-50 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:block">
-          <div className="border-b border-gray-200 px-4 py-3">
-            <p className="text-sm font-bold text-gray-900">알림</p>
+        <div className="animate-panel-in absolute top-full right-0 z-50 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-line bg-card shadow-lg lg:block">
+          <div className="border-b border-line px-4 py-3">
+            <p className="text-sm font-bold text-fg">알림</p>
           </div>
           <div className="max-h-96 overflow-y-auto">
             <NotificationsList onItemClick={() => setPcOpen(false)} />
@@ -246,8 +246,8 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
     return (
       <NotificationMessage
         icon={ArrowPathIcon}
-        iconBgClass="bg-gray-100"
-        iconClass="text-gray-400 animate-spin"
+        iconBgClass="bg-card-hover"
+        iconClass="text-muted animate-spin"
       >
         불러오는 중…
       </NotificationMessage>
@@ -257,8 +257,8 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
     return (
       <NotificationMessage
         icon={ExclamationTriangleIcon}
-        iconBgClass="bg-amber-50"
-        iconClass="text-amber-500"
+        iconBgClass="bg-amber-500/10"
+        iconClass="text-amber-400"
       >
         알림을 불러오지 못했습니다.
       </NotificationMessage>
@@ -268,8 +268,8 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
     return (
       <NotificationMessage
         icon={InboxIcon}
-        iconBgClass="bg-gray-100"
-        iconClass="text-gray-400"
+        iconBgClass="bg-card-hover"
+        iconClass="text-muted"
       >
         새 알림이 없습니다.
       </NotificationMessage>
@@ -277,7 +277,7 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
   }
 
   return (
-    <ul className="divide-y divide-gray-100">
+    <ul className="divide-y divide-line">
       {notifications.map((n) => {
         const meta = NOTIFICATION_META[n.source_type] ?? FALLBACK_META;
         const Icon = meta.icon;
@@ -286,8 +286,8 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
             <button
               type="button"
               onClick={() => handleItemClick(n)}
-              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
-                n.is_read ? "" : "bg-violet-50/60"
+              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-card-hover ${
+                n.is_read ? "" : "bg-primary/10"
               }`}
             >
               {/* 타입별 아이콘 칩 */}
@@ -298,7 +298,7 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
-                  <span className="block text-sm font-semibold text-gray-900">
+                  <span className="block text-sm font-semibold text-fg">
                     {n.title}
                   </span>
                   {!n.is_read && (
@@ -308,10 +308,10 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
                     />
                   )}
                 </span>
-                <span className="mt-0.5 block text-xs text-gray-500">
+                <span className="mt-0.5 block text-xs text-muted">
                   {n.body}
                 </span>
-                <span className="mt-1 block text-[11px] text-gray-400">
+                <span className="mt-1 block text-[11px] text-muted">
                   {timeAgo(n.created_at)}
                 </span>
               </span>
@@ -336,7 +336,7 @@ function NotificationMessage({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-gray-500">
+    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-muted">
       <div
         className={`flex size-9 items-center justify-center rounded-full ${iconBgClass}`}
       >
