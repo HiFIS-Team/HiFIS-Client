@@ -50,6 +50,14 @@ body {
   color: var(--color-fg);
 }
 
+/* overscroll bounce 시 viewport 끝에서 당기면 html 의 기본 흰색이 드러남.
+   어드민 트리(:has([data-theme="dark"])) 안에선 html 자체도 다크 surface 로
+   깔아 모바일 PWA 당김 동작에서도 흰 띠가 보이지 않게. 공개 페이지(:has 매칭 X)
+   에선 html 배경 그대로 (라이트). */
+html:has([data-theme="dark"]) {
+  background: var(--color-surface);
+}
+
 /* 상·하단 overscroll 바운스 비활성화 — 모바일에서 페이지 상단에서 아래로 당기면
    body 가 elastic 으로 밀려 내려오면서 sticky 헤더도 같이 따라오던 현상 차단.
    PWA 키오스크·관리자 화면 모두 pull-to-refresh 가 필요 없어서 비용 없음. */
