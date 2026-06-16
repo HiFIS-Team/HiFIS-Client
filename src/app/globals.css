@@ -25,9 +25,9 @@
        fg      : 본문 텍스트 (off-white)
        muted   : 보조 텍스트 (gray-400 톤) */
   --color-surface: #000;
-  --color-card: #0a0a0a;
-  --color-card-hover: #141414;
-  --color-line: #1f1f1f;
+  --color-card: #111;
+  --color-card-hover: #1a1a1a;
+  --color-line: #2e2e2e;
   --color-fg: #fafafa;
   --color-muted: #a3a3a3;
 
