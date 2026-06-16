@@ -5,7 +5,7 @@ import { useState } from "react";
 import { CheckIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { useToast } from "@/providers/ToastProvider";
-import { timeAgo } from "@/lib/format";
+import { formatWon, timeAgo } from "@/lib/format";
 import { PageTitle } from "../../PageTitle";
 
 // 환경정비 항목 — 빨래 / 청소 두 그룹.
@@ -46,7 +46,13 @@ type TaskLog = {
   userName: string;
   timestamp: number;
   isCustom?: boolean;
+  // 비품 관리 한정 — 시킨 것 + 금액. 기록 시 모달에서 받음.
+  supplyItem?: string;
+  supplyAmount?: number;
 };
+
+// 비품 관리 항목 id — 특수 처리 (모달 입력)
+const SUPPLIES_TASK_ID = "supplies";
 
 function startOfTodayMs(): number {
   const d = new Date();
@@ -62,8 +68,16 @@ export default function StaffFacilityCarePage() {
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [customOpen, setCustomOpen] = useState(false);
   const [customInput, setCustomInput] = useState("");
+  // 비품 관리 입력 모달 — 시킨 것 + 금액
+  const [supplyOpen, setSupplyOpen] = useState(false);
+  const [supplyItem, setSupplyItem] = useState("");
+  const [supplyAmount, setSupplyAmount] = useState("");
 
-  function recordLog(taskId: string, taskLabel: string, isCustom = false) {
+  function recordLog(
+    taskId: string,
+    taskLabel: string,
+    extras?: { isCustom?: boolean; supplyItem?: string; supplyAmount?: number },
+  ) {
     if (!myName) return;
     const newLog: TaskLog = {
       id:
@@ -74,18 +88,44 @@ export default function StaffFacilityCarePage() {
       taskLabel,
       userName: myName,
       timestamp: Date.now(),
-      isCustom,
+      isCustom: extras?.isCustom,
+      supplyItem: extras?.supplyItem,
+      supplyAmount: extras?.supplyAmount,
     };
     setLogs((prev) => [newLog, ...prev]);
     toast.success(`${taskLabel} 완료를 기록했어요.`);
   }
 
+  // 카드 탭 — 비품 관리는 모달 열기, 그 외는 즉시 기록.
+  function handleCardClick(taskId: string, taskLabel: string) {
+    if (taskId === SUPPLIES_TASK_ID) {
+      setSupplyOpen(true);
+      return;
+    }
+    recordLog(taskId, taskLabel);
+  }
+
   function submitCustom() {
     const trimmed = customInput.trim();
     if (!trimmed) return;
-    recordLog(`custom:${trimmed}`, trimmed, true);
+    recordLog(`custom:${trimmed}`, trimmed, { isCustom: true });
     setCustomInput("");
     setCustomOpen(false);
+  }
+
+  function submitSupply() {
+    // 빈값 허용 — 시킬 게 없어서 확인만 한 케이스. trim·NaN 처리해 빈 값은 undefined.
+    const item = supplyItem.trim() || undefined;
+    const parsed = parseInt(supplyAmount, 10);
+    const amount =
+      Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+    recordLog(SUPPLIES_TASK_ID, "비품 관리", {
+      supplyItem: item,
+      supplyAmount: amount,
+    });
+    setSupplyItem("");
+    setSupplyAmount("");
+    setSupplyOpen(false);
   }
 
   // 카드별 오늘 카운트
@@ -129,7 +169,7 @@ export default function StaffFacilityCarePage() {
                   <button
                     key={task.id}
                     type="button"
-                    onClick={() => recordLog(task.id, task.label)}
+                    onClick={() => handleCardClick(task.id, task.label)}
                     disabled={!myName}
                     className={`flex items-center justify-between gap-1.5 rounded-xl border p-3 text-left transition-colors disabled:opacity-50 ${
                       count > 0
@@ -217,8 +257,18 @@ export default function StaffFacilityCarePage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-gray-900">
                     {log.taskLabel}
+                    {log.supplyItem && (
+                      <span className="text-gray-500"> · {log.supplyItem}</span>
+                    )}
                   </p>
-                  <p className="text-xs text-gray-500">{log.userName}</p>
+                  <p className="text-xs text-gray-500">
+                    {log.userName}
+                    {typeof log.supplyAmount === "number" && (
+                      <span className="ml-1 font-medium text-primary">
+                        {formatWon(log.supplyAmount)}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <span className="shrink-0 text-xs text-gray-400">
                   {timeAgo(new Date(log.timestamp).toISOString())}
@@ -264,6 +314,68 @@ export default function StaffFacilityCarePage() {
                 className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
               >
                 등록
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 비품 관리 입력 다이얼로그 — 시킨 것 + 금액. 두 값 다 있어야 등록 활성. */}
+      {supplyOpen && (
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10">
+          <div className="animate-dialog-in flex w-full max-w-md flex-col rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-bold text-gray-900">비품 관리</h3>
+            <p className="mt-1 text-xs text-gray-500">
+              시킬 게 없어서 확인만 한 거면 빈 칸으로 둬도 돼요. 시킨 게 있으면
+              품목·금액을 같이 적어주세요.
+            </p>
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              시킨 것
+            </label>
+            <input
+              type="text"
+              autoFocus
+              value={supplyItem}
+              onChange={(e) => setSupplyItem(e.target.value)}
+              placeholder="예: A4 용지, 운동복, 수건"
+              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+            />
+
+            <label className="mt-4 block text-xs font-semibold text-gray-700">
+              금액 (원)
+            </label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={supplyAmount}
+              onChange={(e) => setSupplyAmount(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitSupply();
+              }}
+              placeholder="예: 30000"
+              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+            />
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSupplyOpen(false);
+                  setSupplyItem("");
+                  setSupplyAmount("");
+                }}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={submitSupply}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
+              >
+                제출
               </button>
             </div>
           </div>
