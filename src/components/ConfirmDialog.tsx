@@ -79,8 +79,8 @@ export function ConfirmDialog({
           {message}
         </div>
         {notice && (
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs/5 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-            <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500 dark:text-amber-400" />
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs/5 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200">
+            <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500 dark:text-amber-300" />
             <div className="min-w-0 flex-1">{notice}</div>
           </div>
         )}
@@ -119,10 +119,10 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading || !requirementMet}
-            className={`rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-60 ${
+            className={`rounded-md border px-4 py-2 text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-60 ${
               danger
-                ? "border-red-500 bg-red-500/15 text-red-300 hover:bg-red-500/25"
-                : "border-primary bg-primary/15 text-primary hover:bg-primary/25"
+                ? "border-red-500 bg-red-500/25 text-red-300 hover:bg-red-500/35"
+                : "border-primary bg-primary/25 shadow-lg shadow-primary/20 text-primary hover:bg-primary/35"
             }`}
           >
             {loading ? "처리 중…" : confirmLabel}

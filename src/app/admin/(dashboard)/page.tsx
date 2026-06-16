@@ -34,8 +34,8 @@ const RECENT_TYPE_META: Record<
   string,
   { icon: ComponentType<{ className?: string }>; chipClass: string }
 > = {
-  예약: { icon: CalendarIcon, chipClass: "bg-blue-500/10 text-blue-400" },
-  회원: { icon: UsersIcon, chipClass: "bg-green-500/10 text-green-400" },
+  예약: { icon: CalendarIcon, chipClass: "bg-blue-500/15 text-blue-300" },
+  회원: { icon: UsersIcon, chipClass: "bg-green-500/15 text-green-300" },
   PT: { icon: BoltIcon, chipClass: "bg-primary/15 text-primary" },
 };
 
@@ -54,7 +54,7 @@ function StatCard({
   iconClassName?: string;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-card p-4">
+    <div className="rounded-xl border border-line bg-card p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted">{label}</p>
         <Icon className={`size-5 ${iconClassName}`} />
@@ -78,9 +78,9 @@ function TodoCard({
   const active = value > 0;
   return (
     <div
-      className={`rounded-xl border p-4 ${
+      className={`rounded-xl border p-5 ${
         active
-          ? "border-amber-500/30 bg-amber-500/10"
+          ? "border-amber-500/40 bg-amber-500/15"
           : "border-line bg-card"
       }`}
     >
@@ -569,17 +569,20 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <PageTitle title="대시보드" />
-      {/* 홈 인사말 — GBX 톤(굵은 산세리프 + 좁은 자간) 으로 무게감. */}
+      {/* 홈 인사말 — GBX 톤(굵은 산세리프 + 좁은 자간) 으로 무게감.
+          이름 줄에만 그라데이션 — 단색 보라 위에 한 군데 포인트. */}
       <h1 className="text-3xl leading-[1.15] font-black tracking-tighter text-fg">
         <span className="inline-flex items-center gap-2">
           안녕하세요
           <HandRaisedIcon className="size-7 text-primary" />
         </span>
         <br />
-        {name ? `${name}님!` : "환영합니다!"}
+        <span className="bg-gradient-to-r from-primary via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+          {name ? `${name}님!` : "환영합니다!"}
+        </span>
       </h1>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
           label="예약 신청"
           value={r?.total ?? 0}
@@ -606,8 +609,8 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      <section className="mt-6">
-        <h2 className="text-base font-semibold text-fg">회원 상태</h2>
+      <section className="mt-8">
+        <h2 className="text-lg font-bold tracking-tight text-fg">회원 상태</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <StatCard
             label="활성"
@@ -630,8 +633,8 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="mt-6">
-        <h2 className="text-base font-semibold text-fg">처리할 일</h2>
+      <section className="mt-8">
+        <h2 className="text-lg font-bold tracking-tight text-fg">처리할 일</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <TodoCard
             label="만기 임박 (7일 내)"
@@ -653,8 +656,8 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="mt-6">
-        <h2 className="text-base font-semibold text-fg">회원 분석</h2>
+      <section className="mt-8">
+        <h2 className="text-lg font-bold tracking-tight text-fg">회원 분석</h2>
         {/* 가입 추이도 회원 분석 범주라 같은 grid 에 합침.
             mobile 1col → sm 2col → lg 4col 로 적당히 채워짐. */}
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -668,23 +671,23 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="mt-6">
-        <h2 className="text-base font-semibold text-fg">이달의 우수사원</h2>
+      <section className="mt-8">
+        <h2 className="text-lg font-bold tracking-tight text-fg">이달의 우수사원</h2>
         <div className="mt-3 grid gap-3 lg:grid-cols-3">
           <MonthlyAwardCard
             label="피드백왕"
             description="회원 피드백 점수가 가장 높은 사원"
             icon={HandThumbUpIcon}
-            iconBgClass="bg-amber-500/10"
-            iconTextClass="text-amber-400"
+            iconBgClass="bg-amber-500/15"
+            iconTextClass="text-amber-300"
             branches={branches}
           />
           <MonthlyAwardCard
             label="친절왕"
             description="회원 친절도 점수가 가장 높은 사원"
             icon={HeartIcon}
-            iconBgClass="bg-rose-500/10"
-            iconTextClass="text-rose-400"
+            iconBgClass="bg-rose-500/15"
+            iconTextClass="text-rose-300"
             branches={branches}
           />
           <MonthlyAwardCard
@@ -698,8 +701,8 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="mt-6">
-        <h2 className="text-base font-semibold text-fg">최근 신청</h2>
+      <section className="mt-8">
+        <h2 className="text-lg font-bold tracking-tight text-fg">최근 신청</h2>
         <div className="mt-3 rounded-xl border border-line bg-card">
           {recent.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">

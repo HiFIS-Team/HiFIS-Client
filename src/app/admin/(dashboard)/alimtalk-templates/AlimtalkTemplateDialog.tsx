@@ -263,7 +263,7 @@ export function AlimtalkTemplateDialog({
                   type="button"
                   onClick={handleSave}
                   disabled={saving || !isDirty}
-                  className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25 disabled:opacity-60"
+                  className="rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97] disabled:opacity-60"
                 >
                   {saving ? "저장 중…" : "저장"}
                 </button>
@@ -273,7 +273,7 @@ export function AlimtalkTemplateDialog({
             <button
               type="button"
               onClick={onClose}
-              className="ml-auto rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25"
+              className="ml-auto rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97]"
             >
               닫기
             </button>

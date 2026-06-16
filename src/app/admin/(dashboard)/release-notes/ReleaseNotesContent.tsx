@@ -39,10 +39,10 @@ export function ReleaseNotesContent() {
                 key={n.version}
                 type="button"
                 onClick={() => setOpenVersion(n.version)}
-                className="rounded-xl border border-line bg-card p-5 text-left transition-colors hover:bg-card-hover"
+                className="rounded-xl border border-line bg-card p-5 text-left transition-all hover:bg-card-hover active:scale-[0.99]"
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <h2 className="text-base font-semibold text-fg">
+                  <h2 className="text-lg font-bold tracking-tight text-fg">
                     v{n.version}
                   </h2>
                   <span className="shrink-0 text-xs text-muted">

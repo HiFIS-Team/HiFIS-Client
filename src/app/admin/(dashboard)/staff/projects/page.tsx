@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   AdjustmentsHorizontalIcon,
   CalendarIcon,
+  FolderOpenIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   TrashIcon,
@@ -285,11 +286,16 @@ export default function StaffProjectsPage() {
           렌더. 섹션 헤더는 필터 popover 가 이미 상태를 보여주니 생략. */}
       <section className="mt-6">
         {visibleProjects.length === 0 ? (
-          <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
-            {statusFilter === "active"
-              ? "진행 중인 프로젝트가 없어요."
-              : "완료된 프로젝트가 없어요."}
-          </p>
+          <div className="mt-2 flex flex-col items-center gap-3 rounded-xl border border-dashed border-line px-4 py-10 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-card-hover">
+              <FolderOpenIcon className="size-5 text-muted" />
+            </span>
+            <p className="text-sm text-muted">
+              {statusFilter === "active"
+                ? "진행 중인 프로젝트가 없어요."
+                : "완료된 프로젝트가 없어요."}
+            </p>
+          </div>
         ) : (
           <ul className="grid gap-2 sm:grid-cols-2">
             {visibleProjects.map((p) => (
@@ -348,7 +354,7 @@ function ProjectCard({
       <button
         type="button"
         onClick={onClick}
-        className={`w-full rounded-xl border p-4 text-left transition-colors ${
+        className={`w-full rounded-xl border p-4 text-left transition-all active:scale-[0.99] ${
           done
             ? "border-line bg-card-hover"
             : "border-line bg-card hover:bg-card-hover"
@@ -508,7 +514,7 @@ function ProjectDetail({
               });
               onClose();
             }}
-            className="flex-1 rounded-lg border border-primary bg-primary/15 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/25"
+            className="flex-1 rounded-lg border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97]"
           >
             저장
           </button>
@@ -669,7 +675,7 @@ function CreateProjectDialog({
               })
             }
             disabled={!canSubmit}
-            className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25 disabled:opacity-50"
+            className="rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97] disabled:opacity-50"
           >
             등록
           </button>

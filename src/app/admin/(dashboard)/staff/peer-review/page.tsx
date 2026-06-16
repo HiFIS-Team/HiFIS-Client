@@ -129,9 +129,9 @@ export default function StaffPeerReviewPage() {
               key={c.id}
               type="button"
               onClick={() => setOpenId(c.id)}
-              className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-colors ${
+              className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-all active:scale-[0.97] ${
                 submitted
-                  ? "border-primary bg-primary/15"
+                  ? "border-primary bg-primary/15 shadow-lg shadow-primary/20"
                   : "border-line bg-card hover:bg-card-hover"
               }`}
             >
@@ -324,7 +324,7 @@ function ReviewForm({
                 canSubmit && onSubmit({ score, strength, improvement })
               }
               disabled={!canSubmit}
-              className="shrink-0 rounded-lg border border-primary bg-primary/15 px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
+              className="shrink-0 rounded-lg border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-5 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               제출하기
             </button>

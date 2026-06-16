@@ -288,7 +288,7 @@ export function BranchesContent() {
         <button
           type="button"
           onClick={() => setFormTarget("new")}
-          className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25"
+          className="rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97]"
         >
           지점 등록
         </button>

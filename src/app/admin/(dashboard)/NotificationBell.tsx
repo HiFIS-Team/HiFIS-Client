@@ -42,13 +42,13 @@ const NOTIFICATION_META: Record<
 > = {
   RESERVATION: {
     icon: CalendarIcon,
-    bgClass: "bg-blue-500/10",
-    iconClass: "text-blue-400",
+    bgClass: "bg-blue-500/15",
+    iconClass: "text-blue-300",
   },
   MEMBER: {
     icon: UsersIcon,
-    bgClass: "bg-green-500/10",
-    iconClass: "text-green-400",
+    bgClass: "bg-green-500/15",
+    iconClass: "text-green-300",
   },
   PT_APPLICATION: {
     icon: BoltIcon,
@@ -57,14 +57,14 @@ const NOTIFICATION_META: Record<
   },
   FC_SIGNUP: {
     icon: UserPlusIcon,
-    bgClass: "bg-amber-500/10",
-    iconClass: "text-amber-400",
+    bgClass: "bg-amber-500/15",
+    iconClass: "text-amber-300",
   },
   // 백엔드가 EXPIRY 같은 추가 타입 보낼 수도 있어 폴백 둠
   EXPIRY: {
     icon: ClockIcon,
-    bgClass: "bg-rose-500/10",
-    iconClass: "text-rose-400",
+    bgClass: "bg-rose-500/15",
+    iconClass: "text-rose-300",
   },
 };
 const FALLBACK_META = {
@@ -257,8 +257,8 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
     return (
       <NotificationMessage
         icon={ExclamationTriangleIcon}
-        iconBgClass="bg-amber-500/10"
-        iconClass="text-amber-400"
+        iconBgClass="bg-amber-500/15"
+        iconClass="text-amber-300"
       >
         알림을 불러오지 못했습니다.
       </NotificationMessage>

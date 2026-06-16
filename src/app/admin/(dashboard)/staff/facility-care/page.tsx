@@ -2,7 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  CheckIcon,
+  InboxIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { useToast } from "@/providers/ToastProvider";
 import { formatWon, timeAgo } from "@/lib/format";
@@ -174,9 +179,9 @@ export default function StaffFacilityCarePage() {
                     type="button"
                     onClick={() => handleCardClick(task.id, task.label)}
                     disabled={!myName}
-                    className={`flex items-center justify-between gap-1.5 rounded-xl border p-3 text-left transition-colors disabled:opacity-50 ${
+                    className={`flex items-center justify-between gap-1.5 rounded-xl border p-3 text-left transition-all active:scale-[0.97] disabled:opacity-50 ${
                       count > 0
-                        ? "border-primary bg-primary/15"
+                        ? "border-primary bg-primary/15 shadow-lg shadow-primary/20"
                         : "border-line bg-card hover:bg-card-hover"
                     }`}
                   >
@@ -245,11 +250,16 @@ export default function StaffFacilityCarePage() {
           </p>
         </div>
         {filteredFeed.length === 0 ? (
-          <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
-            {feedFilter === "mine"
-              ? "오늘 내가 한 기록이 없어요."
-              : "아직 기록이 없어요."}
-          </p>
+          <div className="mt-2 flex flex-col items-center gap-3 rounded-xl border border-dashed border-line px-4 py-10 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-card-hover">
+              <InboxIcon className="size-5 text-muted" />
+            </span>
+            <p className="text-sm text-muted">
+              {feedFilter === "mine"
+                ? "오늘 내가 한 기록이 없어요."
+                : "아직 기록이 없어요."}
+            </p>
+          </div>
         ) : (
           <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line bg-card">
             {filteredFeed.map((log) => {
@@ -330,7 +340,7 @@ export default function StaffFacilityCarePage() {
                 type="button"
                 onClick={submitCustom}
                 disabled={!customInput.trim()}
-                className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25 disabled:opacity-50"
+                className="rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97] disabled:opacity-50"
               >
                 등록
               </button>
@@ -392,7 +402,7 @@ export default function StaffFacilityCarePage() {
               <button
                 type="button"
                 onClick={submitSupply}
-                className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/25"
+                className="rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97]"
               >
                 제출
               </button>

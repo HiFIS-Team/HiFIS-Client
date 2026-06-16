@@ -79,9 +79,9 @@ export function ProfileBody() {
       <PageTitle title="내 정보" />
 
       {/* 사용자 정보 카드 — 아바타(이니셜) + 이름 + 역할 */}
-      <section className="mt-4 rounded-xl border border-line bg-card p-5">
+      <section className="mt-6 rounded-xl border border-line bg-card p-6">
         <div className="flex items-center gap-4">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xl font-bold text-primary">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-fuchsia-500 text-xl font-bold text-white shadow-lg shadow-primary/30">
             {admin.name.charAt(0) || "?"}
           </div>
           <div className="min-w-0">

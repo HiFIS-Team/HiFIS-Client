@@ -41,8 +41,8 @@ const VARIANT_META: Record<
   },
   error: {
     icon: ExclamationTriangleIcon,
-    iconClass: "text-amber-400",
-    bgClass: "bg-amber-500/10",
+    iconClass: "text-amber-300",
+    bgClass: "bg-amber-500/15",
   },
   empty: {
     icon: InboxIcon,

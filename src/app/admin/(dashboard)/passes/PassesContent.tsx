@@ -183,7 +183,7 @@ export function PassesContent({ type }: { type: PassType }) {
           type="button"
           onClick={() => setFormTarget("new")}
           disabled={!branchId}
-          className="rounded-md border border-primary bg-primary/15 px-4 py-2 text-sm font-semibold whitespace-nowrap text-primary hover:bg-primary/25 disabled:opacity-60"
+          className="rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold whitespace-nowrap text-primary transition-all hover:bg-primary/35 active:scale-[0.97] disabled:opacity-60"
         >
           {typeLabel} 등록
         </button>
