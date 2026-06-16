@@ -1,9 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  AdjustmentsHorizontalIcon,
   CalendarIcon,
+  MagnifyingGlassIcon,
   PlusIcon,
   TrashIcon,
   UserGroupIcon,
@@ -102,6 +104,36 @@ export default function StaffProjectsPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const openProject = openId ? projects.find((p) => p.id === openId) : null;
 
+  // 검색 — 제목 또는 멤버 이름 기준. 디바운스 300ms.
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(
+      () => setDebouncedSearch(searchInput.trim().toLowerCase()),
+      300,
+    );
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // ⚙ 필터 popover — 진행 중 / 완료 단일 선택. 기본 "active" (진행 중만).
+  // 외부 클릭 시 자동 닫힘.
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "done">("active");
+  useEffect(() => {
+    if (!filterOpen) return;
+    function handle(e: PointerEvent) {
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(e.target as Node)
+      ) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", handle);
+    return () => document.removeEventListener("pointerdown", handle);
+  }, [filterOpen]);
+
   function persist(next: Project[]) {
     setProjects(next);
     saveProjects(next);
@@ -149,23 +181,47 @@ export default function StaffProjectsPage() {
     toast.success("프로젝트를 삭제했어요.");
   }
 
-  const active = projects.filter((p) => p.status === "active");
-  const done = projects.filter((p) => p.status === "done");
+  // 검색 + status 필터 적용한 가시 목록
+  const visibleProjects = projects.filter((p) => {
+    if (p.status !== statusFilter) return false;
+    if (debouncedSearch) {
+      const hay = `${p.title.toLowerCase()} ${p.memberNames.join(" ").toLowerCase()}`;
+      if (!hay.includes(debouncedSearch)) return false;
+    }
+    return true;
+  });
+  // 카운트는 검색·필터와 무관한 전체 기준
   const myLeadCount = projects.filter(
     (p) => p.status === "active" && p.leaderName === myName,
   ).length;
+  const totalActiveCount = projects.filter((p) => p.status === "active").length;
 
   return (
     <div>
       <PageTitle title="프로젝트" />
 
-      {/* SubTabBar 가 이미 페이지 정체성을 가지고 있어 큰 h1 은 중복.
-          카운트 줄 좌, 새 프로젝트 + 아이콘 우 로 한 줄. */}
-      <div className="mt-4 flex items-center justify-between gap-2">
-        <p className="text-sm text-gray-500">
+      {/* 검색 — 회원 페이지와 동일한 prominent 톤 (단독 한 줄). */}
+      <div className="relative mt-2">
+        <MagnifyingGlassIcon
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-gray-400"
+        />
+        <input
+          type="search"
+          placeholder="제목 또는 멤버 검색"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="w-full rounded-xl border border-gray-200 bg-white py-3 pr-4 pl-11 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+        />
+      </div>
+
+      {/* 카운트 줄 — 좌측 카운트, 우측에 ⚙ 필터 + + 새 프로젝트 작게.
+          회원/PT 필터 버튼 톤 (border 없는 size-9 아이콘) 그대로. */}
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-xs text-gray-500">
           진행 중{" "}
           <span className="font-semibold text-gray-900 tabular-nums">
-            {active.length}개
+            {totalActiveCount}개
           </span>
           {" · "}
           내가 주도{" "}
@@ -173,29 +229,70 @@ export default function StaffProjectsPage() {
             {myLeadCount}개
           </span>
         </p>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          disabled={!myName}
-          aria-label="새 프로젝트"
-          className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
-        >
-          <PlusIcon className="size-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <div ref={filterRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setFilterOpen((v) => !v)}
+              aria-label="필터"
+              className={`flex size-9 items-center justify-center rounded-md transition-colors ${
+                statusFilter === "done"
+                  ? "bg-primary/10 text-primary"
+                  : "text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              <AdjustmentsHorizontalIcon className="size-5" />
+            </button>
+            {filterOpen && (
+              <div className="animate-panel-in absolute top-full right-0 z-30 mt-2 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+                {(["active", "done"] as const).map((s) => {
+                  const label = s === "active" ? "진행 중" : "완료";
+                  const selected = statusFilter === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(s);
+                        setFilterOpen(false);
+                      }}
+                      className={`block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                        selected
+                          ? "bg-primary/10 font-semibold text-primary"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            disabled={!myName}
+            aria-label="새 프로젝트"
+            className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
+          >
+            <PlusIcon className="size-5" />
+          </button>
+        </div>
       </div>
 
-      {/* 진행 중 */}
+      {/* 단일 섹션 — statusFilter 기준 (진행 중 또는 완료) 으로 visibleProjects
+          렌더. 섹션 헤더는 필터 popover 가 이미 상태를 보여주니 생략. */}
       <section className="mt-6">
-        <h2 className="px-1 text-xs font-bold tracking-tight text-gray-500 uppercase">
-          진행 중
-        </h2>
-        {active.length === 0 ? (
+        {visibleProjects.length === 0 ? (
           <p className="mt-2 rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
-            진행 중인 프로젝트가 없어요.
+            {statusFilter === "active"
+              ? "진행 중인 프로젝트가 없어요."
+              : "완료된 프로젝트가 없어요."}
           </p>
         ) : (
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-            {active.map((p) => (
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {visibleProjects.map((p) => (
               <ProjectCard
                 key={p.id}
                 project={p}
@@ -206,25 +303,6 @@ export default function StaffProjectsPage() {
           </ul>
         )}
       </section>
-
-      {/* 완료 */}
-      {done.length > 0 && (
-        <section className="mt-6">
-          <h2 className="px-1 text-xs font-bold tracking-tight text-gray-500 uppercase">
-            완료
-          </h2>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-            {done.map((p) => (
-              <ProjectCard
-                key={p.id}
-                project={p}
-                isLeader={p.leaderName === myName}
-                onClick={() => setOpenId(p.id)}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
 
       {openProject && (
         <MobileSubPage

@@ -102,27 +102,14 @@ export default function StaffFacilityCarePage() {
     <div>
       <PageTitle title="환경 정비" />
 
-      {/* SubTabBar 가 이미 페이지 정체성을 가지고 있어 큰 h1 은 중복 — 누적
-          카운트 줄만 페이지 상단에 둠. */}
-      <p className="mt-4 text-sm text-gray-500">
-        오늘{" "}
-        <span className="font-semibold text-gray-900 tabular-nums">
-          {todayLogs.length}건
-        </span>
-        {" · "}
-        내가 한 일{" "}
-        <span className="font-semibold text-primary tabular-nums">
-          {myTodayCount}개
-        </span>
-      </p>
-
       {/* 카드 그리드 — 그룹별. 한 번 탭 = 즉시 기록 (카톡 대비 5배+ 빠름).
           카드 상태 :
             - 안 함     : border-gray-200 + bg-white (default surface)
             - 오늘 했음 : border-gray-200 + bg-gray-50 (subtle 채움)
             - 방금(30분): border-primary/30 + bg-primary/5 (강조)
-          색은 모두 opacity 기반이라 다크 테마 전환 시 그대로 따라옴. */}
-      <div className="mt-6 space-y-6">
+          색은 모두 opacity 기반이라 다크 테마 전환 시 그대로 따라옴.
+          카운트는 아래 "오늘의 일지" 줄로 옮겨 한 줄에 같이 노출. */}
+      <div className="mt-2 space-y-6">
         {TASK_GROUPS.map((group) => (
           <section key={group.label}>
             <h2 className="px-1 text-xs font-bold tracking-tight text-gray-500 uppercase">
@@ -173,11 +160,25 @@ export default function StaffFacilityCarePage() {
       </div>
 
       {/* 오늘의 일지 — 카톡 채팅방 톤을 빌리되 정렬·검색 가능한 구조로.
-          시간 역순. 빈 상태는 점선 박스로 가볍게. */}
+          시간 역순. 빈 상태는 점선 박스로 가볍게.
+          헤더 우측에 오늘 카운트 (전체 / 본인) — 별도 줄 차지 안 하게 함께 둠. */}
       <section className="mt-8">
-        <h2 className="px-1 text-xs font-bold tracking-tight text-gray-500 uppercase">
-          오늘의 일지
-        </h2>
+        <div className="flex items-baseline justify-between gap-2 px-1">
+          <h2 className="text-xs font-bold tracking-tight text-gray-500 uppercase">
+            오늘의 일지
+          </h2>
+          <p className="text-xs text-gray-500">
+            오늘{" "}
+            <span className="font-semibold text-gray-900 tabular-nums">
+              {todayLogs.length}건
+            </span>
+            {" · "}
+            내가 한 일{" "}
+            <span className="font-semibold text-primary tabular-nums">
+              {myTodayCount}개
+            </span>
+          </p>
+        </div>
         {todayLogs.length === 0 ? (
           <p className="mt-2 rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
             아직 기록이 없어요.

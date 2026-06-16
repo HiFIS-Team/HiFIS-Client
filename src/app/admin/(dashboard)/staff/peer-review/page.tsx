@@ -114,20 +114,12 @@ export default function StaffPeerReviewPage() {
     <div>
       <PageTitle title="동료 평가" />
 
-      {/* SubTabBar 가 이미 페이지 정체성을 가지고 있어 큰 h1 은 중복 — 진행
-          카운트 줄만 페이지 상단에 둠. */}
-      <p className="mt-4 text-sm text-gray-500">
-        {monthLabel} 평가 ·{" "}
-        <span className="font-semibold text-gray-900 tabular-nums">
-          {submittedCount} / {colleagues.length}
-        </span>{" "}
-        제출
-      </p>
-
       {/* 동료 카드 그리드 — 제출 완료 / 미제출 두 상태.
           제출 완료: border-primary/30 + bg-primary/5 + ✓ 체크
-          미제출: border-gray-200 + bg-white */}
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          미제출: border-gray-200 + bg-white
+          평가 월·제출 카운트는 그리드 아래로 옮김 — 페이지 상단을 비워 카드가
+          SubTabBar 와 가깝게. */}
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {colleagues.map((c) => {
           const review = reviews[c.id];
           const submitted = !!review;
@@ -170,6 +162,15 @@ export default function StaffPeerReviewPage() {
           );
         })}
       </div>
+
+      {/* 그리드 아래 카운트 줄 — 페이지 상단을 카드로 비워두기 위해 여기로 이동. */}
+      <p className="mt-4 text-center text-xs text-gray-500">
+        {monthLabel} 평가 ·{" "}
+        <span className="font-semibold text-gray-900 tabular-nums">
+          {submittedCount} / {colleagues.length}
+        </span>{" "}
+        제출
+      </p>
 
       {openColleague && (
         <MobileSubPage
