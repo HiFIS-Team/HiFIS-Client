@@ -22,10 +22,13 @@ export function SubTabBar() {
   return (
     <>
       {/* 헤더(h-12) 바로 아래 fixed 로 viewport 에 고정. 스크롤·오버스크롤에
-          영향 안 받게 헤더와 동일한 패턴. lg:hidden 이라 PC 영향 없음. */}
+          영향 안 받게 헤더와 동일한 패턴. lg:hidden 이라 PC 영향 없음.
+          가로 스크롤만 허용 — iOS 가 가로 swipe 도중 미세하게 위아래
+          움직이는 현상이 있어 touch-pan-x 로 vertical panning 자체를
+          이 요소에서 차단. overflow-y-hidden + overscroll-contain 같이.  */}
       <nav
         aria-label="하위 페이지"
-        className="fixed inset-x-0 top-12 z-10 flex h-12 gap-4 overflow-x-auto border-b border-line bg-card px-4 lg:hidden"
+        className="fixed inset-x-0 top-12 z-10 flex h-12 gap-4 touch-pan-x overflow-x-auto overflow-y-hidden overscroll-contain border-b border-line bg-card px-4 lg:hidden"
       >
         {items.map((sub) => {
           const active =

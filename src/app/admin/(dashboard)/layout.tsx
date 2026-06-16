@@ -136,15 +136,22 @@ export default function DashboardLayout({
   return (
     <BranchProvider>
     <PageTitleProvider>
-    <div data-theme="dark" className="min-h-screen bg-surface lg:flex">
-      {/* 모바일 : 헤더 → 콘텐츠 → 하단 탭바 vertical 흐름 (사이드바 미표시).
+    <div
+      data-theme="dark"
+      className="fixed inset-0 flex flex-col bg-surface lg:flex-row"
+    >
+      {/* outer 를 fixed inset-0 으로 박아 body 자체는 스크롤하지 않게 격리.
+          iOS Safari 의 elastic bounce 가 body 에서만 일어나므로 main 만
+          별도 스크롤 컨테이너 (아래) 로 두면 fixed 헤더 / SubTabBar / 하단 탭바가
+          끝까지 당겨도 절대 움직이지 않음.
+          모바일 : 헤더 → 콘텐츠 → 하단 탭바 vertical 흐름 (사이드바 미표시).
           PC    : 좌측 사이드바(전체 높이) + 우측 inner 컨테이너(헤더 + 콘텐츠).
                   Sidebar 자체가 hidden lg:flex 라 모바일에선 자동 비표시. */}
       <Sidebar admin={meQuery.data} />
       {/* 모바일 GlobalHeader 가 fixed h-12 (48px) 라 flow 에서 빠져 있어 첫
           in-flow 자식이 헤더 뒤에 깔리지 않게 컬럼에 pt-12 줌.
           PC 는 sticky 헤더가 flow 안이라 padding 불필요. */}
-      <div className="flex min-w-0 flex-1 flex-col pt-12 lg:pt-0">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col pt-12 lg:pt-0">
         <GlobalHeader
           admin={meQuery.data}
           onOpenProfile={() => setProfileOpen(true)}
@@ -158,7 +165,7 @@ export default function DashboardLayout({
             overflow-x-clip : translateX 슬라이드 인 애니메이션이 잠깐 카드를
             화면 오른쪽 밖으로 밀어내 body 가로 스크롤바가 생기고 세로
             뷰포트가 잠깐 줄어들어 MobileTabBar 가 흔들리던 현상 차단. */}
-        <main className="flex-1 overflow-x-clip pb-20 lg:bg-surface lg:pb-0">
+        <main className="min-h-0 flex-1 overflow-x-clip overflow-y-auto pb-20 lg:bg-surface lg:pb-0">
           <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-line lg:bg-card lg:p-8">
             {/* 페이지 전환 시 깜빡임 완화 — pathname 키로 매 라우트 변경마다
                 children 을 wrapping 한 div 가 remount → animate-fade-in 재실행

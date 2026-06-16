@@ -25,7 +25,7 @@ export function AlimtalkBody() {
           으로 in-flow. */}
       <nav
         aria-label="메시지 섹션"
-        className="fixed inset-x-0 top-12 z-20 flex h-12 gap-4 overflow-x-auto border-b border-line bg-card px-4 lg:static"
+        className="fixed inset-x-0 top-12 z-20 flex h-12 gap-4 touch-pan-x overflow-x-auto overflow-y-hidden overscroll-contain border-b border-line bg-card px-4 lg:static"
       >
         {TABS.map((t) => {
           const active = t.key === tab;
