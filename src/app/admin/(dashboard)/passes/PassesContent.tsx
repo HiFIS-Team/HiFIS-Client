@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import {
   BanknotesIcon,
   CreditCardIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import {
   keepPreviousData,
@@ -174,9 +175,10 @@ export function PassesContent({ type }: { type: PassType }) {
         지점별 {typeLabel} 상품을 관리합니다.
       </p>
 
-      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 별도 셀렉터 없음. */}
-
-      <div className="mt-4 flex justify-end lg:mt-6">
+      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 별도 셀렉터 없음.
+          등록 버튼은 모바일에선 SubTabBar 우측 끝 + 아이콘 (아래 fixed), PC 는
+          페이지 내 우측 정렬된 텍스트 버튼. */}
+      <div className="hidden lg:mt-6 lg:flex lg:justify-end">
         <button
           type="button"
           onClick={() => setFormTarget("new")}
@@ -184,6 +186,20 @@ export function PassesContent({ type }: { type: PassType }) {
           className="rounded-md bg-primary px-4 py-2 text-sm font-semibold whitespace-nowrap text-white hover:bg-primary-hover disabled:opacity-60"
         >
           {typeLabel} 등록
+        </button>
+      </div>
+
+      {/* 모바일 SubTabBar 우측 끝 + 등록 아이콘 — 회원권/수강권/락커/운동복 탭 행 위에 얹힘.
+          글로벌 SubTabBar 와 동일한 패턴 (회원·PT 페이지 필터 버튼과 톤 통일). */}
+      <div className="fixed top-12 right-1 z-20 flex h-12 items-center lg:hidden">
+        <button
+          type="button"
+          onClick={() => setFormTarget("new")}
+          disabled={!branchId}
+          aria-label={`${typeLabel} 등록`}
+          className="flex size-9 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
+        >
+          <PlusIcon className="size-5" />
         </button>
       </div>
 
