@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ComponentType } from "react";
@@ -23,18 +22,21 @@ import { MobileSubPage } from "../MobileSubPage";
 import { PasswordChangeDialog } from "../PasswordChangeDialog";
 import { PushToggle } from "../PushToggle";
 import { AdminsContent } from "../admins/AdminsContent";
+import { BranchesContent } from "../branches/BranchesContent";
 import { ReleaseNotesContent } from "../release-notes/ReleaseNotesContent";
 
 // 인라인 패널로 띄울 수 있는 서브 페이지 — 모바일에서만 사용.
 // PC 는 사이드바에서 직접 해당 라우트로 이동.
-type SubPanel = "admins" | "release-notes";
+type SubPanel = "admins" | "branches" | "release-notes";
 
 const SUB_PANEL_TITLE: Record<SubPanel, string> = {
   admins: "관리자 관리",
+  branches: "지점 관리",
   "release-notes": "패치 노트",
 };
 const SUB_PANEL_ROUTE: Record<SubPanel, string> = {
   admins: "/admin/admins",
+  branches: "/admin/branches",
   "release-notes": "/admin/release-notes",
 };
 
@@ -116,13 +118,13 @@ export function ProfileBody() {
             onClick={() => openSubPage("admins")}
           />
         )}
-        {/* 지점 관리 — SUPER 전용. inline panel 까진 안 만들고 라우트 이동.
-            프로필 오버레이는 그대로 mount 유지 (← 으로 닫으면 /admin/branches 노출). */}
+        {/* 지점 관리 — SUPER 전용. 관리자 관리·패치 노트와 동일하게 inline 패널 (모바일)
+            또는 라우트 push (PC). 선택된 지점 1 건의 정보만 노출. */}
         {isSuper && (
-          <MenuLink
+          <MenuButton
             icon={BuildingOffice2Icon}
             label="지점 관리"
-            href="/admin/branches"
+            onClick={() => openSubPage("branches")}
           />
         )}
         <MenuButton
@@ -163,6 +165,7 @@ export function ProfileBody() {
           onClose={() => setSubPanel(null)}
         >
           {subPanel === "admins" && <AdminsContent />}
+          {subPanel === "branches" && <BranchesContent />}
           {subPanel === "release-notes" && <ReleaseNotesContent />}
         </MobileSubPage>
       )}
@@ -201,25 +204,3 @@ function MenuButton({
   );
 }
 
-// 메뉴 항목 — 라우트 이동 (Next.js Link). 프로필 오버레이는 그대로 유지된 채
-// 뒤 페이지가 바뀌고, ← 으로 오버레이 닫으면 이동한 페이지가 보임.
-function MenuLink({
-  icon: Icon,
-  label,
-  href,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-gray-50"
-    >
-      <Icon className="size-5 shrink-0 text-gray-500" />
-      <span className="flex-1 text-sm font-medium text-gray-900">{label}</span>
-      <ChevronRightIcon className="size-4 shrink-0 text-gray-300" />
-    </Link>
-  );
-}
