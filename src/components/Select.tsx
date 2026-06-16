@@ -60,11 +60,11 @@ export function Select({
     <div>
       <label
         htmlFor={id}
-        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900"
+        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900 dark:text-fg"
       >
-        {Icon && <Icon className="size-4 text-gray-500" />}
+        {Icon && <Icon className="size-4 text-gray-500 dark:text-muted" />}
         {label}
-        {required && <span className="text-red-500"> *</span>}
+        {required && <span className="text-red-500 dark:text-red-400"> *</span>}
       </label>
       <Listbox
         value={value ?? ""}
@@ -75,30 +75,32 @@ export function Select({
           <ListboxButton
             id={id}
             aria-invalid={error ? true : undefined}
-            className={`relative block w-full min-h-11 cursor-default rounded-md bg-white py-2.5 pr-10 pl-3 text-left text-base outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 ${
+            className={`relative block w-full min-h-11 cursor-default rounded-md bg-white py-2.5 pr-10 pl-3 text-left text-base outline-1 -outline-offset-1 focus:outline-2 focus:-outline-offset-2 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 dark:bg-card-hover dark:disabled:bg-card dark:disabled:text-muted ${
               error
                 ? "outline-red-500 focus:outline-red-500"
-                : "outline-gray-300 focus:outline-primary"
+                : "outline-gray-300 focus:outline-primary dark:outline-line"
             } ${className}`}
           >
             {/* button 은 항상 한 줄: label + (있으면) meta 우측. description 은 옵션 list 에서만. */}
             <span
               className={`flex min-w-0 items-center gap-2 ${
-                empty ? "text-gray-400" : "text-gray-900"
+                empty
+                  ? "text-gray-400 dark:text-muted"
+                  : "text-gray-900 dark:text-fg"
               }`}
             >
               <span className="min-w-0 flex-1 truncate">
                 {selected ? selected.label : placeholder ?? " "}
               </span>
               {selected?.meta && (
-                <span className="shrink-0 text-xs text-gray-500">
+                <span className="shrink-0 text-xs text-gray-500 dark:text-muted">
                   {selected.meta}
                 </span>
               )}
             </span>
             <ChevronDownIcon
               aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-gray-500"
+              className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-gray-500 dark:text-muted"
             />
           </ListboxButton>
 
@@ -112,13 +114,13 @@ export function Select({
             // 폼 스크롤이 멈춤. 드롭다운은 모달이 아니라 인라인 위젯이라 lock 불필요.
             modal={false}
             transition
-            className="absolute top-full left-0 z-[60] mt-1 w-full max-h-44 sm:max-h-56 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in data-[closed]:opacity-0"
+            className="absolute top-full left-0 z-[60] mt-1 w-full max-h-44 sm:max-h-56 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none data-[leave]:transition data-[leave]:duration-100 data-[leave]:ease-in data-[closed]:opacity-0 dark:bg-card dark:ring-line"
           >
             {options.map((o) => (
               <ListboxOption
                 key={o.value}
                 value={o.value}
-                className="group relative flex cursor-default items-start gap-2 py-2.5 pr-9 pl-3 text-base text-gray-900 select-none data-[focus]:bg-primary data-[focus]:text-white"
+                className="group relative flex cursor-default items-start gap-2 py-2.5 pr-9 pl-3 text-base text-gray-900 select-none data-[focus]:bg-primary data-[focus]:text-white dark:text-fg"
               >
                 {/* label 메인 + description 작은 글씨로 아래 (있을 때) + meta 우측 회색 */}
                 <span className="min-w-0 flex-1">
@@ -126,13 +128,13 @@ export function Select({
                     {o.label}
                   </span>
                   {o.description && (
-                    <span className="block truncate text-xs text-gray-500 group-data-[focus]:text-white/80">
+                    <span className="block truncate text-xs text-gray-500 group-data-[focus]:text-white/80 dark:text-muted">
                       {o.description}
                     </span>
                   )}
                 </span>
                 {o.meta && (
-                  <span className="mt-0.5 shrink-0 text-xs text-gray-500 group-data-[focus]:text-white/80">
+                  <span className="mt-0.5 shrink-0 text-xs text-gray-500 group-data-[focus]:text-white/80 dark:text-muted">
                     {o.meta}
                   </span>
                 )}
@@ -145,7 +147,9 @@ export function Select({
           </ListboxOptions>
         </div>
       </Listbox>
-      {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
     </div>
   );
 }

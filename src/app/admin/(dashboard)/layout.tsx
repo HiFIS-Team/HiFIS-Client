@@ -133,7 +133,7 @@ export default function DashboardLayout({
   return (
     <BranchProvider>
     <PageTitleProvider>
-    <div className="min-h-screen bg-surface lg:flex">
+    <div data-theme="dark" className="min-h-screen bg-surface lg:flex">
       {/* 모바일 : 헤더 → 콘텐츠 → 하단 탭바 vertical 흐름 (사이드바 미표시).
           PC    : 좌측 사이드바(전체 높이) + 우측 inner 컨테이너(헤더 + 콘텐츠).
                   Sidebar 자체가 hidden lg:flex 라 모바일에선 자동 비표시. */}

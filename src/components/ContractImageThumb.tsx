@@ -12,7 +12,7 @@ export function ContractImageThumb({ url }: { url: string | null }) {
   const [open, setOpen] = useState(false);
   useEscapeKey(() => setOpen(false), open);
 
-  if (!url) return <span className="text-gray-500">없음</span>;
+  if (!url) return <span className="text-muted">없음</span>;
   const full = resolveStaticUrl(url);
 
   return (
@@ -20,7 +20,7 @@ export function ContractImageThumb({ url }: { url: string | null }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="block w-fit max-w-full overflow-hidden rounded-md border border-gray-200 transition-shadow hover:shadow-md"
+        className="block w-fit max-w-full overflow-hidden rounded-md border border-line bg-white transition-shadow hover:shadow-md"
         aria-label="신청서 크게 보기"
       >
         {/* 종이는 세로로 김 → max-h 로 썸네일 압축, 클릭 시 모달에서 풀사이즈. */}
@@ -31,7 +31,7 @@ export function ContractImageThumb({ url }: { url: string | null }) {
           className="block max-h-64 max-w-full object-contain"
         />
       </button>
-      <p className="mt-1.5 text-xs text-gray-500">
+      <p className="mt-1.5 text-xs text-muted">
         클릭하면 크게 볼 수 있어요
       </p>
 

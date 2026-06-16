@@ -54,31 +54,33 @@ export function ConfirmDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 dark:bg-black/70"
       onClick={onCancel}
     >
       <div
-        className="animate-dialog-in w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+        className="animate-dialog-in w-full max-w-sm rounded-xl bg-white p-6 shadow-xl dark:border dark:border-line dark:bg-card"
         onClick={(e) => e.stopPropagation()}
       >
         <div
           className={`mx-auto flex size-12 items-center justify-center rounded-full ${
-            danger ? "bg-red-50 text-red-500" : "bg-violet-50 text-primary"
+            danger
+              ? "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400"
+              : "bg-violet-50 text-primary dark:bg-primary/10"
           }`}
         >
           <Icon className="size-6" />
         </div>
         {title && (
-          <h2 className="mt-4 text-center text-lg font-bold text-gray-900">
+          <h2 className="mt-4 text-center text-lg font-bold text-gray-900 dark:text-fg">
             {title}
           </h2>
         )}
-        <div className="mt-2 text-center text-sm/6 text-gray-600">
+        <div className="mt-2 text-center text-sm/6 text-gray-600 dark:text-muted">
           {message}
         </div>
         {notice && (
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs/5 text-amber-800">
-            <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs/5 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <ExclamationTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500 dark:text-amber-400" />
             <div className="min-w-0 flex-1">{notice}</div>
           </div>
         )}
@@ -86,10 +88,10 @@ export function ConfirmDialog({
           <div className="mt-4 text-left">
             <label
               htmlFor="confirm-require-text"
-              className="block text-xs text-gray-600"
+              className="block text-xs text-gray-600 dark:text-muted"
             >
               계속하려면{" "}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-gray-900 dark:text-fg">
                 &quot;{requireText}&quot;
               </span>{" "}
               을(를) 입력해 주세요.
@@ -101,7 +103,7 @@ export function ConfirmDialog({
               onChange={(e) => setTyped(e.target.value)}
               autoFocus
               autoComplete="off"
-              className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-primary"
+              className="mt-1.5 block w-full rounded-md border-0 px-3 py-2 text-sm text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-primary dark:bg-card-hover dark:text-fg dark:outline-line"
             />
           </div>
         )}
@@ -109,7 +111,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+            className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 dark:text-muted dark:hover:bg-card-hover dark:hover:text-fg"
           >
             취소
           </button>

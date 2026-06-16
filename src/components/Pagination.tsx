@@ -34,12 +34,12 @@ export function Pagination({
 
   return (
     <div className="mt-4 flex items-center justify-between gap-2 text-sm">
-      <p className="text-gray-500">
-        <span className="font-semibold text-gray-700">
+      <p className="text-muted">
+        <span className="font-semibold text-fg">
           {fromIdx.toLocaleString()}–{toIdx.toLocaleString()}
         </span>
         {" / "}
-        <span className="font-semibold text-gray-700">
+        <span className="font-semibold text-fg">
           {total.toLocaleString()}
         </span>
         건
@@ -50,12 +50,12 @@ export function Pagination({
           onClick={() => change(page - 1)}
           disabled={!canPrev}
           aria-label="이전 페이지"
-          className="flex size-9 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex size-9 items-center justify-center rounded-md border border-line text-muted hover:bg-card-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <ChevronLeftIcon className="size-4" />
         </button>
-        <span className="px-3 text-sm text-gray-600 tabular-nums">
-          <span className="font-semibold text-gray-900">{page}</span>
+        <span className="px-3 text-sm text-muted tabular-nums">
+          <span className="font-semibold text-fg">{page}</span>
           {" / "}
           {totalPages}
         </span>
@@ -64,7 +64,7 @@ export function Pagination({
           onClick={() => change(page + 1)}
           disabled={!canNext}
           aria-label="다음 페이지"
-          className="flex size-9 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex size-9 items-center justify-center rounded-md border border-line text-muted hover:bg-card-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <ChevronRightIcon className="size-4" />
         </button>

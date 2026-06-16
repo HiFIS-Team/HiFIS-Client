@@ -71,10 +71,10 @@ export function DateField({
     <div>
       <label
         htmlFor={id}
-        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900"
+        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900 dark:text-fg"
       >
         {label}
-        {required && <span className="text-red-500"> *</span>}
+        {required && <span className="text-red-500 dark:text-red-400"> *</span>}
       </label>
       <div className="relative mt-2">
         <input
@@ -88,10 +88,10 @@ export function DateField({
           aria-invalid={error ? true : undefined}
           value={text}
           onChange={(e) => handleTextChange(e.target.value)}
-          className={`block min-h-11 w-full appearance-none rounded-md bg-white py-2.5 pr-11 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 ${
+          className={`block min-h-11 w-full appearance-none rounded-md bg-white py-2.5 pr-11 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 dark:bg-card-hover dark:text-fg dark:placeholder:text-muted dark:disabled:bg-card dark:disabled:text-muted ${
             error
               ? "outline-red-500 focus:outline-red-500"
-              : "outline-gray-300 focus:outline-primary"
+              : "outline-gray-300 focus:outline-primary dark:outline-line"
           }`}
         />
         {/* 달력 아이콘 영역 — 우상단 28×28.
@@ -114,16 +114,16 @@ export function DateField({
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none flex size-7 items-center justify-center rounded text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-700 group-has-[input:disabled]:opacity-50"
+            className="pointer-events-none flex size-7 items-center justify-center rounded text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-700 group-has-[input:disabled]:opacity-50 dark:text-muted dark:group-hover:bg-line dark:group-hover:text-fg"
           >
             <CalendarIcon className="size-5" />
           </div>
         </div>
       </div>
       {error ? (
-        <p className="mt-1.5 text-sm text-red-600">{error}</p>
+        <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : hint ? (
-        <p className="mt-1.5 text-sm text-gray-500">{hint}</p>
+        <p className="mt-1.5 text-sm text-gray-500 dark:text-muted">{hint}</p>
       ) : null}
     </div>
   );

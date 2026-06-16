@@ -25,29 +25,29 @@ export function TextField({
     <div>
       <label
         htmlFor={id}
-        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900"
+        className="flex items-center gap-1 text-sm/6 font-medium text-gray-900 dark:text-fg"
       >
-        {Icon && <Icon className="size-4 text-gray-500" />}
+        {Icon && <Icon className="size-4 text-gray-500 dark:text-muted" />}
         {label}
-        {required && <span className="text-red-500"> *</span>}
+        {required && <span className="text-red-500 dark:text-red-400"> *</span>}
       </label>
       <div className="mt-2">
         <input
           id={id}
           required={required}
           aria-invalid={error ? true : undefined}
-          className={`block min-h-11 w-full appearance-none rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 [&::-webkit-date-and-time-value]:text-left ${
+          className={`block min-h-11 w-full appearance-none rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 dark:bg-card-hover dark:text-fg dark:placeholder:text-muted [&::-webkit-date-and-time-value]:text-left ${
             error
               ? "outline-red-500 focus:outline-red-500"
-              : "outline-gray-300 focus:outline-primary"
+              : "outline-gray-300 focus:outline-primary dark:outline-line"
           } ${className}`}
           {...rest}
         />
       </div>
       {error ? (
-        <p className="mt-1.5 text-sm text-red-600">{error}</p>
+        <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : hint ? (
-        <p className="mt-1.5 text-sm text-gray-500">{hint}</p>
+        <p className="mt-1.5 text-sm text-gray-500 dark:text-muted">{hint}</p>
       ) : null}
     </div>
   );

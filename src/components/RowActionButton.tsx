@@ -15,10 +15,10 @@ export function RowActionButton({
 }: RowActionButtonProps) {
   const tone =
     variant === "danger"
-      ? "bg-red-50 text-red-600 hover:bg-red-100"
+      ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
       : variant === "neutral"
-        ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-        : "bg-violet-50 text-primary hover:bg-violet-100";
+        ? "bg-card-hover text-muted hover:bg-line"
+        : "bg-primary/10 text-primary hover:bg-primary/20";
   return (
     <button
       type={type}

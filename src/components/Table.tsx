@@ -36,18 +36,18 @@ const VARIANT_META: Record<
 > = {
   loading: {
     icon: ArrowPathIcon,
-    iconClass: "text-gray-400 animate-spin",
-    bgClass: "bg-gray-100",
+    iconClass: "text-muted animate-spin",
+    bgClass: "bg-card-hover",
   },
   error: {
     icon: ExclamationTriangleIcon,
-    iconClass: "text-amber-500",
-    bgClass: "bg-amber-50",
+    iconClass: "text-amber-400",
+    bgClass: "bg-amber-500/10",
   },
   empty: {
     icon: InboxIcon,
-    iconClass: "text-gray-400",
-    bgClass: "bg-gray-100",
+    iconClass: "text-muted",
+    bgClass: "bg-card-hover",
   },
 };
 
@@ -61,7 +61,7 @@ export function TableMessage({
   const v = VARIANT_META[variant];
   const Icon = v.icon;
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 px-4 py-12 text-center text-sm text-gray-500">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-card px-4 py-12 text-center text-sm text-muted">
       <div
         className={`mb-3 flex size-12 items-center justify-center rounded-full ${v.bgClass}`}
       >
@@ -76,13 +76,13 @@ export function TableMessage({
 // rows 만큼 가로 막대를 쌓는다 (열 구분 없이 가벼운 형태).
 export function TableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200">
-      <ul className="divide-y divide-gray-100">
+    <div className="overflow-hidden rounded-xl border border-line bg-card">
+      <ul className="divide-y divide-line">
         {Array.from({ length: rows }).map((_, i) => (
           <li key={i} className="flex items-center gap-4 px-4 py-4">
-            <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
-            <div className="h-3 w-32 animate-pulse rounded bg-gray-200" />
-            <div className="ml-auto h-3 w-16 animate-pulse rounded bg-gray-200" />
+            <div className="h-3 w-24 animate-pulse rounded bg-card-hover" />
+            <div className="h-3 w-32 animate-pulse rounded bg-card-hover" />
+            <div className="ml-auto h-3 w-16 animate-pulse rounded bg-card-hover" />
           </li>
         ))}
       </ul>

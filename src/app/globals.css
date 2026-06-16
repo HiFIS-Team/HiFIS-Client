@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "pretendard/dist/web/variable/pretendardvariable.css";
 
+/* dark: 변형을 [data-theme="dark"] scope 으로 묶음 — prefers-color-scheme(기본) 대신.
+   어드민 셸 outer 에만 data-theme="dark" 를 박아 그 트리 안에서만 dark: 가 깔린다.
+   회원가입·예약(공개) 화면은 attribute 없으니 라이트 톤 그대로 유지. */
+@custom-variant dark ([data-theme="dark"] &);
+
 /*
  * 디자인 토큰 (claude.md "디자인 시스템 먼저")
  * Tailwind v4 기본 팔레트·간격·라운드는 그대로 사용하고,
@@ -37,8 +42,10 @@ body {
   height: 100%;
 }
 
-/* body 기본 배경·텍스트 — 다크 톤. */
-body {
+/* 다크 셸 — 어드민 outer 에 data-theme="dark" 가 붙으면 그 트리 한정으로
+   배경·기본 텍스트·native UI(color-scheme) 가 다크. 공개 페이지는 영향 없음. */
+[data-theme="dark"] {
+  color-scheme: dark;
   background: var(--color-surface);
   color: var(--color-fg);
 }
