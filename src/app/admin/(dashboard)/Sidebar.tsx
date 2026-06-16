@@ -81,7 +81,7 @@ const NAV: NavGroup[] = [
         label: "센터 기여도",
         comingSoon: true,
       },
-      { href: "/admin/staff/projects", label: "프로젝트", comingSoon: true },
+      { href: "/admin/staff/projects", label: "프로젝트" },
     ],
   },
   {
