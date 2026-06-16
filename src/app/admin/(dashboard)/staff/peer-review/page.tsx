@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
   CheckCircleIcon,
   LockClosedIcon,
-  ScaleIcon,
   StarIcon as StarOutline,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
@@ -115,11 +114,9 @@ export default function StaffPeerReviewPage() {
     <div>
       <PageTitle title="동료 평가" />
 
-      <h1 className="mt-4 flex items-center gap-2 text-2xl font-black tracking-tighter text-gray-900">
-        <ScaleIcon className="size-6 text-primary" />
-        동료 평가
-      </h1>
-      <p className="mt-1 text-sm text-gray-500">
+      {/* SubTabBar 가 이미 페이지 정체성을 가지고 있어 큰 h1 은 중복 — 진행
+          카운트 줄만 페이지 상단에 둠. */}
+      <p className="mt-4 text-sm text-gray-500">
         {monthLabel} 평가 ·{" "}
         <span className="font-semibold text-gray-900 tabular-nums">
           {submittedCount} / {colleagues.length}

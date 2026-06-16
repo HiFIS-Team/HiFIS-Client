@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckIcon, PlusIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { useToast } from "@/providers/ToastProvider";
 import { timeAgo } from "@/lib/format";
@@ -102,13 +102,9 @@ export default function StaffFacilityCarePage() {
     <div>
       <PageTitle title="환경 정비" />
 
-      {/* 헤더 — GBX 톤 (font-black + tracking-tighter). 아이콘은 SparklesIcon 으로
-          청결 / 정돈 뉘앙스. 카운트는 진행률 대신 누적 (회전 작업도 자연스러움). */}
-      <h1 className="mt-4 flex items-center gap-2 text-2xl font-black tracking-tighter text-gray-900">
-        <SparklesIcon className="size-6 text-primary" />
-        환경 정비
-      </h1>
-      <p className="mt-1 text-sm text-gray-500">
+      {/* SubTabBar 가 이미 페이지 정체성을 가지고 있어 큰 h1 은 중복 — 누적
+          카운트 줄만 페이지 상단에 둠. */}
+      <p className="mt-4 text-sm text-gray-500">
         오늘{" "}
         <span className="font-semibold text-gray-900 tabular-nums">
           {todayLogs.length}건

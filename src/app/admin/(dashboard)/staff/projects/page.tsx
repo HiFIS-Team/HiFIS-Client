@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
   CalendarIcon,
   PlusIcon,
-  RocketLaunchIcon,
   TrashIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
@@ -160,14 +159,20 @@ export default function StaffProjectsPage() {
     <div>
       <PageTitle title="프로젝트" />
 
-      {/* 페이지 헤더 — 제목 좌, 새 프로젝트 + 아이콘 우. SubTabBar (업무 6 tab)
-          가 꽉 차서 거기 우측엔 못 박으니, 페이지 헤더 라인에 자연스럽게 묶음.
-          모바일·PC 동일 위치. */}
+      {/* SubTabBar 가 이미 페이지 정체성을 가지고 있어 큰 h1 은 중복.
+          카운트 줄 좌, 새 프로젝트 + 아이콘 우 로 한 줄. */}
       <div className="mt-4 flex items-center justify-between gap-2">
-        <h1 className="flex items-center gap-2 text-2xl font-black tracking-tighter text-gray-900">
-          <RocketLaunchIcon className="size-6 text-primary" />
-          프로젝트
-        </h1>
+        <p className="text-sm text-gray-500">
+          진행 중{" "}
+          <span className="font-semibold text-gray-900 tabular-nums">
+            {active.length}개
+          </span>
+          {" · "}
+          내가 주도{" "}
+          <span className="font-semibold text-primary tabular-nums">
+            {myLeadCount}개
+          </span>
+        </p>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
@@ -178,17 +183,6 @@ export default function StaffProjectsPage() {
           <PlusIcon className="size-5" />
         </button>
       </div>
-      <p className="mt-1 text-sm text-gray-500">
-        진행 중{" "}
-        <span className="font-semibold text-gray-900 tabular-nums">
-          {active.length}개
-        </span>
-        {" · "}
-        내가 주도{" "}
-        <span className="font-semibold text-primary tabular-nums">
-          {myLeadCount}개
-        </span>
-      </p>
 
       {/* 진행 중 */}
       <section className="mt-6">
