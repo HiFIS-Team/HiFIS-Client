@@ -65,7 +65,6 @@ const NAV: NavGroup[] = [
       {
         href: "/admin/staff/facility-care",
         label: "환경 정비",
-        comingSoon: true,
       },
       {
         href: "/admin/staff/peer-review",
