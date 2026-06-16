@@ -8,6 +8,7 @@ import {
   BellIcon,
   BuildingOffice2Icon,
   ChevronRightIcon,
+  EnvelopeIcon,
   KeyIcon,
   NewspaperIcon,
   UserGroupIcon,
@@ -16,11 +17,13 @@ import { getMe } from "@/lib/api/auth";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
 import { useBranch } from "@/providers/BranchProvider";
+import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { adminRoleLabel } from "@/lib/format";
+import { branchShortName } from "@/components/BranchPicker";
+import { Switch } from "@/components/Switch";
 import { PageTitle } from "../PageTitle";
 import { MobileSubPage } from "../MobileSubPage";
 import { PasswordChangeDialog } from "../PasswordChangeDialog";
-import { PushToggle } from "../PushToggle";
 import { AdminsContent } from "../admins/AdminsContent";
 import { BranchesContent } from "../branches/BranchesContent";
 import { ReleaseNotesContent } from "../release-notes/ReleaseNotesContent";
@@ -49,11 +52,30 @@ const SUB_PANEL_ROUTE: Record<SubPanel, string> = {
 export function ProfileBody() {
   const router = useRouter();
   const toast = useToast();
-  const { isSuper } = useBranch();
+  const { isSuper, branches } = useBranch();
   const meQuery = useQuery({ queryKey: ["admin", "me"], queryFn: getMe });
   const [passwordOpen, setPasswordOpen] = useState(false);
   // 모바일 인라인 패널 — 프로필 위에 슬라이드 인 (parent profile 그대로 mount)
   const [subPanel, setSubPanel] = useState<SubPanel | null>(null);
+
+  // 푸시 알림 — usePushNotifications 훅 직접 사용해 인라인 Switch 토글로.
+  // (이전 PushToggle 풀-width 버튼 → 메뉴 행에 자연스럽게 녹는 토글로 교체)
+  const push = usePushNotifications();
+  const pushBlocked = push.permission === "denied";
+
+  async function togglePush(next: boolean) {
+    try {
+      if (next) {
+        await push.enable();
+        toast.success("푸시 알림이 켜졌습니다.");
+      } else {
+        await push.disable();
+        toast.success("푸시 알림이 꺼졌습니다.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "푸시 알림 설정 실패");
+    }
+  }
 
   function logout() {
     clearTokens();
@@ -74,43 +96,82 @@ export function ProfileBody() {
   const admin = meQuery.data;
   if (!admin) return null;
 
+  // 카드 안에 노출할 지점 — FC 는 본인 지점, SUPER_ADMIN 은 "전 지점".
+  const ownBranch = admin.branch_id
+    ? branches.find((b) => b.id === admin.branch_id)
+    : null;
+  const branchLabel = ownBranch
+    ? branchShortName(ownBranch.name)
+    : isSuper
+      ? "전 지점"
+      : null;
+
   return (
     <>
       <PageTitle title="내 정보" />
 
-      {/* 사용자 정보 카드 — 아바타(이니셜) + 이름 + 역할 */}
-      <section className="mt-6 rounded-xl border border-line bg-card p-6">
+      {/* 사용자 정보 카드 — 아바타(이니셜) + 이름 + 역할 칩.
+          살짝 보라 글로우 + 배경 그라데이션 hint 로 hero 카드 톤. */}
+      <section className="mt-6 overflow-hidden rounded-xl border border-line bg-gradient-to-br from-card via-card to-primary/10 p-6 shadow-lg shadow-primary/10">
         <div className="flex items-center gap-4">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-fuchsia-500 text-xl font-bold text-white shadow-lg shadow-primary/30">
+          <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-fuchsia-500 text-2xl font-bold text-white shadow-lg shadow-primary/40 ring-2 ring-primary/20">
             {admin.name.charAt(0) || "?"}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-black tracking-tight text-fg">
+            <p className="truncate text-xl font-black tracking-tight text-fg">
               {admin.name}
             </p>
-            <p className="text-sm text-muted">{adminRoleLabel(admin)}</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-primary bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+                {adminRoleLabel(admin)}
+              </span>
+              {branchLabel && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted">
+                  <BuildingOffice2Icon className="size-3.5" />
+                  {branchLabel}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
       {/* 운영 메뉴 */}
       <section className="mt-5 divide-y divide-line overflow-hidden rounded-xl border border-line bg-card">
+        {/* 이메일 — info row. 클릭 액션 없음, 값만 노출. */}
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <EnvelopeIcon className="size-5 shrink-0 text-muted" />
+          <span className="shrink-0 text-sm font-medium text-fg">이메일</span>
+          <span className="min-w-0 flex-1 truncate text-right text-sm text-muted">
+            {admin.email}
+          </span>
+        </div>
         <MenuButton
           icon={KeyIcon}
           label="비밀번호 변경"
           onClick={() => setPasswordOpen(true)}
         />
-        {/* 푸시 알림 토글 — PushToggle 컴포넌트가 자체 ON/OFF 처리 */}
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <BellIcon className="size-5 shrink-0 text-muted" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-fg">푸시 알림</p>
-            <p className="mt-0.5 text-xs text-muted">
-              새 신청·예약 등 도착 시 푸시로 알림
-            </p>
+        {/* 푸시 알림 토글 — 인라인 Switch. supported 가 false 인 환경
+            (브라우저 자체 불가) 에선 행 통째로 숨김. */}
+        {push.supported && (
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <BellIcon className="size-5 shrink-0 text-muted" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-fg">푸시 알림</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {pushBlocked
+                  ? "브라우저 설정에서 알림 허용이 필요해요"
+                  : "새 신청·예약 등 도착 시 푸시로 알림"}
+              </p>
+            </div>
+            <Switch
+              checked={push.subscribed}
+              disabled={push.isBusy || pushBlocked}
+              onChange={togglePush}
+              ariaLabel="푸시 알림 토글"
+            />
           </div>
-          <PushToggle />
-        </div>
+        )}
         {isSuper && (
           <MenuButton
             icon={UserGroupIcon}
