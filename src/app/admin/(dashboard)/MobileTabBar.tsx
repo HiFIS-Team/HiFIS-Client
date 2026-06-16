@@ -54,11 +54,11 @@ export const TABS: TabDef[] = [
     label: "회원",
     icon: UsersIcon,
     iconActive: UsersSolidIcon,
-    routes: ["/admin/members", "/admin/reservations", "/admin/pt-applications"],
+    routes: ["/admin/members", "/admin/pt-applications", "/admin/reservations"],
     subTabs: [
       { href: "/admin/members", label: "회원" },
-      { href: "/admin/reservations", label: "예약" },
       { href: "/admin/pt-applications", label: "PT" },
+      { href: "/admin/reservations", label: "예약" },
     ],
   },
   {

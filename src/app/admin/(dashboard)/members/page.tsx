@@ -1,17 +1,16 @@
 "use client";
 
 import { PageTitle } from "../PageTitle";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  BuildingOffice2Icon,
-  FunnelIcon,
+  AdjustmentsHorizontalIcon,
   MagnifyingGlassIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   keepPreviousData,
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -24,9 +23,6 @@ import { useBranch } from "@/providers/BranchProvider";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowActionButton } from "@/components/RowActionButton";
 import { StatusBadge, STATUS_FILTERS } from "@/components/StatusBadge";
-import { CATEGORY_FILTERS } from "@/components/CategoryBadge";
-import { Select } from "@/components/Select";
-import { TextField } from "@/components/TextField";
 import { Td, Th, TableMessage, TableSkeleton } from "@/components/Table";
 import { Pagination } from "@/components/Pagination";
 import { formatDate, formatPhone, formatWon } from "@/lib/format";
@@ -111,10 +107,23 @@ export default function AdminMembersPage() {
     return passesQuery.data?.find((p) => p.id === id)?.name ?? "-";
   }
   // 상태 필터 ("" = 전체) — 현재 페이지 내에서만 client-side로 거름 (간단·MVP).
-  // 정확한 상태별 카운트는 대시보드 summary 참조.
   const [statusFilter, setStatusFilter] = useState("");
-  // 구분 필터 — NEW(신규)/EXISTING(기존) 또는 "" (전체). 상태 필터와 동일하게 client-side.
-  const [categoryFilter, setCategoryFilter] = useState("");
+  // 우측 ⚙ 필터 popover (상태 선택용) 열림 상태
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!filterOpen) return;
+    function handle(e: PointerEvent) {
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(e.target as Node)
+      ) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", handle);
+    return () => document.removeEventListener("pointerdown", handle);
+  }, [filterOpen]);
   // 검색 — 입력이 숫자(전화번호)면 phone=, 이름이면 name= 으로 백엔드 검색 (디바운스 300ms)
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -199,11 +208,9 @@ export default function AdminMembersPage() {
 
   const membersPage = membersQuery.data;
   const members = membersPage?.items ?? [];
-  // 상태·구분 필터는 현재 페이지 안에서만 적용 (페이지네이션과 동시 적용은 백엔드 필터 필요 — 우선 client-side)
+  // 상태 필터는 현재 페이지 안에서만 적용 (페이지네이션과 동시 적용은 백엔드 필터 필요 — 우선 client-side)
   const visibleMembers = members.filter(
-    (m) =>
-      (!statusFilter || m.status === statusFilter) &&
-      (!categoryFilter || m.category === categoryFilter),
+    (m) => !statusFilter || m.status === statusFilter,
   );
 
   return (
@@ -213,34 +220,99 @@ export default function AdminMembersPage() {
         회원가입 신청서로 접수된 회원입니다.
       </p>
 
-      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 상태/구분/검색 만. */}
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-        <Select
-          id="status-filter"
-          label="상태"
-          icon={FunnelIcon}
-          options={STATUS_FILTERS}
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+      {/* 지점은 사이드바 글로벌 셀렉터에서 선택. 페이지 안엔 검색바만 단독.
+          상태 필터는 글로벌 SubTabBar 의 우측 끝에 fixed 버튼으로 따로 띄움 (아래).
+          SubTabBar 와의 시각 간격을 줄여 mt-2 (검색바가 탭바에 가깝게 붙음). */}
+      <div className="relative mt-2 lg:mt-5">
+        <MagnifyingGlassIcon
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-gray-400"
         />
-        <Select
-          id="category-filter"
-          label="구분"
-          icon={FunnelIcon}
-          options={CATEGORY_FILTERS}
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        />
-        <TextField
+        <input
           id="search"
-          label="검색"
-          icon={MagnifyingGlassIcon}
           type="search"
-          placeholder="이름 또는 전화번호"
+          placeholder="이름 또는 전화번호로 검색"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
+          className="w-full rounded-xl border border-gray-200 bg-white py-3 pr-4 pl-11 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
         />
       </div>
+
+      {/* 모바일 SubTabBar 우측 끝에 떠 있는 구분 버튼 — 회원/예약/PT 탭 행 위에 얹힘.
+          상태(유효/만료/홀딩) + 구분(신규/기존) 옵션. 전체는 옵션 없이 기본값.
+          PC 는 lg:hidden (사이드바 사용 중). */}
+      <div className="fixed top-12 right-1 z-20 flex h-12 items-center lg:hidden">
+        <div ref={filterRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setFilterOpen((v) => !v)}
+            aria-label="필터"
+            className={`flex size-9 items-center justify-center rounded-md transition-colors ${
+              statusFilter
+                ? "bg-primary/10 text-primary"
+                : "text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            <AdjustmentsHorizontalIcon className="size-5" />
+          </button>
+          {filterOpen && (
+            <div className="animate-panel-in absolute top-full right-0 z-30 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+              {STATUS_FILTERS.filter((s) => s.value).map((s) => {
+                const active = statusFilter === s.value;
+                return (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(active ? "" : s.value);
+                      setFilterOpen(false);
+                    }}
+                    className={`block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                      active
+                        ? "bg-primary/10 font-semibold text-primary"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+              {statusFilter && (
+                <>
+                  <hr className="my-1.5 border-gray-100" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter("");
+                      setFilterOpen(false);
+                    }}
+                    className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-gray-500 transition-colors hover:bg-gray-50"
+                  >
+                    전체 보기
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 적용된 필터 칩 — 검색바 아래에 시각화. × 로 즉시 해제. */}
+      {statusFilter && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            {STATUS_FILTERS.find((s) => s.value === statusFilter)?.label}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("")}
+              aria-label="필터 해제"
+              className="ml-0.5 rounded-full p-0.5 hover:bg-primary/10"
+            >
+              <XMarkIcon className="size-3.5" />
+            </button>
+          </span>
+        </div>
+      )}
 
       <div className="mt-6">
         {membersQuery.isLoading ? (
