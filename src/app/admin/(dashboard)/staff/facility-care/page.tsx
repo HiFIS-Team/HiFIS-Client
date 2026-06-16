@@ -98,6 +98,13 @@ export default function StaffFacilityCarePage() {
   const todayLogs = logs.filter((l) => l.timestamp >= t0);
   const myTodayCount = todayLogs.filter((l) => l.userName === myName).length;
 
+  // 일지 필터 — "all" 오늘 전체 / "mine" 내가 한 것만. 카운트 클릭으로 전환.
+  const [feedFilter, setFeedFilter] = useState<"all" | "mine">("all");
+  const filteredFeed =
+    feedFilter === "mine"
+      ? todayLogs.filter((l) => l.userName === myName)
+      : todayLogs;
+
   return (
     <div>
       <PageTitle title="환경 정비" />
@@ -161,31 +168,48 @@ export default function StaffFacilityCarePage() {
 
       {/* 오늘의 일지 — 카톡 채팅방 톤을 빌리되 정렬·검색 가능한 구조로.
           시간 역순. 빈 상태는 점선 박스로 가볍게.
-          헤더 우측에 오늘 카운트 (전체 / 본인) — 별도 줄 차지 안 하게 함께 둠. */}
+          헤더 우측 카운트는 클릭으로 일지 필터 전환 — 오늘 N건 (전체) / 내가
+          한 일 M개 (본인만). 활성 카운트는 font-semibold 로 강조. */}
       <section className="mt-8">
         <div className="flex items-baseline justify-between gap-2 px-1">
           <h2 className="text-xs font-bold tracking-tight text-gray-500 uppercase">
             오늘의 일지
           </h2>
           <p className="text-xs text-gray-500">
-            오늘{" "}
-            <span className="font-semibold text-gray-900 tabular-nums">
-              {todayLogs.length}건
-            </span>
+            <button
+              type="button"
+              onClick={() => setFeedFilter("all")}
+              className={`tabular-nums transition-colors ${
+                feedFilter === "all"
+                  ? "font-semibold text-gray-900"
+                  : "hover:text-gray-700"
+              }`}
+            >
+              오늘 {todayLogs.length}건
+            </button>
             {" · "}
-            내가 한 일{" "}
-            <span className="font-semibold text-primary tabular-nums">
-              {myTodayCount}개
-            </span>
+            <button
+              type="button"
+              onClick={() => setFeedFilter("mine")}
+              className={`tabular-nums transition-colors ${
+                feedFilter === "mine"
+                  ? "font-semibold text-primary"
+                  : "hover:text-gray-700"
+              }`}
+            >
+              내가 한 일 {myTodayCount}개
+            </button>
           </p>
         </div>
-        {todayLogs.length === 0 ? (
+        {filteredFeed.length === 0 ? (
           <p className="mt-2 rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
-            아직 기록이 없어요.
+            {feedFilter === "mine"
+              ? "오늘 내가 한 기록이 없어요."
+              : "아직 기록이 없어요."}
           </p>
         ) : (
           <ul className="mt-2 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
-            {todayLogs.map((log) => (
+            {filteredFeed.map((log) => (
               <li key={log.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <CheckIcon className="size-4 text-primary" />
