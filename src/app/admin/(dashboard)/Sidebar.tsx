@@ -69,7 +69,6 @@ const NAV: NavGroup[] = [
       {
         href: "/admin/staff/peer-review",
         label: "동료 평가",
-        comingSoon: true,
       },
       {
         href: "/admin/staff/kindness",
