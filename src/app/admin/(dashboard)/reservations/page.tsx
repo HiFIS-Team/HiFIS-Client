@@ -84,14 +84,14 @@ export default function AdminReservationsPage() {
               {reservations.map((r) => (
                 <li
                   key={r.id}
-                  className="rounded-xl border border-gray-200 p-4"
+                  className="rounded-xl border border-line bg-card p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-gray-900">
+                      <p className="truncate font-semibold text-fg">
                         {r.name}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted">
                         {formatPhone(r.phone)}
                       </p>
                     </div>
@@ -103,11 +103,11 @@ export default function AdminReservationsPage() {
                     </RowActionButton>
                   </div>
                   <div className="mt-3 grid gap-1 text-sm">
-                    <p className="text-gray-700">
-                      <span className="text-gray-400">방문 예정 </span>
+                    <p className="text-fg">
+                      <span className="text-muted">방문 예정 </span>
                       {formatDate(r.visit_date)}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted">
                       {isSuper && (
                         <>
                           {branchName(r.branch_id)}
@@ -122,9 +122,9 @@ export default function AdminReservationsPage() {
             </ul>
 
             {/* 데스크탑: 기존 테이블 */}
-            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
+            <div className="hidden overflow-x-auto rounded-xl border border-line bg-card lg:block">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
+                <thead className="sticky top-0 z-10 bg-card-hover text-muted">
                 <tr>
                   <Th>지점</Th>
                   <Th>이름</Th>
@@ -134,14 +134,14 @@ export default function AdminReservationsPage() {
                   <Th> </Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-line">
                 {reservations.map((r) => (
-                  <tr key={r.id} className="text-gray-800">
+                  <tr key={r.id} className="text-fg">
                     <Td>{branchName(r.branch_id)}</Td>
                     <Td className="font-medium">{r.name}</Td>
                     <Td>{formatPhone(r.phone)}</Td>
                     <Td>{formatDate(r.visit_date)}</Td>
-                    <Td className="text-gray-500">{formatDate(r.created_at)}</Td>
+                    <Td className="text-muted">{formatDate(r.created_at)}</Td>
                     <Td>
                       <div className="flex justify-end">
                         <RowActionButton

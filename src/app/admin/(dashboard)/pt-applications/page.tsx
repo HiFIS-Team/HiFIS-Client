@@ -224,7 +224,7 @@ export default function AdminPtApplicationsPage() {
       <div className="relative mt-2 lg:mt-5">
         <MagnifyingGlassIcon
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-gray-400"
+          className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted"
         />
         <input
           id="search"
@@ -232,7 +232,7 @@ export default function AdminPtApplicationsPage() {
           placeholder="이름 또는 전화번호로 검색"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 bg-white py-3 pr-4 pl-11 text-[15px] text-gray-900 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
+          className="w-full rounded-xl border border-line bg-card py-3 pr-4 pl-11 text-[15px] text-fg placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/15 focus:outline-none"
         />
       </div>
 
@@ -248,13 +248,13 @@ export default function AdminPtApplicationsPage() {
             className={`flex size-9 items-center justify-center rounded-md transition-colors ${
               statusFilter
                 ? "bg-primary/10 text-primary"
-                : "text-gray-500 hover:bg-gray-100"
+                : "text-muted hover:bg-card-hover hover:text-fg"
             }`}
           >
             <AdjustmentsHorizontalIcon className="size-5" />
           </button>
           {filterOpen && (
-            <div className="animate-panel-in absolute top-full right-0 z-30 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+            <div className="animate-panel-in absolute top-full right-0 z-30 mt-1 w-44 overflow-hidden rounded-xl border border-line bg-card p-1.5 shadow-lg">
               {STATUS_FILTERS.filter((s) => s.value).map((s) => {
                 const active = statusFilter === s.value;
                 return (
@@ -268,7 +268,7 @@ export default function AdminPtApplicationsPage() {
                     className={`block w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                       active
                         ? "bg-primary/10 font-semibold text-primary"
-                        : "text-gray-700 hover:bg-gray-50"
+                        : "text-fg hover:bg-card-hover"
                     }`}
                   >
                     {s.label}
@@ -277,14 +277,14 @@ export default function AdminPtApplicationsPage() {
               })}
               {statusFilter && (
                 <>
-                  <hr className="my-1.5 border-gray-100" />
+                  <hr className="my-1.5 border-line" />
                   <button
                     type="button"
                     onClick={() => {
                       setStatusFilter("");
                       setFilterOpen(false);
                     }}
-                    className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-gray-500 transition-colors hover:bg-gray-50"
+                    className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-muted transition-colors hover:bg-card-hover hover:text-fg"
                   >
                     전체 보기
                   </button>
@@ -326,27 +326,27 @@ export default function AdminPtApplicationsPage() {
               {visibleApplications.map((a) => (
                 <li
                   key={a.id}
-                  className="rounded-xl border border-gray-200 p-4"
+                  className="rounded-xl border border-line bg-card p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-gray-900">
+                      <p className="truncate font-semibold text-fg">
                         {a.name}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted">
                         {formatPhone(a.phone)}
                       </p>
                     </div>
                     <StatusBadge status={a.status} />
                   </div>
                   <div className="mt-3 grid gap-1 text-sm">
-                    <p className="text-gray-700">
-                      <span className="text-gray-400">수강권 </span>
+                    <p className="text-fg">
+                      <span className="text-muted">수강권 </span>
                       {ptPassName(a.pt_pass_id)}
-                      <span className="ml-2 text-gray-400">·</span>
+                      <span className="ml-2 text-muted">·</span>
                       <span className="ml-2">{formatWon(a.final_price)}</span>
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted">
                       {isSuper && (
                         <>
                           {branchName(a.branch_id)}
@@ -381,9 +381,9 @@ export default function AdminPtApplicationsPage() {
             </ul>
 
             {/* 데스크탑: 기존 테이블 */}
-            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 lg:block">
+            <div className="hidden overflow-x-auto rounded-xl border border-line bg-card lg:block">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
+                <thead className="sticky top-0 z-10 bg-card-hover text-muted">
                 <tr>
                   <Th>지점</Th>
                   <Th>이름</Th>
@@ -395,9 +395,9 @@ export default function AdminPtApplicationsPage() {
                   <Th> </Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-line">
                 {visibleApplications.map((a) => (
-                  <tr key={a.id} className="text-gray-800">
+                  <tr key={a.id} className="text-fg">
                     <Td>{branchName(a.branch_id)}</Td>
                     <Td className="font-medium">{a.name}</Td>
                     <Td>{formatPhone(a.phone)}</Td>
@@ -406,7 +406,7 @@ export default function AdminPtApplicationsPage() {
                     </Td>
                     <Td>{ptPassName(a.pt_pass_id)}</Td>
                     <Td>{formatWon(a.final_price)}</Td>
-                    <Td className="text-gray-500">{formatDate(a.created_at)}</Td>
+                    <Td className="text-muted">{formatDate(a.created_at)}</Td>
                     <Td>
                       <div className="flex justify-end gap-2">
                         <RowActionButton

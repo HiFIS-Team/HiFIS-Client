@@ -190,23 +190,23 @@ export function PtEditDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6 py-10"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10"
       onClick={onClose}
     >
       <div
-        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl bg-white shadow-xl"
+        className="animate-dialog-in flex max-h-full w-full max-w-lg flex-col rounded-xl border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="border-b border-gray-200 px-6 py-4 text-lg font-bold text-gray-900">
+        <h2 className="border-b border-line px-6 py-4 text-lg font-bold text-fg">
           PT 정보 수정
         </h2>
 
         {isLoading ? (
-          <p className="px-6 py-16 text-center text-sm text-gray-500">
+          <p className="px-6 py-16 text-center text-sm text-muted">
             불러오는 중…
           </p>
         ) : isError ? (
-          <p className="px-6 py-16 text-center text-sm text-gray-500">
+          <p className="px-6 py-16 text-center text-sm text-muted">
             정보를 불러오지 못했습니다.
           </p>
         ) : (
@@ -456,16 +456,16 @@ export function PtEditDialog({
                   }
                   className="size-4 rounded accent-primary"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-fg">
                   마케팅 정보 수신 동의
                 </span>
               </label>
             </div>
-            <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+            <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                className="rounded-md px-4 py-2 text-sm font-semibold text-muted hover:bg-card-hover hover:text-fg"
               >
                 취소
               </button>
