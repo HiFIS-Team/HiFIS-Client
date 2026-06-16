@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
 import { useToast } from "@/providers/ToastProvider";
 import { formatWon, timeAgo } from "@/lib/format";
@@ -111,6 +111,11 @@ export default function StaffFacilityCarePage() {
     recordLog(`custom:${trimmed}`, trimmed, { isCustom: true });
     setCustomInput("");
     setCustomOpen(false);
+  }
+
+  function deleteLog(id: string) {
+    setLogs((prev) => prev.filter((l) => l.id !== id));
+    toast.success("기록을 삭제했어요.");
   }
 
   function submitSupply() {
@@ -247,32 +252,48 @@ export default function StaffFacilityCarePage() {
           </p>
         ) : (
           <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line bg-card">
-            {filteredFeed.map((log) => (
-              <li key={log.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary bg-primary/15">
-                  <CheckIcon className="size-4 text-primary" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-fg">
-                    {log.taskLabel}
-                    {log.supplyItem && (
-                      <span className="text-muted"> · {log.supplyItem}</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {log.userName}
-                    {typeof log.supplyAmount === "number" && (
-                      <span className="ml-1 font-medium text-primary">
-                        {formatWon(log.supplyAmount)}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-muted">
-                  {timeAgo(new Date(log.timestamp).toISOString())}
-                </span>
-              </li>
-            ))}
+            {filteredFeed.map((log) => {
+              const isMine = log.userName === myName;
+              return (
+                <li
+                  key={log.id}
+                  className="flex items-center gap-3 px-4 py-3"
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary bg-primary/15">
+                    <CheckIcon className="size-4 text-primary" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-fg">
+                      {log.taskLabel}
+                      {log.supplyItem && (
+                        <span className="text-muted"> · {log.supplyItem}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {log.userName}
+                      {typeof log.supplyAmount === "number" && (
+                        <span className="ml-1 font-medium text-primary">
+                          {formatWon(log.supplyAmount)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs text-muted">
+                    {timeAgo(new Date(log.timestamp).toISOString())}
+                  </span>
+                  {isMine && (
+                    <button
+                      type="button"
+                      onClick={() => deleteLog(log.id)}
+                      aria-label="기록 삭제"
+                      className="shrink-0 rounded-md p-1 text-red-400 hover:bg-red-500/10"
+                    >
+                      <TrashIcon className="size-4" />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
