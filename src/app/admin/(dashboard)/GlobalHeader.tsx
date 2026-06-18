@@ -6,6 +6,7 @@ import { BuildingOffice2Icon } from "@heroicons/react/16/solid";
 import { useBranch } from "@/providers/BranchProvider";
 import { BranchPicker, branchShortName } from "@/components/BranchPicker";
 import { NotificationBell } from "./NotificationBell";
+import { BranchRegisterButton } from "./branches/BranchRegisterButton";
 import { usePageTitle } from "./PageTitleProvider";
 import { adminRoleLabel } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
@@ -39,15 +40,18 @@ export function GlobalHeader({
   const initial = admin.name.charAt(0) || "?";
   return (
     <header className="fixed inset-x-0 top-0 z-20 flex h-12 items-center gap-2 border-b border-line bg-card px-3 lg:sticky lg:inset-x-auto lg:h-auto lg:gap-3 lg:px-6 lg:py-3">
-      {/* 지점 — 좌측. SUPER_ADMIN 은 셀렉터, FC 는 본인 지점 라벨(선택 불가). */}
+      {/* 지점 — 좌측. SUPER_ADMIN 은 셀렉터 + 지점 등록 (+), FC 는 본인 지점 라벨. */}
       {branches.length > 0 && (
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center">
           {isSuper ? (
-            <BranchPicker
-              value={selectedBranchId}
-              onChange={setSelectedBranchId}
-              branches={branches}
-            />
+            <>
+              <BranchPicker
+                value={selectedBranchId}
+                onChange={setSelectedBranchId}
+                branches={branches}
+              />
+              <BranchRegisterButton />
+            </>
           ) : ownBranch ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-fg">
               <BuildingOffice2Icon className="size-4 shrink-0 text-muted" />

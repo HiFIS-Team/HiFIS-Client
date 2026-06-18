@@ -8,7 +8,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
-  ChatBubbleLeftRightIcon,
   MapPinIcon,
   PhoneIcon,
   QrCodeIcon,
@@ -21,10 +20,6 @@ import {
 } from "@/lib/api/branches";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getErrorMessage } from "@/lib/api/client";
-import {
-  getSystemConfig,
-  updateSystemConfig,
-} from "@/lib/api/systemConfig";
 import { useToast } from "@/providers/ToastProvider";
 import { useBranch } from "@/providers/BranchProvider";
 import { RowActionButton } from "@/components/RowActionButton";
@@ -156,54 +151,6 @@ export function BranchesContent() {
     onError: (e) => toast.error(getErrorMessage(e)),
   });
 
-  // 전역 알림톡 마스터 — 비상 정지. 지점 토글과 AND, 끄면 모든 지점 발송 중단.
-  const systemConfigQuery = useQuery({
-    queryKey: ["admin", "system-config"],
-    queryFn: getSystemConfig,
-    enabled: isSuper,
-  });
-  const systemConfigMutation = useMutation({
-    mutationFn: (next: boolean) =>
-      updateSystemConfig({ messaging_enabled: next }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["admin", "system-config"], data);
-      // 전역 토글 양방향 cascade — 끄면 지점도 모두 OFF, 켜면 모두 ON.
-      const targetOn = data.messaging_enabled;
-      const list =
-        queryClient.getQueryData<Branch[]>(["admin", "branches"]) ?? branches;
-      const mismatched = list.filter((b) => b.messaging_enabled !== targetOn);
-      const applyAll = (old: Branch[] | undefined) =>
-        old?.map((b) => ({ ...b, messaging_enabled: targetOn }));
-      queryClient.setQueryData<Branch[]>(["admin", "branches"], applyAll);
-      queryClient.setQueryData<Branch[]>(["branches"], applyAll);
-      if (mismatched.length > 0) {
-        Promise.all(
-          mismatched.map((b) =>
-            updateBranch(b.id, { messaging_enabled: targetOn } as BranchInput)
-              .catch(() => null),
-          ),
-        ).finally(() => {
-          queryClient.invalidateQueries({ queryKey: ["admin", "branches"] });
-          queryClient.invalidateQueries({ queryKey: ["branches"] });
-        });
-      }
-      if (targetOn) {
-        toast.success(
-          mismatched.length > 0
-            ? `전역 알림톡 발송이 켜졌어요. 지점 ${mismatched.length}곳도 함께 켜졌어요.`
-            : "전역 알림톡 발송이 켜졌어요.",
-        );
-      } else {
-        toast.success(
-          mismatched.length > 0
-            ? `전역 알림톡 발송이 꺼졌어요. 켜진 지점 ${mismatched.length}곳도 함께 꺼졌어요.`
-            : "전역 알림톡 발송이 꺼졌어요.",
-        );
-      }
-    },
-    onError: (e) => toast.error(getErrorMessage(e)),
-  });
-
   // 지점 카드 토글 — 한 번 클릭으로 즉시 PATCH (낙관적 업데이트는 생략, 짧은 요청이라 OK).
   const [togglingBranchId, setTogglingBranchId] = useState<string | null>(null);
   const branchToggleMutation = useMutation({
@@ -235,7 +182,6 @@ export function BranchesContent() {
   }
 
   const editing = formTarget && formTarget !== "new" ? formTarget : null;
-  const masterOn = !!systemConfigQuery.data?.messaging_enabled;
 
   function submitForm(values: BranchInput) {
     if (editing) updateMutation.mutate({ id: editing.id, values });
@@ -247,56 +193,12 @@ export function BranchesContent() {
       <PageTitle title="지점 관리" />
       <p className="hidden">선택한 지점의 정보를 관리합니다.</p>
 
-      {/* 전역 알림톡 마스터 — 비상 정지. 끄면 모든 지점 발송이 즉시 차단됨. */}
-      <section className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-card px-5 py-4">
-        <div className="flex items-start gap-3">
-          <ChatBubbleLeftRightIcon className="size-5 shrink-0 text-primary" />
-          <div>
-            <p className="text-sm font-semibold text-fg">
-              전역 알림톡 발송{" "}
-              <span
-                className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
-                  systemConfigQuery.data?.messaging_enabled
-                    ? "bg-green-500/15 text-green-300"
-                    : "bg-red-500/15 text-red-300"
-                }`}
-              >
-                {systemConfigQuery.isLoading
-                  ? "…"
-                  : systemConfigQuery.data?.messaging_enabled
-                    ? "ON"
-                    : "OFF"}
-              </span>
-            </p>
-            <p className="mt-0.5 text-xs text-muted">
-              끄면 모든 지점의 알림톡 발송이 즉시 차단돼요. (지점별 토글과 함께
-              켜져 있어야 발송)
-            </p>
-          </div>
-        </div>
-        <Switch
-          checked={!!systemConfigQuery.data?.messaging_enabled}
-          disabled={
-            systemConfigQuery.isLoading || systemConfigMutation.isPending
-          }
-          ariaLabel="전역 알림톡 발송 토글"
-          onChange={(next) => systemConfigMutation.mutate(next)}
-        />
-      </section>
-
-      <div className="mt-6 flex items-center justify-end">
-        <button
-          type="button"
-          onClick={() => setFormTarget("new")}
-          className="rounded-md border border-primary bg-primary/25 shadow-lg shadow-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-primary/35 active:scale-[0.97]"
-        >
-          지점 등록
-        </button>
-      </div>
-
-      <div className="mt-4">
+      <div className="mt-6">
         {!branch ? (
-          <TableMessage>지점을 선택해 주세요.</TableMessage>
+          <TableMessage>
+            지점을 선택해 주세요. 새 지점은 헤더의 지점 셀렉터 옆 + 로 등록할
+            수 있어요.
+          </TableMessage>
         ) : (
           <article className="rounded-xl border border-line bg-card p-5">
             <div className="flex items-start justify-between gap-2">
@@ -334,22 +236,14 @@ export function BranchesContent() {
               <LinkRow label="카카오 채널" url={branch.kakao_url} />
               <LinkRow label="네이버 플레이스" url={branch.naver_place_url} />
               <MessengerRow messenger={branch.messenger} />
-              {/* 지점 알림톡 토글 — 전역이 꺼져 있으면 disabled. */}
+              {/* 지점 알림톡 토글 — 지점별 ON/OFF (전역 마스터 제거됨). */}
               <div className="flex items-center justify-between">
-                <span className="text-muted">
-                  알림톡 발송
-                  {!masterOn && (
-                    <span className="ml-1.5 text-xs text-muted">
-                      (전역 OFF)
-                    </span>
-                  )}
-                </span>
+                <span className="text-muted">알림톡 발송</span>
                 <Switch
                   checked={branch.messaging_enabled}
                   disabled={
-                    !masterOn ||
-                    (branchToggleMutation.isPending &&
-                      togglingBranchId === branch.id)
+                    branchToggleMutation.isPending &&
+                    togglingBranchId === branch.id
                   }
                   ariaLabel={`${branch.name} 알림톡 발송 토글`}
                   onChange={(next) => {
