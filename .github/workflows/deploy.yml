@@ -17,4 +17,4 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 2222
           script: |
-            bash ~/deploy/frontend.sh
+            bash ~/hifis/deploy/frontend.sh
