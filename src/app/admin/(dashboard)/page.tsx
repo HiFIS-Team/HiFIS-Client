@@ -1,9 +1,11 @@
 "use client";
 
 import { PageTitle } from "./PageTitle";
-import { useEffect, useRef, useState, type ComponentType, type TouchEvent } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState, type ComponentType, type TouchEvent, type SVGProps } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  BanknotesIcon,
   BoltIcon,
   CakeIcon,
   HandRaisedIcon,
@@ -11,10 +13,14 @@ import {
   CalendarIcon,
   CheckCircleIcon,
   ChevronRightIcon,
+  ClipboardDocumentCheckIcon,
   ClockIcon,
+  DocumentTextIcon,
+  FolderIcon,
   HandThumbUpIcon,
   HeartIcon,
   InboxIcon,
+  MegaphoneIcon,
   PauseCircleIcon,
   TrophyIcon,
   UserPlusIcon,
@@ -585,6 +591,10 @@ export default function AdminDashboardPage() {
         <AttendanceCard />
       </div>
 
+      <div className="mt-2">
+        <AppShortcutCard />
+      </div>
+
       <section className="mt-8">
         <h2 className="text-lg font-bold tracking-tight text-fg">회원 상태</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -792,5 +802,56 @@ function AttendanceCard() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 앱 shortcut 카드 — 4열 그리드. 각 셀 : 컬러 아이콘 + 라벨 (+ 뱃지).
+// 뱃지는 mock. 나중에 알림·업무 카운트로 연결.
+interface ShortcutItem {
+  label: string;
+  href: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  tone: string;
+  badge?: number;
+}
+const SHORTCUTS: ShortcutItem[] = [
+  { label: "업무", href: "/admin/tasks", icon: ClipboardDocumentCheckIcon, tone: "text-primary", badge: 2 },
+  { label: "프로젝트", href: "/admin/projects", icon: FolderIcon, tone: "text-yellow-400", badge: 2 },
+  { label: "회의록", href: "/admin/meetings", icon: DocumentTextIcon, tone: "text-sky-400" },
+  { label: "근태 월차", href: "/admin/attendance", icon: ClockIcon, tone: "text-pink-400" },
+  { label: "랭킹", href: "/admin/ranking", icon: TrophyIcon, tone: "text-amber-400" },
+  { label: "일정", href: "/admin/schedule", icon: CalendarIcon, tone: "text-violet-400" },
+  { label: "급여", href: "/admin/payroll", icon: BanknotesIcon, tone: "text-emerald-400" },
+  { label: "공지", href: "/admin/notices", icon: MegaphoneIcon, tone: "text-lime-400", badge: 1 },
+];
+
+function AppShortcutCard() {
+  return (
+    <div className="rounded-lg border border-line bg-card px-6 py-5">
+      <div className="grid grid-cols-4 gap-y-5">
+        {SHORTCUTS.map((s) => (
+          <ShortcutTile key={s.label} {...s} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShortcutTile({ label, href, icon: Icon, tone, badge }: ShortcutItem) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-1.5 rounded-md py-1 transition-colors hover:bg-card-hover"
+    >
+      <span className="relative inline-flex">
+        <Icon className={`size-5 ${tone}`} />
+        {badge ? (
+          <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+            {badge}
+          </span>
+        ) : null}
+      </span>
+      <span className="text-sm text-muted">{label}</span>
+    </Link>
   );
 }
