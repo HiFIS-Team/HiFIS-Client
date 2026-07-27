@@ -5,13 +5,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ComponentType, type TouchEvent, type SVGProps } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowRightIcon,
   BanknotesIcon,
   BoltIcon,
   CakeIcon,
   HandRaisedIcon,
-  CalendarDaysIcon,
   CalendarIcon,
-  CheckCircleIcon,
   ChevronRightIcon,
   ClipboardDocumentCheckIcon,
   ClockIcon,
@@ -21,14 +20,10 @@ import {
   HeartIcon,
   InboxIcon,
   MegaphoneIcon,
-  PauseCircleIcon,
   TrophyIcon,
-  UserPlusIcon,
   UsersIcon,
-  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
-import { getAdmins } from "@/lib/api/admins";
 import { useBranch } from "@/providers/BranchProvider";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { formatDate, formatPhone } from "@/lib/format";
@@ -43,74 +38,6 @@ const RECENT_TYPE_META: Record<
   회원: { icon: UsersIcon, chipClass: "bg-green-500/15 text-green-300" },
   PT: { icon: BoltIcon, chipClass: "bg-primary/15 text-primary" },
 };
-
-// 요약 숫자 카드 — 아이콘 + 라벨 + 큰 숫자 + 부가 정보 (브랜드 톤 보라 테두리)
-function StatCard({
-  label,
-  value,
-  hint,
-  icon: Icon,
-  iconClassName = "text-muted",
-}: {
-  label: string;
-  value: number;
-  hint?: string;
-  icon: ComponentType<{ className?: string }>;
-  iconClassName?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-line bg-card p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted">{label}</p>
-        <Icon className={`size-5 ${iconClassName}`} />
-      </div>
-      <p className="mt-1 text-2xl font-bold text-fg">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
-    </div>
-  );
-}
-
-// 처리할 일 카드 — 값 > 0 이면 amber 톤으로 강조, 0 이면 보라 테두리 (해야 할 일이 없다는 신호)
-function TodoCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: number;
-  icon: ComponentType<{ className?: string }>;
-}) {
-  const active = value > 0;
-  return (
-    <div
-      className={`rounded-xl border p-5 ${
-        active
-          ? "border-amber-500/40 bg-amber-500/15"
-          : "border-line bg-card"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <p
-          className={`text-sm font-medium ${
-            active ? "text-amber-200" : "text-muted"
-          }`}
-        >
-          {label}
-        </p>
-        <Icon
-          className={`size-5 ${active ? "text-amber-400" : "text-muted"}`}
-        />
-      </div>
-      <p
-        className={`mt-1 text-2xl font-bold ${
-          active ? "text-amber-100" : "text-fg"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
 
 // 이번 달 가입 추이 — 회원·PT 두 줄 수평 막대 (연령대 분포 카드와 동일 패턴).
 // 같은 max 기준으로 길이 비교 → 회원·PT 상대적 비중 한눈에.
@@ -494,7 +421,6 @@ export default function AdminDashboardPage() {
     queryFn: getMe,
     retry: false,
   });
-  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
 
   // 글로벌 지점 — 사이드바 셀렉터에서 선택한 단일 지점. 대시보드 모든 정보는
   // 이 지점만 보여줌 (회원/PT/예약/알림톡 카운트, 최근 신청, 가입 추이 등 전부).
@@ -510,32 +436,11 @@ export default function AdminDashboardPage() {
     staleTime: 0,
     enabled: !!selectedBranchId,
   });
-  const adminsQuery = useQuery({
-    queryKey: ["admin", "admins"],
-    queryFn: () => getAdmins(),
-    enabled: isSuper,
-  });
 
   const summary = summaryQuery.data;
   const m = summary?.members;
   const pt = summary?.pt_applications;
-  const r = summary?.reservations;
   const msg = summary?.messages;
-
-  const pendingFc = (adminsQuery.data ?? []).filter(
-    (a) => a.status === "PENDING_APPROVAL",
-  ).length;
-
-  // 만기 임박 — 회원 + PT 합산
-  const expiringSoonCount =
-    (m?.expiring_soon_count ?? 0) + (pt?.expiring_soon_count ?? 0);
-
-  // 회원 상태 — 회원 + PT 합산
-  const statusCount = (key: string) =>
-    (m?.by_status?.[key] ?? 0) + (pt?.by_status?.[key] ?? 0);
-  const activeCount = statusCount("REGISTERED");
-  const expiredCount = statusCount("EXPIRED");
-  const heldCount = statusCount("HELD");
 
   // 최근 신청 — 예약·회원·PT 각각 5건씩 받아서 합쳐 최신순 상위 5건
   type RecentRow = {
@@ -595,52 +500,11 @@ export default function AdminDashboardPage() {
         <AppShortcutCard />
       </div>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-bold tracking-tight text-fg">회원 상태</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <StatCard
-            label="활성"
-            value={activeCount}
-            icon={CheckCircleIcon}
-            iconClassName="text-green-500"
-          />
-          <StatCard
-            label="만료"
-            value={expiredCount}
-            icon={XCircleIcon}
-            iconClassName="text-muted"
-          />
-          <StatCard
-            label="홀딩"
-            value={heldCount}
-            icon={PauseCircleIcon}
-            iconClassName="text-amber-500"
-          />
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="text-lg font-bold tracking-tight text-fg">처리할 일</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <TodoCard
-            label="만기 임박 (7일 내)"
-            value={expiringSoonCount}
-            icon={ClockIcon}
-          />
-          <TodoCard
-            label="오늘 방문 예정"
-            value={r?.today_visit ?? 0}
-            icon={CalendarDaysIcon}
-          />
-          {isSuper && (
-            <TodoCard
-              label="FC 가입 승인 대기"
-              value={pendingFc}
-              icon={UserPlusIcon}
-            />
-          )}
-        </div>
-      </section>
+      {/* 일정 · 프로젝트 : 모바일 세로, PC 는 양옆 2열. */}
+      <div className="mt-2 grid grid-cols-1 gap-2 lg:grid-cols-2">
+        <ScheduleCard />
+        <ProjectsCard />
+      </div>
 
       <section className="mt-8">
         <h2 className="text-lg font-bold tracking-tight text-fg">회원 분석</h2>
@@ -857,5 +721,128 @@ function ShortcutTile({ label, href, icon: Icon, tone, badge }: ShortcutItem) {
         <span className="text-sm text-muted">{label}</span>
       </Link>
     </div>
+  );
+}
+
+// 홈 리스트 카드 공용 헤더 — 좌측 제목·카운트, 우측 "전체 →".
+function ListCardHeader({
+  title,
+  count,
+  href,
+}: {
+  title: string;
+  count: number;
+  href: string;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-baseline gap-2">
+        <h3 className="text-base font-bold text-fg">{title}</h3>
+        <span className="text-sm text-muted tabular-nums">{count}</span>
+      </div>
+      <Link
+        href={href}
+        className="flex items-center gap-1 text-sm text-muted transition-colors hover:text-fg"
+      >
+        전체 <ArrowRightIcon className="size-4" />
+      </Link>
+    </div>
+  );
+}
+
+// 하단 fade 힌트 (더 있음 암시) — 실제 로딩 skeleton 아님.
+function TeaseRow() {
+  return (
+    <li className="flex items-center gap-3 pl-3">
+      <span className="h-6 w-0.5 rounded-full bg-white/10" />
+      <span className="h-2 w-1/2 rounded-full bg-white/10" />
+    </li>
+  );
+}
+
+// 오늘 일정 — 시간 뱃지 + 라벨.
+interface ScheduleItem {
+  label: string;
+  time: string;
+  accent: string;
+}
+const SCHEDULES: ScheduleItem[] = [
+  { label: "팀 주간회의", time: "10:00", accent: "bg-primary" },
+  { label: "본사 방문", time: "14:00", accent: "bg-yellow-400" },
+  { label: "신입 오리엔테이션", time: "16:00", accent: "bg-sky-400" },
+];
+
+function ScheduleCard() {
+  return (
+    <div className="rounded-lg border border-line bg-card px-6 py-5">
+      <ListCardHeader title="오늘 일정" count={SCHEDULES.length} href="/admin/schedule" />
+      <ul className="mt-4 space-y-3">
+        {SCHEDULES.map((s, i) => (
+          <li
+            key={i}
+            className="flex items-center gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0"
+          >
+            <span className={`h-8 w-1 rounded-full ${s.accent}`} />
+            <span className="flex-1 truncate font-semibold text-fg">
+              {s.label}
+            </span>
+            <span className="rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary">
+              {s.time}
+            </span>
+          </li>
+        ))}
+        <TeaseRow />
+        <TeaseRow />
+      </ul>
+    </div>
+  );
+}
+
+// 프로젝트 — 라벨 + D-day 뱃지 (임박은 노랑, 여유는 primary).
+interface ProjectItem {
+  label: string;
+  dday: number;
+  accent: string;
+}
+const PROJECTS: ProjectItem[] = [
+  { label: "환경 정비 리브랜딩", dday: 12, accent: "bg-primary" },
+  { label: "PT룸 장비 교체", dday: 20, accent: "bg-primary" },
+  { label: "여름 회원 이벤트", dday: 45, accent: "bg-yellow-400" },
+];
+
+function ProjectsCard() {
+  return (
+    <div className="rounded-lg border border-line bg-card px-6 py-5">
+      <ListCardHeader title="프로젝트" count={PROJECTS.length} href="/admin/projects" />
+      <ul className="mt-4 space-y-3">
+        {PROJECTS.map((p, i) => (
+          <li
+            key={i}
+            className="flex items-center gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0"
+          >
+            <span className={`h-8 w-1 rounded-full ${p.accent}`} />
+            <span className="flex-1 truncate font-semibold text-fg">
+              {p.label}
+            </span>
+            <DdayBadge dday={p.dday} />
+          </li>
+        ))}
+        <TeaseRow />
+        <TeaseRow />
+      </ul>
+    </div>
+  );
+}
+
+function DdayBadge({ dday }: { dday: number }) {
+  const urgent = dday <= 14;
+  const cls = urgent
+    ? "bg-yellow-400/20 text-yellow-400"
+    : "bg-primary/20 text-primary";
+  const text = dday === 0 ? "D-day" : dday > 0 ? `D-${dday}` : `D+${-dday}`;
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${cls}`}>
+      {text}
+    </span>
   );
 }
