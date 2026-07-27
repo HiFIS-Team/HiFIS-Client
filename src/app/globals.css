@@ -161,23 +161,6 @@ body {
   animation: page-slide-out-right 0.25s ease-in forwards;
 }
 
-/* 마퀴 (뉴스티커) — 컨텐츠를 두 번 반복 붙여서 -50% 이동 시 첫 세트가
-   완전히 빠진 위치가 원위치와 같아 seamless loop. */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-.animate-marquee {
-  animation: marquee 40s linear infinite;
-}
-.animate-marquee:hover {
-  animation-play-state: paused;
-}
-
 /* 전역 스크롤바 숨김 — 스크롤 동작(휠·터치·키보드) 은 그대로 유지하되 시각적
    스크롤바만 모든 요소에서 제거. 모바일 톤·미니멀 어드민 UI 통일. */
 * {
