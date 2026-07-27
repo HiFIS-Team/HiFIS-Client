@@ -3,40 +3,41 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  HomeIcon,
+  ClipboardDocumentCheckIcon,
+  FolderIcon,
+  DocumentTextIcon,
   Squares2X2Icon,
-  UsersIcon,
-  BriefcaseIcon,
-  CubeIcon,
-  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import {
+  HomeIcon as HomeSolidIcon,
+  ClipboardDocumentCheckIcon as ClipboardSolidIcon,
+  FolderIcon as FolderSolidIcon,
+  DocumentTextIcon as DocumentSolidIcon,
   Squares2X2Icon as Squares2X2SolidIcon,
-  UsersIcon as UsersSolidIcon,
-  BriefcaseIcon as BriefcaseSolidIcon,
-  CubeIcon as CubeSolidIcon,
-  ChartBarIcon as ChartBarSolidIcon,
 } from "@heroicons/react/24/solid";
 import type { ComponentType } from "react";
 
 // 모바일 하단 5탭 — 각 탭이 여러 페이지를 묶는 그룹.
+// v2 재편으로 회원/상품/통계 계열 제거. 새 5탭 : 홈 · 업무 · 프로젝트 · 회의록 · 전체.
+// "전체" 는 사이드바 18개를 앱 그리드 형태로 노출하는 화면 (미개발).
 // 활성 탭 판정: 현재 pathname 이 그 탭의 routes 중 하나로 시작하면 활성.
-// PC(lg+) 에선 lg:hidden 으로 숨고 기존 사이드바가 보임.
+// PC(lg+) 에선 lg:hidden 으로 숨고 사이드바가 보임.
 
 export interface SubTabDef {
   href: string;
   label: string;
-  // SUPER_ADMIN 만 보이는 항목 (예: 지점 관리). FC 는 자동 숨김.
+  // SUPER_ADMIN 만 보이는 항목. FC 는 자동 숨김.
   superOnly?: boolean;
 }
 
 export interface TabDef {
-  href: string; // 탭 누르면 이동할 기본 경로 (그룹의 첫 페이지)
+  href: string; // 탭 누르면 이동할 기본 경로
   label: string;
   icon: ComponentType<{ className?: string }>;
   iconActive: ComponentType<{ className?: string }>;
-  routes: string[]; // 이 탭에 포함되는 페이지 경로들 (활성 판정용)
-  // 그룹 안 서브 페이지들 — SubTabBar 가 활성 탭의 이 리스트를 한 줄로 표시.
-  // 1개 이하면 SubTabBar 가 자체적으로 비표시 (예: 홈).
+  routes: string[]; // 이 탭에 포함되는 경로들 (활성 판정용)
+  // 그룹 안 서브 페이지 — 1 개 이하면 SubTabBar 자체 비표시.
   subTabs: SubTabDef[];
 }
 
@@ -44,70 +45,42 @@ export const TABS: TabDef[] = [
   {
     href: "/admin",
     label: "홈",
-    icon: Squares2X2Icon,
-    iconActive: Squares2X2SolidIcon,
+    icon: HomeIcon,
+    iconActive: HomeSolidIcon,
     routes: ["/admin"],
     subTabs: [],
   },
   {
-    href: "/admin/members",
-    label: "회원",
-    icon: UsersIcon,
-    iconActive: UsersSolidIcon,
-    routes: ["/admin/members", "/admin/pt-applications", "/admin/reservations"],
-    subTabs: [
-      { href: "/admin/members", label: "회원" },
-      { href: "/admin/pt-applications", label: "PT" },
-      { href: "/admin/reservations", label: "예약" },
-    ],
-  },
-  {
-    // 메시지(알림톡) 는 헤더 종이비행기 아이콘으로 이동 → 업무는 평가 항목들만.
-    href: "/admin/staff/facility-care",
+    href: "/admin/tasks",
     label: "업무",
-    icon: BriefcaseIcon,
-    iconActive: BriefcaseSolidIcon,
-    routes: ["/admin/staff"],
-    subTabs: [
-      { href: "/admin/staff/facility-care", label: "환경 정비" },
-      { href: "/admin/staff/peer-review", label: "동료 평가" },
-      { href: "/admin/staff/kindness", label: "회원 친절도" },
-      { href: "/admin/staff/classes", label: "수업 개수" },
-      { href: "/admin/staff/contribution", label: "센터 기여도" },
-      { href: "/admin/staff/projects", label: "프로젝트" },
-    ],
+    icon: ClipboardDocumentCheckIcon,
+    iconActive: ClipboardSolidIcon,
+    routes: ["/admin/tasks"],
+    subTabs: [],
   },
   {
-    // 지점은 프로필 메뉴로 옮김 — 상품 그룹은 4 종 타입으로 분리.
-    href: "/admin/passes/membership",
-    label: "상품",
-    icon: CubeIcon,
-    iconActive: CubeSolidIcon,
-    routes: ["/admin/passes"],
-    subTabs: [
-      { href: "/admin/passes/membership", label: "회원권" },
-      { href: "/admin/passes/pt", label: "수강권" },
-      { href: "/admin/passes/locker", label: "락커" },
-      { href: "/admin/passes/clothes", label: "운동복" },
-    ],
+    href: "/admin/projects",
+    label: "프로젝트",
+    icon: FolderIcon,
+    iconActive: FolderSolidIcon,
+    routes: ["/admin/projects"],
+    subTabs: [],
   },
   {
-    href: "/admin/stats",
-    label: "통계",
-    icon: ChartBarIcon,
-    iconActive: ChartBarSolidIcon,
-    routes: [
-      "/admin/stats",
-      "/admin/pass-sales",
-      "/admin/registration-mix",
-      "/admin/membership-expiry",
-    ],
-    subTabs: [
-      { href: "/admin/stats", label: "유입" },
-      { href: "/admin/pass-sales", label: "판매" },
-      { href: "/admin/registration-mix", label: "신규" },
-      { href: "/admin/membership-expiry", label: "잔여" },
-    ],
+    href: "/admin/meetings",
+    label: "회의록",
+    icon: DocumentTextIcon,
+    iconActive: DocumentSolidIcon,
+    routes: ["/admin/meetings"],
+    subTabs: [],
+  },
+  {
+    href: "/admin/all",
+    label: "전체",
+    icon: Squares2X2Icon,
+    iconActive: Squares2X2SolidIcon,
+    routes: ["/admin/all"],
+    subTabs: [],
   },
 ];
 
