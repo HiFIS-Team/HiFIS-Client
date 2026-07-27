@@ -569,18 +569,17 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <PageTitle title="대시보드" />
-      {/* 홈 인사말 — GBX 톤(굵은 산세리프 + 좁은 자간) 으로 무게감.
-          이름 줄에만 그라데이션 — 단색 보라 위에 한 군데 포인트. */}
-      <h1 className="text-3xl leading-[1.15] font-black tracking-tighter text-fg">
-        <span className="inline-flex items-center gap-2">
-          안녕하세요
-          <HandRaisedIcon className="size-7 text-primary" />
-        </span>
-        <br />
-        <span className="bg-gradient-to-r from-primary via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-          {name ? `${name}님!` : "환영합니다!"}
-        </span>
-      </h1>
+      {/* 홈 인사말 — 카드 안 한 줄 가로 배치. GBX 톤(굵은 산세리프 + 좁은 자간).
+          이름에만 그라데이션 — 단색 보라 위에 한 군데 포인트. */}
+      <div className="rounded-lg border border-line bg-card px-5 py-4">
+        <h1 className="flex items-center gap-2 text-2xl font-black tracking-tighter text-fg">
+          <span>안녕하세요</span>
+          <span className="bg-gradient-to-r from-primary via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            {name ? `${name}님!` : "환영합니다!"}
+          </span>
+          <HandRaisedIcon className="size-6 text-primary" />
+        </h1>
+      </div>
 
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
