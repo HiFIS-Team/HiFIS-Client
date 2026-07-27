@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTitle } from "./PageTitle";
-import { useRef, useState, type ComponentType, type TouchEvent } from "react";
+import { useEffect, useRef, useState, type ComponentType, type TouchEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BoltIcon,
@@ -569,10 +569,11 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <PageTitle title="대시보드" />
-      {/* 홈 인사말 — 카드 안 한 줄 가로 배치. GBX 톤(굵은 산세리프 + 좁은 자간).
+      {/* 홈 인사말 — 카드 안 두 줄 (오늘 날짜 kicker + 한 줄 인사).
           이름에만 그라데이션 — 단색 보라 위에 한 군데 포인트. */}
-      <div className="rounded-lg border border-line bg-card px-5 py-4">
-        <h1 className="flex items-center gap-2 text-2xl font-black tracking-tighter text-fg">
+      <div className="rounded-lg border border-line bg-card px-6 py-5">
+        <GreetingDate />
+        <h1 className="mt-1 flex items-center gap-2 text-2xl font-black tracking-tighter text-fg">
           <span>안녕하세요</span>
           <span className="bg-gradient-to-r from-primary via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
             {name ? `${name}님!` : "환영합니다!"}
@@ -741,4 +742,21 @@ export default function AdminDashboardPage() {
       </section>
     </div>
   );
+}
+
+// 홈 인사말 위 kicker — "7월 27일 월요일" 형식.
+// hydration mismatch 방지 : mount 후에만 실제 날짜 표시, 초기엔 nbsp 로 높이 유지.
+const WEEKDAY_KO = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+function GreetingDate() {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    // 분 단위 갱신 — 자정 넘어가면 자동 반영
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const text = now
+    ? `${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAY_KO[now.getDay()]}`
+    : " ";
+  return <p className="text-xs text-muted">{text}</p>;
 }
