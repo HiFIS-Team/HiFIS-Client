@@ -780,7 +780,7 @@ function AttendanceCard() {
       <p className="mt-2 text-center text-4xl font-black tracking-tighter text-fg tabular-nums">
         {clock}
       </p>
-      <div className="mt-6 h-0.5 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-500"
           style={{ width: `${percent}%` }}
@@ -838,20 +838,24 @@ function AppShortcutCard() {
 }
 
 function ShortcutTile({ label, href, icon: Icon, tone, badge }: ShortcutItem) {
+  // 클릭·hover 영역이 grid 셀 전체가 아니라 아이콘+라벨 크기까지만 되도록,
+  // 링크 자체는 inline-flex 로 폭을 컨텐츠에 맞추고 셀 안에서 중앙 정렬.
   return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-1.5 rounded-md py-1 transition-colors hover:bg-card-hover"
-    >
-      <span className="relative inline-flex">
-        <Icon className={`size-5 ${tone}`} />
-        {badge ? (
-          <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-            {badge}
-          </span>
-        ) : null}
-      </span>
-      <span className="text-sm text-muted">{label}</span>
-    </Link>
+    <div className="flex justify-center">
+      <Link
+        href={href}
+        className="inline-flex flex-col items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors hover:bg-card-hover"
+      >
+        <span className="relative inline-flex">
+          <Icon className={`size-5 ${tone}`} />
+          {badge ? (
+            <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+              {badge}
+            </span>
+          ) : null}
+        </span>
+        <span className="text-sm text-muted">{label}</span>
+      </Link>
+    </div>
   );
 }
