@@ -13,7 +13,7 @@ import {
 
 // 모바일 전용 하단 탭바 — lg:hidden 으로 PC 에선 사라짐 (PC 는 별도 사이드바 예정).
 // 활성 탭 : 아이콘 뒤 primary/25 pill + primary 아이콘·라벨.
-// iOS safe area 는 자체 pb-[env(...)] 로 흡수.
+// iOS home indicator 여백은 safe-area-inset-bottom 로 흡수.
 
 interface Tab {
   label: string;
