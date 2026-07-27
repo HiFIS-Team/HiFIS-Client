@@ -11,7 +11,9 @@ import {
   CalendarIcon,
   BanknotesIcon,
   MegaphoneIcon,
+  ArrowRightIcon,
 } from "@heroicons/react/24/outline";
+import { BoltIcon } from "@heroicons/react/24/solid";
 
 // v2 홈 하단 카드 — 바코드 · 인사 · 오늘 근무 · 앱 그리드.
 // 스타일 규약(v2-styling-conventions) 준수 :
@@ -44,6 +46,8 @@ export function HomeCards({ name = "은후" }: { name?: string }) {
       <GreetingCard name={name} />
       <AttendanceCard />
       <AppGridCard />
+      <TodayTasksCard />
+      <NoticesCard />
     </div>
   );
 }
@@ -194,5 +198,135 @@ function AppTile({ label, icon: Icon, tone, badge }: AppItem) {
       </span>
       <span className="text-sm text-muted">{label}</span>
     </button>
+  );
+}
+
+// 리스트 카드 공용 헤더 — 좌측 제목 + 카운트, 우측 "전체 →" 링크.
+function ListCardHeader({ title, count }: { title: string; count: number }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-baseline gap-2">
+        <h3 className="text-base font-bold text-fg">{title}</h3>
+        <span className="text-sm text-muted tabular-nums">{count}</span>
+      </div>
+      <button
+        type="button"
+        className="flex items-center gap-1 text-sm text-muted transition-colors hover:text-fg"
+      >
+        전체 <ArrowRightIcon className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+// 더 있음을 암시하는 페이드/스켈레톤 행 — 실제 로딩이 아니라 시각적 tease.
+function TeaseRow() {
+  return (
+    <li className="flex items-center gap-3 pl-3">
+      <span className="h-6 w-0.5 rounded-full bg-white/10" />
+      <span className="h-2 w-1/2 rounded-full bg-white/10" />
+    </li>
+  );
+}
+
+// 오늘의 업무 카드 — 리스트 (컬러 라인 + 아이콘 + 라벨 + D-day/반복 뱃지)
+type TaskBadgeTone = "primary" | "yellow";
+interface TaskItem {
+  label: string;
+  emoji: string;
+  accent: string;
+  badge: string;
+  badgeTone: TaskBadgeTone;
+}
+const TASKS: TaskItem[] = [
+  { label: "환경정비", emoji: "🍚", accent: "bg-primary", badge: "반복", badgeTone: "primary" },
+  { label: "ㅁㅁ", emoji: "📝", accent: "bg-yellow-400", badge: "D-4", badgeTone: "yellow" },
+  { label: "테스트 프로젝트", emoji: "📝", accent: "bg-primary", badge: "D-45", badgeTone: "primary" },
+];
+
+function TodayTasksCard() {
+  return (
+    <div className="rounded-lg bg-card p-5">
+      <ListCardHeader title="오늘의 업무" count={TASKS.length} />
+      <ul className="mt-4 space-y-3">
+        {TASKS.map((t, i) => (
+          <li
+            key={i}
+            className="flex items-center gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0"
+          >
+            <span className={`h-8 w-1 rounded-full ${t.accent}`} />
+            <span className="text-lg" aria-hidden>
+              {t.emoji}
+            </span>
+            <span className="flex-1 truncate font-semibold text-fg">
+              {t.label}
+            </span>
+            <TaskBadge tone={t.badgeTone}>{t.badge}</TaskBadge>
+          </li>
+        ))}
+        <TeaseRow />
+        <TeaseRow />
+      </ul>
+    </div>
+  );
+}
+
+function TaskBadge({
+  tone,
+  children,
+}: {
+  tone: TaskBadgeTone;
+  children: React.ReactNode;
+}) {
+  const cls =
+    tone === "yellow"
+      ? "bg-yellow-400/20 text-yellow-400"
+      : "bg-primary/20 text-primary";
+  return (
+    <span
+      className={`rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${cls}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+// 공지 카드 — 고정 뱃지 + 제목 + 작성자/날짜 meta
+interface NoticeItem {
+  title: string;
+  author: string;
+  date: string;
+  pinned?: boolean;
+}
+const NOTICES: NoticeItem[] = [
+  { title: "ewqweew", author: "관리자", date: "7. 24.", pinned: true },
+];
+
+function NoticesCard() {
+  return (
+    <div className="rounded-lg bg-card p-5">
+      <ListCardHeader title="공지" count={NOTICES.length} />
+      <ul className="mt-4 space-y-3">
+        {NOTICES.map((n, i) => (
+          <li key={i} className="border-b border-line pb-3 last:border-b-0 last:pb-0">
+            <div className="flex items-center gap-2">
+              {n.pinned && (
+                <span className="inline-flex items-center gap-0.5 rounded-md bg-yellow-400/20 px-1.5 py-0.5 text-xs font-bold text-yellow-400">
+                  <BoltIcon className="size-3" />
+                  고정
+                </span>
+              )}
+              <span className="font-semibold text-fg">{n.title}</span>
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              {n.author} · {n.date}
+            </p>
+          </li>
+        ))}
+        <TeaseRow />
+        <TeaseRow />
+        <TeaseRow />
+      </ul>
+    </div>
   );
 }
