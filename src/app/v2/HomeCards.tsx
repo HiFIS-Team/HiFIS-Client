@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ComponentType, SVGProps } from "react";
+import {
+  ClipboardDocumentCheckIcon,
+  FolderOpenIcon,
+  DocumentTextIcon,
+  ClockIcon,
+  TrophyIcon,
+  CalendarIcon,
+  BanknotesIcon,
+  MegaphoneIcon,
+} from "@heroicons/react/24/outline";
 
-// v2 홈 하단 카드 3장 — 바코드 · 인사 · 오늘 근무.
-// 지금은 mock. 나중에 API 붙일 때 각 카드 별 컴포넌트로 분리.
-// 시간·날짜 갱신 필요 → client component. hydration mismatch 방지 위해
-// 시간 표기는 mount 후에만 렌더 (초기엔 placeholder 문자).
+// v2 홈 하단 카드 — 바코드 · 인사 · 오늘 근무 · 앱 그리드.
+// 스타일 규약(v2-styling-conventions) 준수 :
+//   카드 rounded-lg, bg-card, p-5, 세로 gap space-y-2.
+// 지금은 mock. API 붙일 때 각 카드 컴포넌트 분리 예정.
 
 const WEEKDAY = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 function formatDate(d: Date) {
@@ -28,17 +39,18 @@ const BAR_WIDTHS = [
 
 export function HomeCards({ name = "은후" }: { name?: string }) {
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-2 p-4">
       <BarcodeCard />
       <GreetingCard name={name} />
       <AttendanceCard />
+      <AppGridCard />
     </div>
   );
 }
 
 function BarcodeCard() {
   return (
-    <div className="rounded-2xl bg-white p-4">
+    <div className="rounded-lg bg-white p-4">
       <div className="flex h-14 items-stretch gap-[1.5px]" aria-label="바코드">
         {BAR_WIDTHS.map((w, i) => (
           <div key={i} className="bg-black" style={{ flex: `${w} 0 0` }} />
@@ -61,7 +73,7 @@ function GreetingCard({ name }: { name: string }) {
   const greeting = now ? greetingForHour(now.getHours()) : "";
 
   return (
-    <div className="rounded-2xl bg-card p-5">
+    <div className="rounded-lg bg-card p-5">
       {/* placeholder   : mount 전에도 높이 유지 (레이아웃 흔들림 방지) */}
       <p className="text-xs text-muted">{dateText || " "}</p>
       <h2 className="mt-2 text-2xl leading-[1.2] font-black tracking-tighter text-fg">
@@ -97,7 +109,7 @@ function AttendanceCard() {
   const checkedOut = "--:--";
 
   return (
-    <div className="rounded-2xl bg-card p-5">
+    <div className="rounded-lg bg-card p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted">오늘 근무</p>
         <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-muted">
@@ -132,5 +144,55 @@ function AttendanceCard() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 앱 진입 그리드 — 4열 x 2행. 각 셀 : 컬러 아이콘 + 라벨(+뱃지).
+// href / onClick 은 각 화면 붙는 시점에 연결.
+type AppItem = {
+  label: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  tone: string;
+  badge?: number;
+};
+const APPS: AppItem[] = [
+  { label: "업무", icon: ClipboardDocumentCheckIcon, tone: "text-primary", badge: 2 },
+  { label: "프로젝트", icon: FolderOpenIcon, tone: "text-yellow-400", badge: 2 },
+  { label: "회의록", icon: DocumentTextIcon, tone: "text-sky-400" },
+  { label: "근태 월차", icon: ClockIcon, tone: "text-pink-400" },
+  { label: "랭킹", icon: TrophyIcon, tone: "text-amber-400" },
+  { label: "일정", icon: CalendarIcon, tone: "text-violet-400" },
+  { label: "급여", icon: BanknotesIcon, tone: "text-emerald-400" },
+  { label: "공지", icon: MegaphoneIcon, tone: "text-lime-400", badge: 1 },
+];
+
+function AppGridCard() {
+  return (
+    <div className="rounded-lg bg-card p-5">
+      <div className="grid grid-cols-4 gap-y-5">
+        {APPS.map((app) => (
+          <AppTile key={app.label} {...app} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AppTile({ label, icon: Icon, tone, badge }: AppItem) {
+  return (
+    <button
+      type="button"
+      className="flex flex-col items-center gap-1.5 rounded-md py-1 transition-colors hover:bg-card-hover"
+    >
+      <span className="relative inline-flex">
+        <Icon className={`size-7 ${tone}`} />
+        {badge ? (
+          <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+            {badge}
+          </span>
+        ) : null}
+      </span>
+      <span className="text-sm text-muted">{label}</span>
+    </button>
   );
 }
