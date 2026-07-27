@@ -9,7 +9,6 @@ import {
   HandRaisedIcon,
   CalendarDaysIcon,
   CalendarIcon,
-  ChatBubbleLeftRightIcon,
   CheckCircleIcon,
   ChevronRightIcon,
   ClockIcon,
@@ -582,31 +581,8 @@ export default function AdminDashboardPage() {
         </h1>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard
-          label="예약 신청"
-          value={r?.total ?? 0}
-          icon={CalendarIcon}
-          hint={`이번 달 ${r?.this_month ?? 0}건`}
-        />
-        <StatCard
-          label="회원"
-          value={m?.total ?? 0}
-          icon={UsersIcon}
-          hint={`이번 달 ${m?.this_month_signups ?? 0}명`}
-        />
-        <StatCard
-          label="PT"
-          value={pt?.total ?? 0}
-          icon={BoltIcon}
-          hint={`이번 달 ${pt?.this_month_signups ?? 0}건`}
-        />
-        <StatCard
-          label="알림톡 이력"
-          value={msg?.total ?? 0}
-          icon={ChatBubbleLeftRightIcon}
-          hint={`오늘 ${msg?.today ?? 0}건`}
-        />
+      <div className="mt-2">
+        <AttendanceCard />
       </div>
 
       <section className="mt-8">
@@ -759,4 +735,62 @@ function GreetingDate() {
     ? `${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAY_KO[now.getDay()]}`
     : " ";
   return <p className="text-xs text-muted">{text}</p>;
+}
+
+// 오늘 근무 카드 — 실시간 시계 + 근무 시간(06:20~18:20) 진행률 프로그레스 + 출퇴근.
+// 근태 API 미구현 : 지금은 미출근 mock (percent=0, 출근·퇴근 --:--).
+function AttendanceCard() {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const clock = now
+    ? [
+        String(now.getHours()).padStart(2, "0"),
+        String(now.getMinutes()).padStart(2, "0"),
+        String(now.getSeconds()).padStart(2, "0"),
+      ].join(" : ")
+    : "-- : -- : --";
+
+  const percent = 0;
+  const checkedIn = "--:--";
+  const checkedOut = "--:--";
+
+  return (
+    <div className="rounded-lg border border-line bg-card px-6 py-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted">오늘 근무</p>
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-muted">
+          미출근
+        </span>
+      </div>
+      <p className="mt-2 text-center text-4xl font-black tracking-tighter text-fg tabular-nums">
+        {clock}
+      </p>
+      <div className="mt-6 h-0.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-500"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-sm">
+        <span className="text-muted tabular-nums">06:20</span>
+        <span className="font-semibold text-primary">{percent}%</span>
+        <span className="text-muted tabular-nums">18:20</span>
+      </div>
+      <div className="mt-6 flex items-center justify-between text-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-muted">출근</span>
+          <span className="text-fg tabular-nums">{checkedIn}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-muted">퇴근</span>
+          <span className="text-fg tabular-nums">{checkedOut}</span>
+        </div>
+      </div>
+    </div>
+  );
 }
