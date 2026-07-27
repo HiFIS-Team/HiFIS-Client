@@ -116,7 +116,7 @@ function AttendanceCard() {
           미출근
         </span>
       </div>
-      <p className="mt-2 text-4xl font-black tracking-tighter text-fg tabular-nums">
+      <p className="mt-2 text-center text-4xl font-black tracking-tighter text-fg tabular-nums">
         {clock}
       </p>
 
@@ -185,7 +185,7 @@ function AppTile({ label, icon: Icon, tone, badge }: AppItem) {
       className="flex flex-col items-center gap-1.5 rounded-md py-1 transition-colors hover:bg-card-hover"
     >
       <span className="relative inline-flex">
-        <Icon className={`size-7 ${tone}`} />
+        <Icon className={`size-5 ${tone}`} />
         {badge ? (
           <span className="absolute -top-1.5 -right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
             {badge}
