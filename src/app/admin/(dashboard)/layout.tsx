@@ -167,7 +167,7 @@ export default function DashboardLayout({
             화면 오른쪽 밖으로 밀어내 body 가로 스크롤바가 생기고 세로
             뷰포트가 잠깐 줄어들어 MobileTabBar 가 흔들리던 현상 차단. */}
         <main className="min-h-0 flex-1 overflow-x-clip overflow-y-auto pb-20 lg:bg-surface lg:pb-0">
-          <div className="px-4 py-6 lg:m-6 lg:rounded-xl lg:border lg:border-line lg:bg-card lg:p-8">
+          <div className="mx-auto max-w-7xl px-4 py-6 lg:my-6 lg:rounded-xl lg:border lg:border-line lg:bg-card lg:p-8">
             {/* 페이지 전환 시 깜빡임 완화 — pathname 키로 매 라우트 변경마다
                 children 을 wrapping 한 div 가 remount → animate-fade-in 재실행
                 (opacity 0 → 1, 150ms). */}

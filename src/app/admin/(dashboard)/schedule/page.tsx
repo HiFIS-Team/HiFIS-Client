@@ -129,7 +129,7 @@ export default function SchedulePage() {
       : `${weekDays[0].getMonth() + 1}. ${weekDays[0].getDate()} - ${weekDays[6].getMonth() + 1}. ${weekDays[6].getDate()}`;
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <PageTitle title="일정관리" />
 
       {/* 상단 : 카드 밖. 좌 페이지 제목·부제, 우 컨트롤 그룹. */}
