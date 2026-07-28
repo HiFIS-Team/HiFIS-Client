@@ -59,7 +59,7 @@ export default function AdminSignupPage() {
       </div>
 
       {/* 폼 — 상단에서 고정 offset (로그인 페이지와 타이틀 위치 정렬) */}
-      <div className="flex flex-1 justify-center px-6 pt-[12vh] pb-10">
+      <div className="flex flex-1 justify-center px-6 pt-[20vh] pb-10">
         <div className="w-full max-w-md">
           <h1 className="text-center text-3xl font-black tracking-tighter text-fg">
             함께 시작해요
