@@ -60,8 +60,70 @@ export function ChatFab({
     },
     [open, isControlled, onOpenChange],
   );
-  const [view, setView] = useState<View>({ kind: "list" });
+  // 스택형 view — iOS 네비 스택. push 시 이전 view 는 mount 유지, 새 view 만
+  // 위에서 슬라이드 인. pop 시 top view 만 제거 → 뒤에 남아있던 이전 view 노출.
+  // 이전 view 가 사라지지 않고 자연스러운 앞뒤 스택 톤.
+  const [stack, setStack] = useState<View[]>([{ kind: "list" }]);
+  // popping : 뒤로 가기 애니메이션 재생 중. top view 에 slide-out 클래스 부여 후
+  // 250ms 지연으로 실제 unmount → 왼쪽으로 밀려나가는 톤. 중복 pop 방지도 겸함.
+  const [popping, setPopping] = useState(false);
+  const popTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const push = useCallback((v: View) => {
+    setStack((prev) => [...prev, v]);
+  }, []);
+  // pop : 모바일이면 slide-out 재생 후 stack.pop. PC 는 즉시.
+  const pop = useCallback(() => {
+    setStack((prev) => {
+      if (prev.length <= 1) return prev;
+      const isMobileNow =
+        typeof window !== "undefined" &&
+        window.matchMedia("(max-width: 1023px)").matches;
+      if (!isMobileNow) return prev.slice(0, -1);
+      // 모바일 : popping 재생 후 실제 제거는 setTimeout 로.
+      setPopping(true);
+      if (popTimerRef.current) clearTimeout(popTimerRef.current);
+      popTimerRef.current = setTimeout(() => {
+        setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+        setPopping(false);
+        popTimerRef.current = null;
+      }, 250);
+      return prev;
+    });
+  }, []);
+  useEffect(
+    () => () => {
+      if (popTimerRef.current) clearTimeout(popTimerRef.current);
+    },
+    [],
+  );
+  // new → 대화 생성 완료 시 : new 를 chat 으로 교체 (뒤로 갈 때 new 로 안 돌아가게).
+  const replaceTop = useCallback((v: View) => {
+    setStack((prev) => [...prev.slice(0, -1), v]);
+  }, []);
+  const resetToList = useCallback(() => {
+    setStack([{ kind: "list" }]);
+    setPopping(false);
+    if (popTimerRef.current) {
+      clearTimeout(popTimerRef.current);
+      popTimerRef.current = null;
+    }
+  }, []);
   const queryClient = useQueryClient();
+
+  // 뷰포트 판정 — Tailwind lg: / max-lg: 오버라이드가 이 프로젝트에서
+  // 안정적으로 안 먹는 상황이 있어 JS 로 확실히 breakpoint 결정.
+  // isMobile 로 slide 애니메이션 클래스를 조건부로만 붙임.
+  const [isMobile, setIsMobile] = useState(false);
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // 닫기 애니메이션 처리 — open 이 false 로 바뀌면 즉시 unmount 하지 않고
   // 모바일에서만 slide-out (250ms) 재생 후 unmount.
@@ -69,7 +131,6 @@ export function ChatFab({
   // PC 는 fade 라 즉시 unmount (지연 두면 잔상 이상함).
   const [displayOpen, setDisplayOpen] = useState(open);
   const [closing, setClosing] = useState(false);
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     // open prop 과 내부 렌더 상태 동기화 — 파생 state 이므로 setState 불가피.
     if (open) {
@@ -78,9 +139,6 @@ export function ChatFab({
       return;
     }
     if (!displayOpen) return;
-    const isMobile =
-      typeof window !== "undefined" &&
-      !window.matchMedia("(min-width: 1024px)").matches;
     if (!isMobile) {
       setDisplayOpen(false);
       return;
@@ -93,7 +151,7 @@ export function ChatFab({
     return () => clearTimeout(t);
     // displayOpen 은 내부 파생 상태 — 의도적으로 deps 에서 제외해 무한 루프 방지.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, isMobile]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // WS 는 팝오버 열려있는 동안만 유지 (배터리·연결 수 절약).
@@ -110,7 +168,8 @@ export function ChatFab({
 
   function close() {
     setOpen(false);
-    setTimeout(() => setView({ kind: "list" }), 0);
+    // dialog slide-out 후 stack 리셋 — 다시 열 때 list 부터.
+    setTimeout(() => resetToList(), 0);
   }
 
   const meQuery = useQuery({ queryKey: ["v2", "me"], queryFn: getMeV2 });
@@ -136,9 +195,10 @@ export function ChatFab({
   });
   const rooms = roomsQuery.data ?? [];
 
-  const currentRoom =
-    view.kind === "chat" || view.kind === "settings"
-      ? rooms.find((r) => r.id === view.roomId) ?? null
+  // stack 의 특정 view 에 대응하는 room lookup — chat/settings 뷰만 room 필요.
+  const roomOf = (v: View) =>
+    v.kind === "chat" || v.kind === "settings"
+      ? rooms.find((r) => r.id === v.roomId) ?? null
       : null;
 
   return (
@@ -148,63 +208,85 @@ export function ChatFab({
           role="dialog"
           aria-label="사내톡"
           className={`fixed inset-0 z-50 flex flex-col bg-card lg:top-auto lg:right-5 lg:bottom-24 lg:left-auto lg:z-40 lg:h-[70vh] lg:max-h-[640px] lg:w-[calc(100vw-2.5rem)] lg:max-w-sm lg:overflow-hidden lg:rounded-lg lg:border lg:border-line lg:shadow-2xl ${
-            closing
-              ? "animate-page-slide-out lg:animate-none"
-              : "animate-page-slide-in lg:animate-fade-in"
+            isMobile
+              ? closing
+                ? "animate-page-slide-out"
+                : "animate-page-slide-in"
+              : "animate-fade-in"
           }`}
         >
-          {view.kind === "list" && (
-            <ListView
-              rooms={rooms}
-              meId={meId}
-              employeeMap={employeeMap}
-              isLoading={roomsQuery.isLoading}
-              isError={roomsQuery.isError}
-              error={roomsQuery.error}
-              onClose={close}
-              onNew={() => setView({ kind: "new" })}
-              onOpen={(room) => setView({ kind: "chat", roomId: room.id })}
-            />
-          )}
-          {view.kind === "new" && (
-            <NewView
-              employees={employees.filter((e) => e.id !== meId)}
-              onBack={() => setView({ kind: "list" })}
-              onClose={close}
-              onCreated={(room) => {
-                queryClient.invalidateQueries({
-                  queryKey: ["v2", "chat", "rooms"],
-                });
-                setView({ kind: "chat", roomId: room.id });
-              }}
-            />
-          )}
-          {view.kind === "chat" && currentRoom && (
-            <ChatView
-              room={currentRoom}
-              meId={meId}
-              employeeMap={employeeMap}
-              typingIds={ws.typingByRoom.get(currentRoom.id) ?? new Set()}
-              wsConnected={ws.connected}
-              wsSend={ws.send}
-              onBack={() => setView({ kind: "list" })}
-              onClose={close}
-              onOpenSettings={() =>
-                setView({ kind: "settings", roomId: currentRoom.id })
-              }
-            />
-          )}
-          {view.kind === "settings" && currentRoom && (
-            <SettingsView
-              room={currentRoom}
-              meId={meId}
-              employeeMap={employeeMap}
-              onBack={() =>
-                setView({ kind: "chat", roomId: currentRoom.id })
-              }
-              onClose={close}
-            />
-          )}
+          {/* iOS 네비 스택 톤 — stack 의 모든 view 를 absolute inset-0 로 겹쳐
+              렌더. 새로 push 된 top view 만 우측에서 slide-in (모바일).
+              이전 view 는 뒤에 남아있어 슬라이드 인 시작 순간 왼쪽으로 살짝 노출됨.
+              PC 는 애니메이션 없이 그대로. */}
+          {stack.map((v, i) => {
+            const isTop = i === stack.length - 1;
+            // slide-in 은 각 frame 이 mount 될 때만 재생 (StackFrame 내부 관리).
+            // popping 은 부모가 판단 (top 이면서 pop 중일 때만 slide-out 재생).
+            const stackRoom = roomOf(v);
+            return (
+              <StackFrame
+                key={`${i}-${v.kind}`}
+                animateOnMount={isMobile && i > 0}
+                popping={isMobile && isTop && popping}
+                zIndex={i}
+              >
+                {v.kind === "list" && (
+                  <ListView
+                    rooms={rooms}
+                    meId={meId}
+                    employeeMap={employeeMap}
+                    isLoading={roomsQuery.isLoading}
+                    isError={roomsQuery.isError}
+                    error={roomsQuery.error}
+                    onClose={close}
+                    onNew={() => push({ kind: "new" })}
+                    onOpen={(room) => push({ kind: "chat", roomId: room.id })}
+                  />
+                )}
+                {v.kind === "new" && (
+                  <NewView
+                    employees={employees.filter((e) => e.id !== meId)}
+                    onBack={pop}
+                    onClose={close}
+                    onCreated={(room) => {
+                      queryClient.invalidateQueries({
+                        queryKey: ["v2", "chat", "rooms"],
+                      });
+                      // new 를 chat 으로 교체 — 뒤로 갈 때 new 로 돌아가지 않게.
+                      replaceTop({ kind: "chat", roomId: room.id });
+                    }}
+                  />
+                )}
+                {v.kind === "chat" && stackRoom && (
+                  <ChatView
+                    room={stackRoom}
+                    meId={meId}
+                    employeeMap={employeeMap}
+                    typingIds={
+                      ws.typingByRoom.get(stackRoom.id) ?? new Set()
+                    }
+                    wsConnected={ws.connected}
+                    wsSend={ws.send}
+                    onBack={pop}
+                    onClose={close}
+                    onOpenSettings={() =>
+                      push({ kind: "settings", roomId: stackRoom.id })
+                    }
+                  />
+                )}
+                {v.kind === "settings" && stackRoom && (
+                  <SettingsView
+                    room={stackRoom}
+                    meId={meId}
+                    employeeMap={employeeMap}
+                    onBack={pop}
+                    onClose={close}
+                  />
+                )}
+              </StackFrame>
+            );
+          })}
         </div>
       )}
 
@@ -222,6 +304,40 @@ export function ChatFab({
           <ChatBubbleOvalLeftIcon className="size-6" />
         )}
       </button>
+    </div>
+  );
+}
+
+// ─────────────── StackFrame ───────────────
+
+// iOS 네비 스택의 각 frame — absolute inset-0 로 dialog 안 채움.
+// slide-in 은 mount 시점에만 재생 (이후 리렌더로 className 이 바뀌어도
+// 재재생 되지 않게 초기 클래스만 유지). 이게 없으면 상위 view 가 pop 될 때
+// 아래 남아있는 view 가 다시 top 이 되며 slide-in 이 재재생되는 버그가 생김.
+// popping (부모가 결정) 이 true 이면 slide-out 재생.
+function StackFrame({
+  animateOnMount,
+  popping,
+  zIndex,
+  children,
+}: {
+  animateOnMount: boolean;
+  popping: boolean;
+  zIndex: number;
+  children: React.ReactNode;
+}) {
+  // 첫 render 시 애니메이션 클래스 결정 후 state 로 고정 — 이후 리렌더 시 값 유지.
+  // React 는 className 이 같은 문자열이면 DOM 업데이트 안 함 → 브라우저도 애니메이션 재재생 안 함.
+  const [initialAnim] = useState<string>(() =>
+    animateOnMount ? "animate-page-slide-in" : "",
+  );
+  const cls = popping ? "animate-page-slide-out" : initialAnim;
+  return (
+    <div
+      className={`absolute inset-0 flex flex-col bg-card ${cls}`}
+      style={{ zIndex }}
+    >
+      {children}
     </div>
   );
 }
