@@ -145,7 +145,7 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
-          {/* 링크 3개 — 초대키 가입 · 비밀번호 찾기 · 둘러보기 */}
+          {/* 링크 — 초대키 가입 · 비밀번호 찾기 */}
           <div className="mt-6 flex items-center justify-center gap-3 text-sm">
             <Link
               href="/admin/signup"
@@ -159,13 +159,6 @@ export default function AdminLoginPage() {
               className="font-semibold text-muted hover:text-fg"
             >
               비밀번호 찾기
-            </Link>
-            <span className="text-line">·</span>
-            <Link
-              href="/admin"
-              className="font-semibold text-primary hover:text-primary-hover"
-            >
-              둘러보기
             </Link>
           </div>
         </div>
