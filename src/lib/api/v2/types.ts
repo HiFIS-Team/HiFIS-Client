@@ -2,13 +2,14 @@
 // 백엔드 계약은 camelCase — 여기도 그대로.
 
 export type Role = "ADMIN" | "MANAGER" | "MEMBER";
+// 백엔드 app/enums.py 기준 (2026-07). 프론트가 임의 값을 만들지 말 것.
 export type Rank =
-  | "JUNIOR_TRAINER"
-  | "PRO_TRAINER"
-  | "PRO1_TRAINER"
+  | "TRAINER"
+  | "FC"
   | "TEAM_LEAD"
   | "STORE_MANAGER"
-  | "FC";
+  | "DEVELOPER"
+  | "CEO";
 export type EmployeeStatus = "ACTIVE" | "INACTIVE" | "RESIGNED";
 export type WorkStatus = "AUTO" | "MEETING" | "MEAL" | "OUT" | "AWAY";
 
@@ -27,8 +28,10 @@ export interface EmployeeOut {
   avatarUrl?: string;
   statusMessage?: string;
   workStatus: WorkStatus;
-  joinedAt: string;
-  lastActiveAt?: string;
+  joinedAt: string; // ISO
+  lastActiveAt?: string; // ISO
+  shiftStart?: string; // "HH:MM"
+  shiftEnd?: string; // "HH:MM"
 }
 
 export interface TokenResponse {
