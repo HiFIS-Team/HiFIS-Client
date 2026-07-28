@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentType,
@@ -12,26 +13,25 @@ import { useRouter } from "next/navigation";
 import {
   ArrowPathIcon,
   BellIcon,
-  BoltIcon,
-  CalendarIcon,
+  BriefcaseIcon,
+  ChatBubbleLeftRightIcon,
   ClockIcon,
+  CurrencyDollarIcon,
   ExclamationTriangleIcon,
+  FolderIcon,
   InboxIcon,
-  UserPlusIcon,
-  UsersIcon,
+  MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 import {
-  getNotifications,
-  getUnreadCount,
+  listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-  notificationLink,
-  type AdminNotification,
-} from "@/lib/api/notifications";
+  notificationHref,
+  type NotificationOut,
+} from "@/lib/api/v2/notifications";
 import { timeAgo } from "@/lib/format";
 
-// 알림 타입별 아이콘 + 색상 — 한눈에 종류 구분.
-// 미지정 타입은 기본 (BellIcon, gray)으로 폴백.
+// v2 알림 type 별 아이콘·톤. 미정의는 fallback (BellIcon).
 const NOTIFICATION_META: Record<
   string,
   {
@@ -40,31 +40,40 @@ const NOTIFICATION_META: Record<
     iconClass: string;
   }
 > = {
-  RESERVATION: {
-    icon: CalendarIcon,
-    bgClass: "bg-blue-500/15",
-    iconClass: "text-blue-300",
+  ATTENDANCE: {
+    icon: ClockIcon,
+    bgClass: "bg-emerald-500/15",
+    iconClass: "text-emerald-300",
   },
-  MEMBER: {
-    icon: UsersIcon,
-    bgClass: "bg-green-500/15",
-    iconClass: "text-green-300",
-  },
-  PT_APPLICATION: {
-    icon: BoltIcon,
-    bgClass: "bg-primary/15",
-    iconClass: "text-primary",
-  },
-  FC_SIGNUP: {
-    icon: UserPlusIcon,
+  LEAVE: {
+    icon: ClockIcon,
     bgClass: "bg-amber-500/15",
     iconClass: "text-amber-300",
   },
-  // 백엔드가 EXPIRY 같은 추가 타입 보낼 수도 있어 폴백 둠
-  EXPIRY: {
-    icon: ClockIcon,
-    bgClass: "bg-rose-500/15",
-    iconClass: "text-rose-300",
+  NOTICE: {
+    icon: MegaphoneIcon,
+    bgClass: "bg-blue-500/15",
+    iconClass: "text-blue-300",
+  },
+  CHAT: {
+    icon: ChatBubbleLeftRightIcon,
+    bgClass: "bg-primary/15",
+    iconClass: "text-primary",
+  },
+  APPROVAL: {
+    icon: BriefcaseIcon,
+    bgClass: "bg-violet-500/15",
+    iconClass: "text-violet-300",
+  },
+  PROJECT: {
+    icon: FolderIcon,
+    bgClass: "bg-orange-500/15",
+    iconClass: "text-orange-300",
+  },
+  PAYROLL: {
+    icon: CurrencyDollarIcon,
+    bgClass: "bg-green-500/15",
+    iconClass: "text-green-300",
   },
 };
 const FALLBACK_META = {
@@ -73,40 +82,30 @@ const FALLBACK_META = {
   iconClass: "text-muted",
 };
 
-// 뱃지 폴링 간격 (밀리초). 30초마다 unread-count 재조회.
+// 폴링 30초.
 const POLL_MS = 30_000;
 
-// 헤더의 알림 벨 — 클릭하면:
-//   PC    : 아래로 떨어지는 dropdown 패널 (헤더 우측 끝 기준).
-//   모바일 : layout 의 notificationOpen state 를 켜 MobileSubPage 슬라이드 인.
-// 미읽음 카운트는 30초마다 폴링.
 export function NotificationBell({
   onMobileOpen,
 }: {
-  // 모바일에서 벨 누르면 호출 — layout 이 MobileSubPage 오버레이를 띄움.
   onMobileOpen: () => void;
 }) {
   const queryClient = useQueryClient();
-  // PC dropdown 열림 상태. 모바일에선 오버레이라 따로 안 씀.
   const [pcOpen, setPcOpen] = useState(false);
 
-  // 미읽음 개수 — 폴링 (드롭다운 닫혀도 30초마다 갱신해서 뱃지 업데이트)
-  const unreadCountQuery = useQuery({
-    queryKey: ["admin", "notifications", "unread-count"],
-    queryFn: getUnreadCount,
+  // 안 읽은 것만 별도 쿼리 (뱃지용).
+  const unreadQuery = useQuery({
+    queryKey: ["v2", "notifications", { read: false }] as const,
+    queryFn: () => listNotifications({ read: false }),
     refetchInterval: POLL_MS,
     refetchIntervalInBackground: false,
   });
-  const unreadCount = unreadCountQuery.data?.count ?? 0;
+  const unreadCount = unreadQuery.data?.length ?? 0;
 
-  // 패널 열면 모두 읽음 처리 — PC dropdown 열 때 트리거.
-  // 모바일 오버레이는 NotificationsBody 자체가 mount 시 처리.
   const markAllReadMutation = useMutation({
     mutationFn: markAllNotificationsRead,
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ["admin", "notifications"],
-      }),
+      queryClient.invalidateQueries({ queryKey: ["v2", "notifications"] }),
   });
 
   function handleBellClick() {
@@ -125,9 +124,7 @@ export function NotificationBell({
     }
   }
 
-  // PC dropdown 외부 클릭 감지 — fixed 백드롭은 부모(Sidebar)의 transform 때문에
-  // viewport 밖 전체를 못 덮어서 우측 메인 콘텐츠 클릭이 잡히지 않음 →
-  // document pointerdown 으로 처리.
+  // PC dropdown 외부 클릭 감지.
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!pcOpen) return;
@@ -159,9 +156,6 @@ export function NotificationBell({
         )}
       </button>
 
-      {/* PC 전용 dropdown — 모바일에선 lg:block 으로 숨고 오버레이가 대신.
-          모바일 케이스에선 handleBellClick 이 setPcOpen 안 부르니까 mount 자체
-          안 되지만, 안전하게 lg:block 으로 한 번 더 차단. */}
       {pcOpen && (
         <div className="animate-panel-in absolute top-full right-0 z-50 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-line bg-card shadow-lg lg:block">
           <div className="border-b border-line px-4 py-3">
@@ -176,70 +170,62 @@ export function NotificationBell({
   );
 }
 
-// MobileSubPage 안에서 쓰이는 알림 본문 — 헤더(MobileSubPage 가 자체 제공) 없이
-// 리스트 영역만. PC dropdown 의 내용물과 동일 컴포넌트(NotificationsList) 사용.
-export function NotificationsBody({ onItemClick }: { onItemClick?: () => void }) {
-  // mount 시 모두 읽음 처리 — 모바일 오버레이가 열리는 시점.
+// 모바일 오버레이 안에서 쓰이는 알림 본문.
+export function NotificationsBody({
+  onItemClick,
+}: {
+  onItemClick?: () => void;
+}) {
   const queryClient = useQueryClient();
-  const unreadCountQuery = useQuery({
-    queryKey: ["admin", "notifications", "unread-count"],
-    queryFn: getUnreadCount,
+  const unreadQuery = useQuery({
+    queryKey: ["v2", "notifications", { read: false }] as const,
+    queryFn: () => listNotifications({ read: false }),
   });
   const markAllReadMutation = useMutation({
     mutationFn: markAllNotificationsRead,
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ["admin", "notifications"],
-      }),
+      queryClient.invalidateQueries({ queryKey: ["v2", "notifications"] }),
   });
-  // mount 1회만 — 이미 비어 있으면 호출 안 함.
   const markedRef = useRef(false);
   useEffect(() => {
     if (markedRef.current) return;
-    const unread = unreadCountQuery.data?.count ?? 0;
+    const unread = unreadQuery.data?.length ?? 0;
     if (unread > 0) {
       markedRef.current = true;
       markAllReadMutation.mutate();
     }
-  }, [unreadCountQuery.data?.count, markAllReadMutation]);
+  }, [unreadQuery.data?.length, markAllReadMutation]);
 
   return <NotificationsList onItemClick={onItemClick} />;
 }
 
-// 알림 리스트 — PC dropdown 내부 / 모바일 오버레이 내부 공용.
-// 항목 클릭 시 onItemClick 으로 컨테이너(드롭다운/오버레이) 즉시 close.
 function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  // 최근 20개 (백엔드가 정렬 desc). 폴링.
   const listQuery = useQuery({
-    queryKey: ["admin", "notifications", "list", "first-page"],
-    queryFn: () => getNotifications({ page: 1, pageSize: 20 }),
+    queryKey: ["v2", "notifications", "list"] as const,
+    queryFn: () => listNotifications({}),
     refetchInterval: POLL_MS,
     refetchIntervalInBackground: false,
   });
-  const notifications = listQuery.data?.items ?? [];
+  const notifications = useMemo(
+    () => (listQuery.data ?? []).slice(0, 20),
+    [listQuery.data],
+  );
 
   const markReadMutation = useMutation({
     mutationFn: markNotificationRead,
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: ["admin", "notifications"],
-      }),
+      queryClient.invalidateQueries({ queryKey: ["v2", "notifications"] }),
   });
 
-  function handleItemClick(n: AdminNotification) {
+  function handleItemClick(n: NotificationOut) {
     onItemClick?.();
-    if (!n.is_read) markReadMutation.mutate(n.id);
-    const link = notificationLink(n.source_type);
-    if (!link) return;
-    // 회원·PT 는 상세 다이얼로그가 있어 ?detail=<id> 로 자동 오픈 (sw.ts 와 동일 규칙)
-    const withDetail =
-      n.source_id &&
-      (n.source_type === "MEMBER" || n.source_type === "PT_APPLICATION")
-        ? `${link}?detail=${encodeURIComponent(n.source_id)}`
-        : link;
-    router.push(withDetail);
+    if (!n.read) markReadMutation.mutate(n.id);
+    const href = notificationHref(n.link);
+    if (href) router.push(href);
   }
 
   if (listQuery.isLoading) {
@@ -279,7 +265,7 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
   return (
     <ul className="divide-y divide-line">
       {notifications.map((n) => {
-        const meta = NOTIFICATION_META[n.source_type] ?? FALLBACK_META;
+        const meta = NOTIFICATION_META[n.type] ?? FALLBACK_META;
         const Icon = meta.icon;
         return (
           <li key={n.id}>
@@ -287,10 +273,9 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
               type="button"
               onClick={() => handleItemClick(n)}
               className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-card-hover ${
-                n.is_read ? "" : "bg-primary/15"
+                n.read ? "" : "bg-primary/15"
               }`}
             >
-              {/* 타입별 아이콘 칩 */}
               <span
                 className={`flex size-9 shrink-0 items-center justify-center rounded-full ${meta.bgClass}`}
               >
@@ -301,18 +286,20 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
                   <span className="block text-sm font-semibold text-fg">
                     {n.title}
                   </span>
-                  {!n.is_read && (
+                  {!n.read && (
                     <span
                       className="inline-block size-1.5 shrink-0 rounded-full bg-primary"
                       aria-label="안 읽음"
                     />
                   )}
                 </span>
-                <span className="mt-0.5 block text-xs text-muted">
-                  {n.body}
-                </span>
+                {n.body && (
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {n.body}
+                  </span>
+                )}
                 <span className="mt-1 block text-[11px] text-muted">
-                  {timeAgo(n.created_at)}
+                  {timeAgo(n.createdAt)}
                 </span>
               </span>
             </button>
@@ -323,7 +310,6 @@ function NotificationsList({ onItemClick }: { onItemClick?: () => void }) {
   );
 }
 
-// 알림 리스트의 로딩/에러/빈 상태 — 작은 칩 + 메시지 (TableMessage 와 동일 톤, 좁은 패널용 축소)
 function NotificationMessage({
   icon: Icon,
   iconBgClass,
