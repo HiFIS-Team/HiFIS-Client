@@ -1,100 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowPathIcon,
+  ExclamationTriangleIcon,
   MegaphoneIcon,
   PlusIcon,
   SparklesIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
+import { getMe } from "@/lib/api/auth";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { avatarTone, listEmployees } from "@/lib/api/v2/employees";
+import {
+  deleteNotice,
+  listNotices,
+  type NoticeOut,
+} from "@/lib/api/v2/notices";
 import { PageTitle } from "../PageTitle";
 import { NewNoticeDialog } from "./NewNoticeDialog";
 
-// 사내공지 페이지 — 좌 목록 + 우 상세. mock. API 는 다음 스텝.
-
-// ─────────────── mock ───────────────
-
-interface Notice {
-  id: string;
-  title: string;
-  body: string;
-  author: { name: string; tone: string };
-  createdAt: string;
-  pinned?: boolean;
-}
-
-const NOTICES: Notice[] = [
-  {
-    id: "n1",
-    title: "5월 전사 정기 미팅 일정 안내",
-    body: `5월 전사 정기 미팅 일정을 안내드립니다.
-
-일시: 5월 15일 (수) 오후 3시 ~ 5시
-장소: 본사 대회의실 (온라인 병행 — 링크는 당일 알림톡)
-
-안건
-- Q1 실적 리뷰
-- 5월 · 6월 로드맵 공유
-- Q&A
-
-전 직원 필수 참석 부탁드립니다. 부득이한 사유로 참석이 어려운 경우 팀 리드에게 사전 공유 주세요.`,
-    author: { name: "이앨리스", tone: "bg-emerald-500" },
-    createdAt: "2026. 7. 27.",
-    pinned: true,
-  },
-  {
-    id: "n2",
-    title: "여름 휴가 사용 가이드 — 6 ~ 8월",
-    body: `여름 성수기(6 ~ 8월) 휴가 사용 가이드입니다.
-
-- 팀별 최소 인원 유지 : 담당 리드와 조율 후 캘린더 등록
-- 연속 5일 이상 휴가는 2주 전 사전 공유
-- 공용 계정 · 오픈 이슈 인수인계는 휴가 시작 전날까지 완료
-
-문의는 인사팀 채널로 부탁드립니다.`,
-    author: { name: "한이브", tone: "bg-violet-500" },
-    createdAt: "2026. 7. 25.",
-  },
-  {
-    id: "n3",
-    title: "5월 신규 입사자 환영 인사",
-    body: `5월에 새로 합류한 세 분을 환영합니다.
-
-- 김OO (프로덕트팀)
-- 박OO (개발팀)
-- 이OO (디자인팀)
-
-첫 주 온보딩 체크리스트는 문서함 > 회사 운영 > "신규 입사자 온보딩 체크리스트" 를 참고해 주세요.
-사내톡에서 마주치면 반갑게 인사 부탁드려요.`,
-    author: { name: "김데모", tone: "bg-primary" },
-    createdAt: "2026. 7. 23.",
-  },
-  {
-    id: "n4",
-    title: "사무실 정수기 점검 예정 — 5/12 오전",
-    body: `5월 12일 (월) 오전 10시 ~ 11시 사이 정수기 필터 교체 · 점검이 진행됩니다.
-해당 시간 동안 정수기 사용이 잠깐 불가하니 사전 참고 부탁드려요.`,
-    author: { name: "한이브", tone: "bg-violet-500" },
-    createdAt: "2026. 7. 22.",
-  },
-];
-
-// ─────────────── page ───────────────
+// 사내공지 — GET /notices (백엔드가 pinned desc, created_at desc 로 정렬).
+// 삭제는 SUPER_ADMIN 만 노출 (백엔드는 ADMIN·MANAGER 다 되지만, v1 me adapter 로는 MANAGER 판별 불가 — 리팩터링 이슈).
 
 export default function NoticesPage() {
-  // 상단 고정 공지 먼저, 그다음 최신순 (mock 는 이미 정렬된 상태).
-  const sorted = [...NOTICES].sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return 0;
+  const queryClient = useQueryClient();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
+
+  const noticesQuery = useQuery({
+    queryKey: ["v2", "notices"] as const,
+    queryFn: listNotices,
+  });
+  const employeesQuery = useQuery({
+    queryKey: ["v2", "employees", "all"] as const,
+    queryFn: () => listEmployees({}),
+  });
+  const meQuery = useQuery({ queryKey: ["admin", "me"], queryFn: getMe });
+
+  const notices = noticesQuery.data ?? [];
+
+  // 첫 로드 · 데이터 변경 시 선택 유지 (기존 선택이 유효하지 않으면 첫 항목).
+  useEffect(() => {
+    if (notices.length === 0) {
+      if (selectedId !== null) setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !notices.some((n) => n.id === selectedId)) {
+      setSelectedId(notices[0].id);
+    }
+  }, [notices, selectedId]);
+
+  const selected = notices.find((n) => n.id === selectedId) ?? null;
+
+  const employeeLookup = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; avatarColor: string | undefined }
+    >();
+    for (const e of employeesQuery.data ?? []) {
+      map.set(e.id, { name: e.name, avatarColor: e.avatarColor });
+    }
+    return map;
+  }, [employeesQuery.data]);
+
+  const canManage = meQuery.data?.role === "SUPER_ADMIN";
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteNotice(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["v2", "notices"] });
+    },
   });
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    sorted[0]?.id ?? null,
-  );
-  const selected = sorted.find((n) => n.id === selectedId) ?? null;
-
-  const [newOpen, setNewOpen] = useState(false);
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ["v2", "notices"] });
+  }
 
   return (
     <div>
@@ -111,10 +93,13 @@ export default function NoticesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={refresh}
             aria-label="새로고침"
             className="rounded-full border border-line p-2 text-muted transition-colors hover:bg-card-hover hover:text-fg"
           >
-            <ArrowPathIcon className="size-4" />
+            <ArrowPathIcon
+              className={`size-4 ${noticesQuery.isFetching ? "animate-spin" : ""}`}
+            />
           </button>
           <button
             type="button"
@@ -128,18 +113,40 @@ export default function NoticesPage() {
 
       <NewNoticeDialog open={newOpen} onClose={() => setNewOpen(false)} />
 
-      {/* 본문 : lg 에서 좌 1/3 · 우 2/3 */}
+      {/* 본문 */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div>
           <NoticeListCard
-            notices={sorted}
+            notices={notices}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            employeeLookup={employeeLookup}
+            isLoading={noticesQuery.isLoading}
+            isError={noticesQuery.isError}
+            error={noticesQuery.error}
+            onRetry={() => noticesQuery.refetch()}
           />
         </div>
         <div className="lg:col-span-2">
-          {selected ? (
-            <NoticeDetail notice={selected} />
+          {noticesQuery.isLoading ? (
+            <DetailSkeleton />
+          ) : selected ? (
+            <NoticeDetail
+              notice={selected}
+              author={employeeLookup.get(selected.authorId)}
+              canManage={canManage}
+              onDelete={() => {
+                if (confirm("정말 삭제할까요? 되돌릴 수 없어요.")) {
+                  deleteMutation.mutate(selected.id);
+                }
+              }}
+              deleting={deleteMutation.isPending}
+              deleteError={
+                deleteMutation.isError
+                  ? getV2ErrorMessage(deleteMutation.error)
+                  : null
+              }
+            />
           ) : (
             <EmptyState />
           )}
@@ -155,10 +162,23 @@ function NoticeListCard({
   notices,
   selectedId,
   onSelect,
+  employeeLookup,
+  isLoading,
+  isError,
+  error,
+  onRetry,
 }: {
-  notices: Notice[];
+  notices: NoticeOut[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  employeeLookup: Map<
+    string,
+    { name: string; avatarColor: string | undefined }
+  >;
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  onRetry: () => void;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-card">
@@ -168,42 +188,75 @@ function NoticeListCard({
           <span className="text-muted tabular-nums">({notices.length})</span>
         </h2>
       </div>
-      <ul className="divide-y divide-line">
-        {notices.map((n) => {
-          const active = selectedId === n.id;
-          return (
-            <li key={n.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(n.id)}
-                className={`flex w-full items-start gap-3 px-5 py-4 text-left transition-colors ${
-                  active ? "bg-primary/15" : "hover:bg-card-hover"
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {n.pinned && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-400">
-                        <SparklesIcon className="size-3" />
-                        고정
-                      </span>
-                    )}
-                    <span className="truncate text-sm font-bold text-fg">
-                      {n.title}
-                    </span>
-                  </div>
-                  <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                    <MiniAvatar name={n.author.name} tone={n.author.tone} />
-                    <span>{n.author.name}</span>
-                    <span>·</span>
-                    <span className="tabular-nums">{n.createdAt}</span>
-                  </p>
-                </div>
-              </button>
+      {isLoading ? (
+        <ul className="divide-y divide-line">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="animate-pulse px-5 py-4">
+              <div className="h-3 w-2/3 rounded bg-card-hover" />
+              <div className="mt-2 h-2 w-1/3 rounded bg-card-hover" />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      ) : isError ? (
+        <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
+          <ExclamationTriangleIcon className="size-6 text-red-400" />
+          <p className="text-xs text-fg">{getV2ErrorMessage(error)}</p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-md border border-line px-3 py-1 text-xs font-semibold text-fg hover:bg-card-hover"
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : notices.length === 0 ? (
+        <div className="px-5 py-10 text-center text-xs text-muted">
+          아직 공지가 없어요.
+        </div>
+      ) : (
+        <ul className="divide-y divide-line">
+          {notices.map((n) => {
+            const active = selectedId === n.id;
+            const author = employeeLookup.get(n.authorId);
+            return (
+              <li key={n.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(n.id)}
+                  className={`flex w-full items-start gap-3 px-5 py-4 text-left transition-colors ${
+                    active ? "bg-primary/15" : "hover:bg-card-hover"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {n.pinned && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-400">
+                          <SparklesIcon className="size-3" />
+                          고정
+                        </span>
+                      )}
+                      <span className="truncate text-sm font-bold text-fg">
+                        {n.title}
+                      </span>
+                    </div>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                      <MiniAvatar
+                        name={author?.name ?? "…"}
+                        tone={avatarTone(author?.avatarColor)}
+                      />
+                      <span>{author?.name ?? "…"}</span>
+                      <span>·</span>
+                      <span className="tabular-nums">
+                        {formatDate(n.createdAt)}
+                      </span>
+                    </p>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
@@ -221,30 +274,68 @@ function MiniAvatar({ name, tone }: { name: string; tone: string }) {
 
 // ─────────────── NoticeDetail ───────────────
 
-function NoticeDetail({ notice }: { notice: Notice }) {
+function NoticeDetail({
+  notice,
+  author,
+  canManage,
+  onDelete,
+  deleting,
+  deleteError,
+}: {
+  notice: NoticeOut;
+  author: { name: string; avatarColor: string | undefined } | undefined;
+  canManage: boolean;
+  onDelete: () => void;
+  deleting: boolean;
+  deleteError: string | null;
+}) {
   return (
     <div className="rounded-lg border border-line bg-card">
       <div className="border-b border-line px-6 py-5">
-        <div className="flex flex-wrap items-center gap-2">
-          {notice.pinned && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-400">
-              <SparklesIcon className="size-3" />
-              고정
-            </span>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              {notice.pinned && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-400">
+                  <SparklesIcon className="size-3" />
+                  고정
+                </span>
+              )}
+              <h2 className="text-lg font-bold text-fg">{notice.title}</h2>
+            </div>
+            <p className="mt-3 flex items-center gap-2 text-sm text-muted">
+              <span
+                className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarTone(author?.avatarColor)}`}
+                aria-hidden
+              >
+                {(author?.name ?? "?").charAt(0)}
+              </span>
+              <span className="font-semibold text-fg">
+                {author?.name ?? "알 수 없음"}
+              </span>
+              <span>·</span>
+              <span className="tabular-nums">
+                {formatDate(notice.createdAt)}
+              </span>
+            </p>
+          </div>
+          {canManage && (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <TrashIcon className="size-3.5" />
+              삭제
+            </button>
           )}
-          <h2 className="text-lg font-bold text-fg">{notice.title}</h2>
         </div>
-        <p className="mt-3 flex items-center gap-2 text-sm text-muted">
-          <span
-            className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${notice.author.tone}`}
-            aria-hidden
-          >
-            {notice.author.name.charAt(0)}
-          </span>
-          <span className="font-semibold text-fg">{notice.author.name}</span>
-          <span>·</span>
-          <span className="tabular-nums">{notice.createdAt}</span>
-        </p>
+        {deleteError && (
+          <p className="mt-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            {deleteError}
+          </p>
+        )}
       </div>
       <div className="px-6 py-5">
         <pre className="font-sans text-sm leading-6 whitespace-pre-wrap text-fg">
@@ -255,7 +346,23 @@ function NoticeDetail({ notice }: { notice: Notice }) {
   );
 }
 
-// ─────────────── EmptyState ───────────────
+// ─────────────── panels ───────────────
+
+function DetailSkeleton() {
+  return (
+    <div className="animate-pulse rounded-lg border border-line bg-card">
+      <div className="border-b border-line px-6 py-5">
+        <div className="h-5 w-2/3 rounded bg-card-hover" />
+        <div className="mt-3 h-3 w-1/3 rounded bg-card-hover" />
+      </div>
+      <div className="space-y-2 px-6 py-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-3 rounded bg-card-hover" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function EmptyState() {
   return (
@@ -264,4 +371,11 @@ function EmptyState() {
       <p className="text-sm text-muted">좌측에서 공지를 선택해주세요.</p>
     </div>
   );
+}
+
+// ISO → "2026. 7. 27."
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
 }

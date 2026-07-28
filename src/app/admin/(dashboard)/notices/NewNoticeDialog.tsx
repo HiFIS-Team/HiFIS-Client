@@ -1,12 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { SparklesIcon } from "@heroicons/react/24/outline";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  BellAlertIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon,
+} from "@heroicons/react/24/outline";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { createNotice } from "@/lib/api/v2/notices";
 import { DialogGradientHeader } from "../DialogGradientHeader";
 
-// 새 공지 작성 다이얼로그 — UI 만. 저장 로직은 API 붙는 시점에.
-// 헤더는 DialogGradientHeader 공용 (신청/생성 계열 모달 톤 통일).
+// 새 공지 작성 — POST /notices.
+// 백엔드가 게시 시 재직 중 전 직원(작성자 제외) 에게 알림 · 웹푸시 자동 발송.
+// 그래서 "전체 알림 발송" 토글은 없고, 안내 배너로 대체.
 
 interface NewNoticeDialogProps {
   open: boolean;
@@ -16,12 +24,22 @@ interface NewNoticeDialogProps {
 export function NewNoticeDialog({ open, onClose }: NewNoticeDialogProps) {
   useEscapeKey(onClose, open);
 
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [pinned, setPinned] = useState(false);
-  const [notify, setNotify] = useState(true);
 
-  const canSubmit = title.trim().length > 0 && body.trim().length > 0;
+  const mutation = useMutation({
+    mutationFn: createNotice,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["v2", "notices"] });
+      reset();
+      onClose();
+    },
+  });
+
+  const canSubmit =
+    title.trim().length > 0 && body.trim().length > 0 && !mutation.isPending;
 
   if (!open) return null;
 
@@ -29,13 +47,12 @@ export function NewNoticeDialog({ open, onClose }: NewNoticeDialogProps) {
     setTitle("");
     setBody("");
     setPinned(false);
-    setNotify(true);
+    mutation.reset();
   }
 
   function submit() {
-    // TODO: v2 공지 생성 API 연동. 지금은 mock — 필드 초기화 + 닫기.
-    reset();
-    onClose();
+    if (!canSubmit) return;
+    mutation.mutate({ title: title.trim(), body: body.trim(), pinned });
   }
 
   return (
@@ -84,41 +101,34 @@ export function NewNoticeDialog({ open, onClose }: NewNoticeDialogProps) {
             </div>
           </Field>
 
-          {/* 옵션 : 상단 고정 · 알림 발송 */}
+          {/* 옵션 : 상단 고정 */}
           <div>
             <p className="text-sm font-semibold text-fg">옵션</p>
             <div className="mt-2 space-y-2">
               <ToggleRow
-                icon={
-                  <SparklesIcon className="size-4 text-amber-400" />
-                }
+                icon={<SparklesIcon className="size-4 text-amber-400" />}
                 label="상단 고정"
                 hint="목록 최상단에 노란 · 고정 뱃지와 함께 표시됩니다."
                 checked={pinned}
                 onChange={setPinned}
               />
-              <ToggleRow
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="size-4 text-primary"
-                  >
-                    <path d="M15 17h5l-1.4-2.3A6 6 0 0 1 18 12V9a6 6 0 1 0-12 0v3c0 .8-.2 1.6-.6 2.3L4 17h5" />
-                    <path d="M9 17a3 3 0 0 0 6 0" />
-                  </svg>
-                }
-                label="전체 알림 발송"
-                hint="게시와 동시에 전 직원에게 알림톡 · 앱 알림이 전송됩니다."
-                checked={notify}
-                onChange={setNotify}
-              />
             </div>
           </div>
+
+          {/* 알림 안내 (서버가 자동 발송) */}
+          <div className="flex items-start gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-xs text-primary/90">
+            <BellAlertIcon className="size-4 shrink-0" />
+            <span>
+              게시와 동시에 재직 중인 전 직원에게 알림이 자동 발송됩니다.
+            </span>
+          </div>
+
+          {mutation.isError && (
+            <div className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              <ExclamationTriangleIcon className="size-4 shrink-0" />
+              <span>{getV2ErrorMessage(mutation.error)}</span>
+            </div>
+          )}
         </div>
 
         {/* 푸터 */}
@@ -126,7 +136,8 @@ export function NewNoticeDialog({ open, onClose }: NewNoticeDialogProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-card-hover"
+            disabled={mutation.isPending}
+            className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>
@@ -136,7 +147,7 @@ export function NewNoticeDialog({ open, onClose }: NewNoticeDialogProps) {
             onClick={submit}
             className="rounded-md border border-primary bg-primary/25 px-4 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            게시
+            {mutation.isPending ? "게시 중…" : "게시"}
           </button>
         </div>
       </div>
