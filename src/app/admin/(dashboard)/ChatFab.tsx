@@ -63,6 +63,39 @@ export function ChatFab({
   const [view, setView] = useState<View>({ kind: "list" });
   const queryClient = useQueryClient();
 
+  // 닫기 애니메이션 처리 — open 이 false 로 바뀌면 즉시 unmount 하지 않고
+  // 모바일에서만 slide-out (250ms) 재생 후 unmount.
+  // displayOpen : 실제로 dialog 를 렌더할지. closing : slide-out 중인지.
+  // PC 는 fade 라 즉시 unmount (지연 두면 잔상 이상함).
+  const [displayOpen, setDisplayOpen] = useState(open);
+  const [closing, setClosing] = useState(false);
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    // open prop 과 내부 렌더 상태 동기화 — 파생 state 이므로 setState 불가피.
+    if (open) {
+      setClosing(false);
+      setDisplayOpen(true);
+      return;
+    }
+    if (!displayOpen) return;
+    const isMobile =
+      typeof window !== "undefined" &&
+      !window.matchMedia("(min-width: 1024px)").matches;
+    if (!isMobile) {
+      setDisplayOpen(false);
+      return;
+    }
+    setClosing(true);
+    const t = setTimeout(() => {
+      setDisplayOpen(false);
+      setClosing(false);
+    }, 250);
+    return () => clearTimeout(t);
+    // displayOpen 은 내부 파생 상태 — 의도적으로 deps 에서 제외해 무한 루프 방지.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   // WS 는 팝오버 열려있는 동안만 유지 (배터리·연결 수 절약).
   const ws = useChatWs(open);
 
@@ -110,11 +143,15 @@ export function ChatFab({
 
   return (
     <div>
-      {open && (
+      {displayOpen && (
         <div
           role="dialog"
           aria-label="사내톡"
-          className="animate-fade-in fixed top-14 right-3 bottom-20 z-40 flex w-[calc(100vw-1.5rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-line bg-card shadow-2xl lg:top-auto lg:right-5 lg:bottom-24 lg:h-[70vh] lg:max-h-[640px]"
+          className={`fixed inset-0 z-50 flex flex-col bg-card lg:top-auto lg:right-5 lg:bottom-24 lg:left-auto lg:z-40 lg:h-[70vh] lg:max-h-[640px] lg:w-[calc(100vw-2.5rem)] lg:max-w-sm lg:overflow-hidden lg:rounded-lg lg:border lg:border-line lg:shadow-2xl ${
+            closing
+              ? "animate-page-slide-out lg:animate-none"
+              : "animate-page-slide-in lg:animate-fade-in"
+          }`}
         >
           {view.kind === "list" && (
             <ListView
