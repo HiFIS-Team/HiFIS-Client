@@ -40,11 +40,15 @@ interface CategoryMeta {
   label: string;
   emoji: string;
 }
+// 다이얼로그의 CATEGORY_OPTIONS label 과 동기화.
 const CATEGORIES: CategoryMeta[] = [
   { key: "소셜", label: "소셜 미디어", emoji: "📱" },
   { key: "편집", label: "디자인 · 편집", emoji: "🎨" },
   { key: "광고", label: "광고", emoji: "📢" },
   { key: "예약", label: "예약 · CRM", emoji: "🗓️" },
+  { key: "클라우드", label: "클라우드", emoji: "☁️" },
+  { key: "호스팅", label: "호스팅", emoji: "▲" },
+  { key: "기타", label: "기타", emoji: "📦" },
 ];
 
 const SCOPE_TABS: { key: "all" | AccountScope; label: string }[] = [
