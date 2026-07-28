@@ -15,6 +15,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
+import { NewAccountDialog } from "./NewAccountDialog";
 
 // 팀 리소스 · 계정 관리 — 공용으로 쓰는 서비스 계정(SNS · 편집툴 · 광고 등) 을 한 곳에서 공유.
 // mock. 실제 저장/암호화/열람 로그는 v2 백엔드 /accounts 연동 시점에.
@@ -165,6 +166,7 @@ export default function AccountsPage() {
   const [scopeTab, setScopeTab] = useState<"all" | Scope>("all");
   const [category, setCategory] = useState<"all" | Category>("all");
   const [query, setQuery] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -215,6 +217,7 @@ export default function AccountsPage() {
           </button>
           <button
             type="button"
+            onClick={() => setNewOpen(true)}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
             <PlusIcon className="size-4" />계정 추가
@@ -311,6 +314,8 @@ export default function AccountsPage() {
           ))}
         </div>
       )}
+
+      <NewAccountDialog open={newOpen} onClose={() => setNewOpen(false)} />
     </div>
   );
 }
