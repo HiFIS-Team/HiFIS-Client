@@ -337,26 +337,16 @@ function MembersView({
         </div>
       </div>
 
-      {/* 리스트 — PC 2-column, 모바일 1-column */}
+      {/* 리스트 — PC 2-column, 모바일 1-column. 각 카드는 자체 border + gap 으로 분리 (계정 관리와 동일) */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 px-5 py-16 text-center">
           <UsersIcon className="size-8 text-muted/70" />
           <p className="text-sm text-muted">조건에 맞는 구성원이 없어요.</p>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 divide-y divide-line lg:grid-cols-2 lg:divide-y-0">
-          {filtered.map((e, i) => (
-            <EmployeeCard
-              key={e.id}
-              employee={e}
-              view={view}
-              // PC 2-col 에선 자체 border 로 구분 (홀수는 우측, 마지막 행은 하단 무시)
-              extraBorderClass={
-                i % 2 === 0
-                  ? "lg:border-r lg:border-line"
-                  : ""
-              }
-            />
+        <ul className="grid grid-cols-1 gap-4 p-5 lg:grid-cols-2">
+          {filtered.map((e) => (
+            <EmployeeCard key={e.id} employee={e} view={view} />
           ))}
         </ul>
       )}
@@ -369,14 +359,12 @@ function MembersView({
 function EmployeeCard({
   employee,
   view,
-  extraBorderClass,
 }: {
   employee: Employee;
   view: ViewMode;
-  extraBorderClass: string;
 }) {
   return (
-    <li className={`px-5 py-5 lg:border-b lg:border-line ${extraBorderClass}`}>
+    <li className="rounded-lg border border-line bg-card-hover/40 p-5">
       {/* 상단 : 아바타 + 이름/이메일 + Active + 편집 */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
