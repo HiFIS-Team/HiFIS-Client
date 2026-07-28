@@ -281,8 +281,8 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
   const ScopeIcon = scope.icon;
   return (
     <li>
-      <button
-        type="button"
+      <Link
+        href={`/admin/meetings/detail?id=${meeting.id}`}
         className="group relative flex w-full items-start gap-4 overflow-hidden rounded-lg border border-line bg-card p-5 text-left transition-colors hover:bg-card-hover"
       >
         {/* 좌측 컬러 세로 바 */}
@@ -322,7 +322,7 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
         </div>
 
         <ChevronRightIcon className="mt-1 size-4 shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
-      </button>
+      </Link>
     </li>
   );
 }
