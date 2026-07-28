@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ComponentType, type SVGProps } from "react";
+import Link from "next/link";
 import {
   ChartBarIcon,
   ChevronRightIcon,
@@ -104,12 +105,12 @@ export default function MeetingsPage() {
             노션처럼 서식을 넣어 작성하고, 공개 범위를 세밀하게 지정하세요.
           </p>
         </div>
-        <button
-          type="button"
+        <Link
+          href="/admin/meetings/new"
           className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
         >
           <PlusIcon className="size-4" />새 회의록
-        </button>
+        </Link>
       </div>
 
       {/* 통계 3 카드 */}
