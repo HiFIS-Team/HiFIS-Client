@@ -7,19 +7,16 @@ import { useMutation } from "@tanstack/react-query";
 import { login } from "@/lib/api/auth";
 import { getAccessToken, setTokens } from "@/lib/api/tokenStore";
 import { getErrorMessage } from "@/lib/api/client";
-import { TextField } from "@/components/TextField";
-import { GmailField } from "@/components/GmailField";
-import { Button } from "@/components/Button";
 import { useToast } from "@/providers/ToastProvider";
-import { AuthLayout } from "../AuthLayout";
 
+// v2 로그인 — 다크 톤 워크스페이스 진입. AuthLayout(라이트 카드) 대신 자체 셸.
+// signup·password-reset 은 여전히 AuthLayout 사용.
 export default function AdminLoginPage() {
   const router = useRouter();
   const toast = useToast();
-  // PWA start_url 이 /admin/login 이라 PWA 진입 시 무조건 여기로 옴.
-  // 자동 로그인 체크해서 토큰이 살아있으면 곧장 대시보드로 보낸다.
-  // checking 동안 폼 안 보여 — 깜빡임 방지 (토큰 있을 때 로그인 폼이 잠깐 떴다가 사라지는 현상).
-  // (토큰 무효(401)는 dashboard layout 의 me 쿼리에서 redirect 처리)
+
+  // PWA start_url 이 /admin/login → 토큰 살아있으면 곧장 대시보드.
+  // checking 동안 폼 안 보여 — 깜빡임 방지.
   const [checking, setChecking] = useState(true);
   useEffect(() => {
     if (getAccessToken()) {
@@ -41,7 +38,6 @@ export default function AdminLoginPage() {
   const mutation = useMutation({
     mutationFn: () => login(email.trim(), password),
     onSuccess: (res) => {
-      // access·refresh 토큰 저장 후 대시보드로 (remember 에 따라 storage 결정)
       setTokens(res.access_token, res.refresh_token, remember);
       toast.success("로그인되었습니다.");
       router.replace("/admin");
@@ -58,62 +54,126 @@ export default function AdminLoginPage() {
     mutation.mutate();
   }
 
-  // 토큰 검사 중에는 폼 안 표시 — 토큰 있으면 곧 dashboard 로, 없으면 setChecking(false) → 폼 표시
   if (checking) return null;
 
   return (
-    <AuthLayout title="관리자 로그인">
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-        noValidate
-      >
-        <GmailField
-          id="email"
-          label="이메일"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
+    <main
+      data-theme="dark"
+      className="fixed inset-0 flex flex-col bg-surface"
+    >
+      {/* 상단 좌측 브랜드 */}
+      <div className="flex items-center gap-2.5 px-6 py-5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/icons/logo.png"
+          alt=""
+          aria-hidden="true"
+          className="size-10 shrink-0 rounded-lg"
         />
-        <TextField
-          id="password"
-          label="비밀번호"
-          type="password"
-          required
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          error={errors.password}
-        />
-        <label className="flex cursor-pointer items-center gap-2 select-none">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-            className="size-4 rounded accent-primary"
-          />
-          <span className="text-sm text-gray-700">자동 로그인</span>
-        </label>
-        {mutation.isError && (
-          <p className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700">
-            {getErrorMessage(mutation.error)}
+        <div className="leading-tight">
+          <p className="text-base font-black tracking-tight text-fg">HiNest</p>
+          <p className="text-[10px] font-semibold tracking-widest text-muted">
+            WORKPLACE PLATFORM
           </p>
-        )}
-        <Button type="submit" className="w-full" loading={mutation.isPending}>
-          로그인
-        </Button>
-      </form>
-      <p className="mt-4 text-center text-sm text-gray-500">
-        <Link href="/admin/signup" className="text-primary">
-          회원가입
-        </Link>
-        <span className="mx-2">·</span>
-        <Link href="/admin/password-reset" className="text-primary">
-          비밀번호 재설정
-        </Link>
-      </p>
-    </AuthLayout>
+        </div>
+      </div>
+
+      {/* 폼 — 세로 중앙 */}
+      <div className="flex flex-1 items-center justify-center px-6 pb-16">
+        <div className="w-full max-w-sm">
+          <h1 className="text-center text-3xl font-black tracking-tighter text-fg">
+            어서 오세요
+          </h1>
+          <p className="mt-2 text-center text-sm text-muted">
+            이메일과 비밀번호로 워크스페이스에 들어갈 수 있어요.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-3" noValidate>
+            <div>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="이메일"
+                aria-label="이메일"
+                className="w-full rounded-lg border border-line bg-card px-4 py-3.5 text-sm text-fg placeholder-muted transition-colors focus:border-primary focus:outline-none"
+              />
+              {errors.email && (
+                <p className="mt-1.5 pl-1 text-xs text-red-400">
+                  {errors.email}
+                </p>
+              )}
+            </div>
+            <div>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="비밀번호"
+                aria-label="비밀번호"
+                className="w-full rounded-lg border border-line bg-card px-4 py-3.5 text-sm text-fg placeholder-muted transition-colors focus:border-primary focus:outline-none"
+              />
+              {errors.password && (
+                <p className="mt-1.5 pl-1 text-xs text-red-400">
+                  {errors.password}
+                </p>
+              )}
+            </div>
+
+            <label className="flex cursor-pointer items-center gap-2 pt-1 pl-1 select-none">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="size-4 rounded accent-primary"
+              />
+              <span className="text-sm text-muted">자동 로그인</span>
+            </label>
+
+            {mutation.isError && (
+              <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
+                {getErrorMessage(mutation.error)}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="mt-3 w-full rounded-lg bg-primary py-3.5 text-base font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
+            >
+              {mutation.isPending ? "로그인 중..." : "로그인"}
+            </button>
+          </form>
+
+          {/* 링크 3개 — 초대키 가입 · 비밀번호 찾기 · 둘러보기 */}
+          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
+            <Link
+              href="/admin/signup"
+              className="font-semibold text-muted hover:text-fg"
+            >
+              초대키로 가입
+            </Link>
+            <span className="text-line">·</span>
+            <Link
+              href="/admin/password-reset"
+              className="font-semibold text-muted hover:text-fg"
+            >
+              비밀번호 찾기
+            </Link>
+            <span className="text-line">·</span>
+            <Link
+              href="/admin"
+              className="font-semibold text-primary hover:text-primary-hover"
+            >
+              둘러보기
+            </Link>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
