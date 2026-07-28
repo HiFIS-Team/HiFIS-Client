@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   output: "export",
   // dev server에 외부 origin(클플 터널 통한 dev.hifis.app) 허용 - 폰 테스트용.
   // 미설정 시 Next.js가 Cross-Origin 보호로 외부 host 요청 차단해서 hydrate 실패.
-  allowedDevOrigins: ["dev.hifis.app"],
+  allowedDevOrigins: ["dev.hifis.app", "v2.hifis.app"],
   // 정적 export는 이미지 최적화 서버가 없으므로 비활성화
   images: { unoptimized: true },
   // 빌드 시 package.json 의 version 을 클라이언트 번들로 인라인.
