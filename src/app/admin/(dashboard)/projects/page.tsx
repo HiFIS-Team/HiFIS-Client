@@ -10,6 +10,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
+import { NewProjectDialog } from "./NewProjectDialog";
 
 // 프로젝트 페이지 (v2, PC 우선) — 좌 목록 + 우 상세 split.
 // mock. 실제 저장/할당/알림은 API 붙는 시점에.
@@ -105,6 +106,7 @@ export default function ProjectsPage() {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(PROJECTS[0].id);
+  const [newOpen, setNewOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -157,6 +159,7 @@ export default function ProjectsPage() {
           </button>
           <button
             type="button"
+            onClick={() => setNewOpen(true)}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
             <PlusIcon className="size-4" />새 프로젝트
@@ -216,6 +219,8 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
+
+      <NewProjectDialog open={newOpen} onClose={() => setNewOpen(false)} />
     </div>
   );
 }
