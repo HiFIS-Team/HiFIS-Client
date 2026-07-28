@@ -5,7 +5,7 @@ import { PaperAirplaneIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { BuildingOffice2Icon } from "@heroicons/react/16/solid";
 import { useBranch } from "@/providers/BranchProvider";
 import { BranchPicker, branchShortName } from "@/components/BranchPicker";
-import { NotificationBell } from "./NotificationBell";
+import { NotificationsPopover } from "./NotificationsPopover";
 import { BranchRegisterButton } from "./branches/BranchRegisterButton";
 import { usePageTitle } from "./PageTitleProvider";
 import { adminRoleLabel } from "@/lib/format";
@@ -27,7 +27,7 @@ export function GlobalHeader({
   // 라우트 push 대신 state 로 처리해 parent 페이지가 unmount 되지 않게.
   onOpenProfile: () => void;
   // 모바일 알림 벨 — 누르면 layout 의 notification 오버레이 state on.
-  // PC 는 NotificationBell 이 내부 dropdown 으로 처리.
+  // PC 는 NotificationsPopover 가 내부 dropdown 으로 처리.
   onOpenNotifications: () => void;
   // 모바일 알림톡 아이콘 — 누르면 layout 의 alimtalk 오버레이 state on.
   // PC 는 사이드바·라우트로 접근 — 헤더 아이콘 자체가 lg:hidden.
@@ -72,7 +72,7 @@ export function GlobalHeader({
         </div>
       )}
       <div className="ml-auto flex items-center gap-2 lg:gap-3">
-        <NotificationBell onMobileOpen={onOpenNotifications} />
+        <NotificationsPopover onMobileOpen={onOpenNotifications} />
         {/* 모바일 : 알림 ↔ 프로필 사이 메시지(알림톡) 아이콘 — state 기반 오버레이로 이력·관리. */}
         <button
           type="button"

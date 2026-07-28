@@ -38,12 +38,9 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    // 사내톡·알림은 헤더 아이콘/FAB 로 접근 — 사이드바에서는 공지만.
     label: "커뮤니케이션",
-    items: [
-      { href: "/admin/notices", label: "공지" },
-      { href: "/admin/chat", label: "사내톡" },
-      { href: "/admin/notifications", label: "알림" },
-    ],
+    items: [{ href: "/admin/notices", label: "공지" }],
   },
   {
     label: "인사",
