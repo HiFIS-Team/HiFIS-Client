@@ -4,6 +4,7 @@ import type {
   EmployeeStatus,
   Rank,
   Role,
+  WorkStatus,
 } from "./types";
 
 // GET /employees — backend-api.md §5.
@@ -32,6 +33,55 @@ export function listEmployees(
     `/employees${query ? `?${query}` : ""}`,
     { auth: true },
   );
+}
+
+// ─────────────── /employees/me ───────────────
+
+export interface EmployeeMeUpdate {
+  name?: string;
+  avatarColor?: string;
+  avatarUrl?: string;
+  statusMessage?: string | null;
+  workStatus?: WorkStatus;
+}
+
+export function updateMe(payload: EmployeeMeUpdate): Promise<EmployeeOut> {
+  return apiV2Fetch<EmployeeOut>(`/employees/me`, {
+    method: "PATCH",
+    body: payload,
+    auth: true,
+  });
+}
+
+export interface PasswordChange {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export function changePassword(payload: PasswordChange): Promise<void> {
+  return apiV2Fetch<void>(`/employees/me/password`, {
+    method: "POST",
+    body: payload,
+    auth: true,
+  });
+}
+
+// multipart 아바타 업로드. 서버가 avatarUrl 채워서 EmployeeOut 리턴.
+export function uploadMyAvatar(file: File): Promise<EmployeeOut> {
+  const fd = new FormData();
+  fd.append("file", file);
+  return apiV2Fetch<EmployeeOut>(`/employees/me/avatar`, {
+    method: "POST",
+    body: fd,
+    auth: true,
+  });
+}
+
+export function withdrawMe(): Promise<void> {
+  return apiV2Fetch<void>(`/employees/me/withdraw`, {
+    method: "POST",
+    auth: true,
+  });
 }
 
 // ─────────────── 라벨 매핑 ───────────────
