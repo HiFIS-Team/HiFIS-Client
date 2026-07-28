@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getMe } from "@/lib/api/v2/auth";
+// v1 auth.getMe 는 내부에서 v2 /auth/me 위임 (어댑터).
+import { getMe } from "@/lib/api/auth";
 import { getBranches } from "@/lib/api/branches";
 import type { Branch } from "@/lib/api/types";
 import { useToast } from "@/providers/ToastProvider";
@@ -50,8 +51,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
     queryFn: getMe,
     retry: false,
   });
-  // v2: ADMIN=대표(구 SUPER_ADMIN 대응), MANAGER/MEMBER=점장/일반.
-  const isSuper = meQuery.data?.role === "ADMIN";
+  const isSuper = meQuery.data?.role === "SUPER_ADMIN";
 
   const branchesQuery = useQuery({
     queryKey: ["branches"],
@@ -75,7 +75,7 @@ export function BranchProvider({ children }: { children: ReactNode }) {
     [branches],
   );
 
-  const fcBranchId = meQuery.data?.branchId ?? undefined;
+  const fcBranchId = meQuery.data?.branch_id ?? undefined;
 
   // 결정 우선순위:
   // - FC: 본인 지점 (고정)

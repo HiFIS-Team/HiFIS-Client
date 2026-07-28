@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearTokens } from "@/lib/api/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
-import type { EmployeeOut } from "@/lib/api/v2/types";
+import type { Admin } from "@/lib/api/types";
 import { NAV_ICONS } from "./navIcons";
 
 // v2 재편 — 회원/PT/예약/상품/통계/알림톡 계열 제거.
@@ -62,7 +62,7 @@ const NAV: NavGroup[] = [
 ];
 
 // PC(lg+) 전용 sticky 사이드바. 모바일은 하단 탭바 + 헤더 프로필 아이콘으로 대체.
-export function Sidebar({ admin: _admin }: { admin: EmployeeOut }) {
+export function Sidebar({ admin: _admin }: { admin: Admin }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();

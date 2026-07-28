@@ -4,7 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
-import { getMe } from "@/lib/api/v2/auth";
+// v1 auth.getMe 는 내부에서 v2 /auth/me 로 위임(어댑터) — 모든 페이지가 같은 queryFn 공유하도록.
+import { getMe } from "@/lib/api/auth";
 import { bootstrapAccessToken } from "@/lib/api/v2/client";
 import { useHeartbeat } from "@/lib/hooks/useHeartbeat";
 import { useNotificationNavigate } from "@/lib/hooks/useNotificationNavigate";

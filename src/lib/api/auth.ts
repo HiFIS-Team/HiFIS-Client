@@ -1,4 +1,6 @@
 import { apiFetch } from "./client";
+import { getMe as getMeV2 } from "./v2/auth";
+import type { EmployeeOut } from "./v2/types";
 import type { Admin, AdminSignupRequest, TokenResponse } from "./types";
 
 // 관리자 인증 API — 로그인/가입/인증은 공개, /me 는 Bearer 필요.
@@ -52,9 +54,31 @@ export function confirmPasswordReset(
   });
 }
 
-// GET /admin/me — 현재 로그인한 관리자 정보 (Bearer)
-export function getMe(): Promise<Admin> {
-  return apiFetch<Admin>("/admin/me", { auth: true });
+// GET /auth/me (v2) — v1 Admin shape 로 어댑팅.
+// 앱 곳곳(대시보드/BranchProvider/staff 페이지 등)이 아직 v1 Admin 타입을 참조 →
+// 여기서 어댑터를 두면 페이지 재작성 없이도 v2 로 안전하게 이전됨.
+// v2 → v1 매핑:
+//   role : ADMIN → SUPER_ADMIN · 그 외 → FC
+//   branchId → branch_id · joinedAt → created_at · lastActiveAt → last_seen_at
+//   position/status/is_online : v2 스키마엔 없음 → 임시 기본값
+export async function getMe(): Promise<Admin> {
+  const emp = await getMeV2();
+  return adaptEmployeeToAdmin(emp);
+}
+
+function adaptEmployeeToAdmin(e: EmployeeOut): Admin {
+  return {
+    id: e.id,
+    email: e.email,
+    name: e.name,
+    role: e.role === "ADMIN" ? "SUPER_ADMIN" : "FC",
+    position: null,
+    status: "ACTIVE",
+    branch_id: e.branchId ?? null,
+    created_at: e.joinedAt,
+    last_seen_at: e.lastActiveAt ?? null,
+    is_online: true,
+  };
 }
 
 // PATCH /admin/me/password — 로그인 상태에서 비밀번호 변경 (현재 비번 확인 필요)

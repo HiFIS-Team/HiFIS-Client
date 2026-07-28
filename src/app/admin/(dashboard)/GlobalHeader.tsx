@@ -9,7 +9,7 @@ import { NotificationsPopover } from "./NotificationsPopover";
 import { BranchRegisterButton } from "./branches/BranchRegisterButton";
 import { usePageTitle } from "./PageTitleProvider";
 import { adminRoleLabel } from "@/lib/format";
-import type { EmployeeOut } from "@/lib/api/v2/types";
+import type { Admin } from "@/lib/api/types";
 
 // 어드민 sticky 상단 헤더.
 // 모바일 : 햄버거 + 지점 + (우)알림벨.
@@ -22,7 +22,7 @@ export function GlobalHeader({
   onOpenNotifications,
   onOpenAlimtalk,
 }: {
-  admin: EmployeeOut;
+  admin: Admin;
   // 모바일 헤더 사람 아이콘 — 누르면 layout 의 profile 오버레이 state on.
   // 라우트 push 대신 state 로 처리해 parent 페이지가 unmount 되지 않게.
   onOpenProfile: () => void;
@@ -103,15 +103,7 @@ export function GlobalHeader({
           </div>
           <div className="text-left leading-tight">
             <p className="text-sm font-semibold text-fg">{admin.name}</p>
-            {/* adminRoleLabel 은 v1 형태(SUPER_ADMIN/FC + position) 를 기대 —
-                v2 EmployeeOut 에 맞춰 임시 어댑터. 라벨 시스템 v2 이관 시 정리. */}
-            <p className="text-xs text-muted">
-              {adminRoleLabel({
-                name: admin.name,
-                role: admin.role === "ADMIN" ? "SUPER_ADMIN" : "FC",
-                position: null,
-              })}
-            </p>
+            <p className="text-xs text-muted">{adminRoleLabel(admin)}</p>
           </div>
         </Link>
       </div>
