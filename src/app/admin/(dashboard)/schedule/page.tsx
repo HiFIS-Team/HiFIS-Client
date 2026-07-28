@@ -7,6 +7,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
+import { ScheduleEventDialog } from "./ScheduleEventDialog";
 
 // 일정 페이지 — 큰 월별 달력.
 // 상단 컨트롤은 카드 밖 : 좌 페이지 제목·부제, 우 월/주 토글 · 좌우 이동 · 연월 · 일정 추가.
@@ -89,6 +90,9 @@ export default function SchedulePage() {
 
   // 뷰 모드 — 지금은 월 뷰만 실제 렌더. 주 뷰는 다음 스텝에서 붙임 (토글 UI 만 먼저).
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
+
+  // 일정 추가 모달 open state
+  const [addOpen, setAddOpen] = useState(false);
 
   const days = useMemo(
     () => buildMonthGrid(viewYear, viewMonth),
@@ -173,9 +177,10 @@ export default function SchedulePage() {
             <ChevronRightIcon className="size-4" />
           </button>
 
-          {/* 일정 추가 (모달·폼은 다음 스텝) */}
+          {/* 일정 추가 */}
           <button
             type="button"
+            onClick={() => setAddOpen(true)}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
             <PlusIcon className="size-4" />
@@ -216,6 +221,11 @@ export default function SchedulePage() {
           ))}
         </div>
       </div>
+
+      <ScheduleEventDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+      />
     </div>
   );
 }
