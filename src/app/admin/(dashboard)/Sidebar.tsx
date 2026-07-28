@@ -33,7 +33,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/projects", label: "프로젝트" },
       { href: "/admin/approvals", label: "전자결재" },
       { href: "/admin/meetings", label: "회의록" },
-      { href: "/admin/attendance", label: "근태월차" },
+      { href: "/admin/attendance", label: "근태 · 월차" },
       { href: "/admin/documents", label: "문서함" },
     ],
   },

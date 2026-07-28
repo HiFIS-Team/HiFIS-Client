@@ -149,7 +149,7 @@ const SHORTCUTS: ShortcutItem[] = [
   { label: "업무", href: "/admin/tasks", icon: ClipboardDocumentCheckIcon, tone: "text-primary", badge: 2 },
   { label: "프로젝트", href: "/admin/projects", icon: FolderIcon, tone: "text-yellow-400", badge: 2 },
   { label: "회의록", href: "/admin/meetings", icon: DocumentTextIcon, tone: "text-sky-400" },
-  { label: "근태 월차", href: "/admin/attendance", icon: ClockIcon, tone: "text-pink-400" },
+  { label: "근태 · 월차", href: "/admin/attendance", icon: ClockIcon, tone: "text-pink-400" },
   { label: "랭킹", href: "/admin/ranking", icon: TrophyIcon, tone: "text-amber-400" },
   { label: "일정", href: "/admin/schedule", icon: CalendarIcon, tone: "text-violet-400" },
   { label: "급여", href: "/admin/payroll", icon: BanknotesIcon, tone: "text-emerald-400" },
