@@ -12,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
 import { NewProjectDialog } from "./NewProjectDialog";
+import { ProjectDetailDialog } from "./ProjectDetailDialog";
 
 // 프로젝트 페이지 — 회의록 페이지 톤 (풀-width 카드 + 상단 통계 + 검색·필터·정렬).
 // mock. API 는 다음 스텝.
@@ -30,6 +31,8 @@ interface Project {
   dday: number; // 음수 = 지남
   updated: string; // "7. 25."
   createdBy: { name: string; tone: string };
+  purpose?: string;
+  steps?: string[]; // 절차 텍스트 리스트 (1., 2., 3. …)
 }
 
 const PROJECTS: Project[] = [
@@ -43,6 +46,14 @@ const PROJECTS: Project[] = [
     dday: -3,
     updated: "7. 25.",
     createdBy: { name: "이앨리스", tone: "bg-emerald-500" },
+    purpose:
+      "2층 확장 + 인테리어 리뉴얼. 트레이너 룸 · 그룹 PT 존 신설. 8/8 오픈 목표.",
+    steps: [
+      "시공 견적 3사 비교",
+      "자재 발주 · 시공 착수",
+      "부분 오픈 프로모션 페이지",
+      "회원 이관 안내 알림톡 발송",
+    ],
   },
   {
     id: "p2",
@@ -54,6 +65,12 @@ const PROJECTS: Project[] = [
     dday: 18,
     updated: "7. 26.",
     createdBy: { name: "박그레이스", tone: "bg-violet-500" },
+    purpose: "회원 · 예약 유입 경로 통합. 모바일 반응형 리디자인.",
+    steps: [
+      "IA · 와이어프레임 확정",
+      "디자인 시스템 v2 반영",
+      "예약 흐름 개편 · A/B 테스트",
+    ],
   },
   {
     id: "p3",
@@ -65,6 +82,13 @@ const PROJECTS: Project[] = [
     dday: 44,
     updated: "7. 10.",
     createdBy: { name: "박그레이스", tone: "bg-violet-500" },
+    purpose:
+      "신규 트레이너 첫 2주 온보딩 체크리스트 · 메이트 매칭 가이드 정리 → 문서함 등록.",
+    steps: [
+      "체크리스트 초안",
+      "리드 리뷰 반영",
+      "문서함 등록 · 전사 알림",
+    ],
   },
   {
     id: "p4",
@@ -76,6 +100,13 @@ const PROJECTS: Project[] = [
     dday: -8,
     updated: "7. 20.",
     createdBy: { name: "김데모", tone: "bg-primary" },
+    purpose:
+      "3개월 이상 미출석 회원 대상 재등록 인센티브. 목표 재등록률 15%.",
+    steps: [
+      "대상자 세그먼트",
+      "알림톡 A/B 발송",
+      "결과 리포트 공유",
+    ],
   },
   {
     id: "p5",
@@ -87,6 +118,8 @@ const PROJECTS: Project[] = [
     dday: -104,
     updated: "4. 15.",
     createdBy: { name: "김데모", tone: "bg-primary" },
+    purpose: "Q1 매출 · 회원 · PT 지표 리뷰. Q2 계획 근거 자료.",
+    steps: ["데이터 수집", "리포트 작성", "발표 · 배포"],
   },
 ];
 
@@ -108,6 +141,10 @@ export default function ProjectsPage() {
   const [sort, setSort] = useState<SortKey>("due");
   const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const detailProject = detailId
+    ? PROJECTS.find((p) => p.id === detailId) ?? null
+    : null;
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -286,7 +323,11 @@ export default function ProjectsPage() {
               )}
               <ul className="space-y-3">
                 {g.items.map((p) => (
-                  <ProjectCard key={p.id} project={p} />
+                  <ProjectCard
+                    key={p.id}
+                    project={p}
+                    onOpen={() => setDetailId(p.id)}
+                  />
                 ))}
               </ul>
             </section>
@@ -295,6 +336,11 @@ export default function ProjectsPage() {
       </div>
 
       <NewProjectDialog open={newOpen} onClose={() => setNewOpen(false)} />
+      <ProjectDetailDialog
+        open={detailProject !== null}
+        project={detailProject}
+        onClose={() => setDetailId(null)}
+      />
     </div>
   );
 }
@@ -396,12 +442,19 @@ const STATUS_STYLE: Record<
   },
 };
 
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({
+  project,
+  onOpen,
+}: {
+  project: Project;
+  onOpen: () => void;
+}) {
   const s = STATUS_STYLE[project.status];
   return (
     <li>
       <button
         type="button"
+        onClick={onOpen}
         className="group relative flex w-full items-start gap-4 overflow-hidden rounded-lg border border-line bg-card p-5 text-left transition-colors hover:bg-card-hover"
       >
         {/* 좌측 컬러 세로 바 (회의록과 톤 통일) */}
