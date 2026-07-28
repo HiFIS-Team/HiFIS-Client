@@ -63,6 +63,38 @@ export function AppGuide({ onClose }: { onClose: () => void }) {
   // 아이콘 애니메이션 재트리거용 key — 슬라이드 바뀔 때마다 이모지 element 리마운트.
   const [iconKey, setIconKey] = useState(0);
 
+  // 가이드가 뜰 때 SW / cache storage 자동 초기화 (세션당 1회) →
+  // 새 빌드 배포 후 옛 CSS 캐시로 그라데이션·크기가 안 먹히는 문제 방지.
+  // sessionStorage flag 로 무한 리로드 방지 (탭 세션 안에서만 유효).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const CLEARED_KEY = "hifis-guide-cache-cleared";
+    if (window.sessionStorage.getItem(CLEARED_KEY)) return;
+
+    let aborted = false;
+    (async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+        if ("caches" in window) {
+          const names = await caches.keys();
+          await Promise.all(names.map((n) => caches.delete(n)));
+        }
+      } catch {
+        // 캐시 API 실패 (구형 브라우저 등) — 조용히 무시하고 다음 단계로.
+      }
+      if (aborted) return;
+      window.sessionStorage.setItem(CLEARED_KEY, "1");
+      // 최신 자산으로 hard reload — bypass HTTP 캐시.
+      window.location.reload();
+    })();
+    return () => {
+      aborted = true;
+    };
+  }, []);
+
   const isLast = index === SLIDES.length - 1;
 
   const next = useCallback(() => {
@@ -108,10 +140,11 @@ export function AppGuide({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-label="앱 가이드"
-      // gradient 는 inline — Tailwind purge/컴파일 이슈 및 SW 캐시 회피
+      // gradient 는 inline — 화면 전체가 확실히 primary 톤으로 보이도록 3-stop 유지
+      // 어두운 끝(black) 대신 violet-800 로 마무리해서 코너까지 컬러 유지.
       style={{
         background:
-          "linear-gradient(135deg, #7c3aed 0%, #6d28d9 45%, #1a1030 100%)",
+          "linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #4c1d95 100%)",
       }}
       className="animate-fade-in fixed inset-0 z-[60] flex flex-col overflow-hidden text-fg"
     >
