@@ -10,6 +10,7 @@ import {
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { Switch } from "@/components/Switch";
 
 // 사내톡 진입 FAB + 팝오버 (전체 어드민 공용).
 // 뷰 3 : list (대화 목록) / new (새 대화 만들기) / chat (특정 대화).
@@ -121,7 +122,8 @@ function formatNowKo(): string {
 type View =
   | { kind: "list" }
   | { kind: "new" }
-  | { kind: "chat"; convId: string };
+  | { kind: "chat"; convId: string }
+  | { kind: "settings"; convId: string };
 
 export function ChatFab() {
   const [open, setOpen] = useState(false);
@@ -198,8 +200,16 @@ export function ChatFab() {
     );
   }
 
+  function renameConversation(convId: string, name: string) {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convId ? { ...c, name } : c)),
+    );
+  }
+
   const currentConv =
-    view.kind === "chat" ? conversations.find((c) => c.id === view.convId) : null;
+    view.kind === "chat" || view.kind === "settings"
+      ? conversations.find((c) => c.id === view.convId)
+      : null;
 
   return (
     <div ref={rootRef}>
@@ -231,6 +241,17 @@ export function ChatFab() {
               onBack={() => setView({ kind: "list" })}
               onClose={close}
               onSend={(t) => sendMessage(currentConv.id, t)}
+              onOpenSettings={() =>
+                setView({ kind: "settings", convId: currentConv.id })
+              }
+            />
+          )}
+          {view.kind === "settings" && currentConv && (
+            <SettingsView
+              conv={currentConv}
+              onBack={() => setView({ kind: "chat", convId: currentConv.id })}
+              onClose={close}
+              onRename={(name) => renameConversation(currentConv.id, name)}
             />
           )}
         </div>
@@ -450,12 +471,14 @@ function ChatView({
   onBack,
   onClose,
   onSend,
+  onOpenSettings,
 }: {
   conv: Conversation;
   messages: Message[];
   onBack: () => void;
   onClose: () => void;
   onSend: (text: string) => void;
+  onOpenSettings: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const subtitle =
@@ -482,13 +505,29 @@ function ChatView({
         <RoundIconButton label="뒤로" onClick={onBack}>
           <ChevronLeftIcon className="size-4" />
         </RoundIconButton>
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Avatar name={conv.name} tone={conv.avatarTone} online={conv.online} group={conv.type === "group"} />
+        {/* 아바타·이름 부분 클릭 → 채팅방 설정. hover 시 툴팁. */}
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="group relative flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-card-hover"
+        >
+          <Avatar
+            name={conv.name}
+            tone={conv.avatarTone}
+            online={conv.online}
+            group={conv.type === "group"}
+          />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-fg">{conv.name}</p>
             <p className="text-xs text-muted">{subtitle}</p>
           </div>
-        </div>
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute top-full left-1/2 z-10 mt-1 -translate-x-1/2 rounded-md border border-line bg-card-hover px-2 py-1 text-xs whitespace-nowrap text-fg opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+          >
+            채팅방 설정
+          </span>
+        </button>
         <RoundIconButton label="닫기" onClick={onClose}>
           <XMarkIcon className="size-4" />
         </RoundIconButton>
@@ -593,6 +632,134 @@ function MessageRow({ conv, msg }: { conv: Conversation; msg: Message }) {
   );
 }
 
+// ─────────────── Settings view ───────────────
+
+type ShareTab = "photo" | "video" | "file" | "code";
+const SHARE_TABS: { key: ShareTab; label: string; count: number; emptyText: string }[] = [
+  { key: "photo", label: "사진", count: 0, emptyText: "공유된 사진이 없어요" },
+  { key: "video", label: "영상", count: 0, emptyText: "공유된 영상이 없어요" },
+  { key: "file", label: "파일", count: 0, emptyText: "공유된 파일이 없어요" },
+  { key: "code", label: "코드", count: 1, emptyText: "공유된 코드가 없어요" },
+];
+
+function SettingsView({
+  conv,
+  onBack,
+  onClose,
+  onRename,
+}: {
+  conv: Conversation;
+  onBack: () => void;
+  onClose: () => void;
+  onRename: (name: string) => void;
+}) {
+  const [name, setName] = useState(conv.name);
+  const [muted, setMuted] = useState(false);
+  const [tab, setTab] = useState<ShareTab>("photo");
+
+  const dirty = name.trim() !== conv.name && name.trim().length > 0;
+
+  return (
+    <>
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <RoundIconButton label="뒤로" onClick={onBack}>
+          <ChevronLeftIcon className="size-4" />
+        </RoundIconButton>
+        <RoundIconButton label="닫기" onClick={onClose}>
+          <XMarkIcon className="size-4" />
+        </RoundIconButton>
+      </div>
+
+      <div className="flex-1 space-y-6 overflow-y-auto px-5 pb-6">
+        {/* 아바타 + 이름 */}
+        <div className="flex flex-col items-center gap-3 pt-2">
+          <Avatar
+            name={conv.name}
+            tone={conv.avatarTone}
+            online={conv.online}
+            group={conv.type === "group"}
+            size="xl"
+          />
+          <p className="text-lg font-black tracking-tighter text-fg">
+            {conv.name}
+          </p>
+        </div>
+
+        {/* 이름 변경 */}
+        <section>
+          <p className="text-xs font-semibold text-muted">이름 변경</p>
+          <div className="mt-2 flex items-center gap-2 rounded-md border border-line bg-card-hover px-3 py-2">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-fg placeholder-muted focus:outline-none"
+            />
+            <button
+              type="button"
+              disabled={!dirty}
+              onClick={() => onRename(name.trim())}
+              className="rounded-md border border-line px-3 py-1 text-xs font-semibold text-fg transition-colors hover:bg-card disabled:opacity-40"
+            >
+              변경
+            </button>
+          </div>
+        </section>
+
+        {/* 알림 */}
+        <section>
+          <p className="text-xs font-semibold text-muted">알림</p>
+          <div className="mt-2 flex items-center justify-between rounded-md border border-line bg-card-hover px-4 py-3">
+            <div>
+              <p className="text-sm font-bold text-fg">알림 끄기</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {muted ? "메시지 알림을 받지 않아요" : "메시지 알림을 받아요"}
+              </p>
+            </div>
+            <Switch
+              checked={muted}
+              onChange={setMuted}
+              ariaLabel="채팅방 알림 끄기"
+            />
+          </div>
+        </section>
+
+        {/* 공유된 콘텐츠 */}
+        <section>
+          <p className="text-xs font-semibold text-muted">공유된 콘텐츠</p>
+          <div className="mt-2 flex gap-4 border-b border-line">
+            {SHARE_TABS.map((t) => {
+              const active = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTab(t.key)}
+                  className={`relative pb-2 text-sm font-semibold transition-colors ${
+                    active ? "text-fg" : "text-muted hover:text-fg"
+                  }`}
+                >
+                  {t.label}{" "}
+                  <span
+                    className={`ml-0.5 tabular-nums ${active ? "text-primary" : "text-muted"}`}
+                  >
+                    {t.count}
+                  </span>
+                  {active && (
+                    <span className="absolute right-0 -bottom-px left-0 h-0.5 bg-primary" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-8 text-center text-sm text-muted">
+            {SHARE_TABS.find((t) => t.key === tab)?.emptyText}
+          </p>
+        </section>
+      </div>
+    </>
+  );
+}
+
 // ─────────────── shared ───────────────
 
 function RoundIconButton({
@@ -649,12 +816,20 @@ function Avatar({
   tone: string;
   online?: boolean;
   group?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }) {
   const sizeCls =
-    size === "sm" ? "size-8 text-xs" : size === "lg" ? "size-11 text-base" : "size-10 text-sm";
-  const badgeCls = size === "sm" ? "size-2.5" : "size-3";
-  const groupBadgeCls = size === "sm" ? "size-3.5" : "size-4";
+    size === "sm"
+      ? "size-8 text-xs"
+      : size === "lg"
+        ? "size-11 text-base"
+        : size === "xl"
+          ? "size-20 text-2xl"
+          : "size-10 text-sm";
+  const badgeCls =
+    size === "sm" ? "size-2.5" : size === "xl" ? "size-5" : "size-3";
+  const groupBadgeCls =
+    size === "sm" ? "size-3.5" : size === "xl" ? "size-7" : "size-4";
   return (
     <span className="relative shrink-0">
       <span
