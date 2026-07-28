@@ -16,8 +16,17 @@ import {
   MegaphoneIcon,
   TrophyIcon,
 } from "@heroicons/react/24/outline";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
-import { listEvents, type EventOut } from "@/lib/api/v2/events";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import {
+  formatCheckTime,
+  listAttendance,
+  scanAttendance,
+} from "@/lib/api/v2/attendance";
+import { getMe as getMeV2 } from "@/lib/api/v2/auth";
+import { listEvents } from "@/lib/api/v2/events";
 import {
   computeDday,
   listProjects,
@@ -84,15 +93,49 @@ function GreetingDate() {
   return <p className="text-xs text-muted">{text}</p>;
 }
 
-// 오늘 근무 카드 — 실시간 시계 + 근무 시간(06:20~18:20) 진행률 프로그레스 + 출퇴근.
-// 근태 API 미구현 : 지금은 미출근 mock (percent=0, 출근·퇴근 --:--).
+// 오늘 근무 카드 — 실시간 시계 + 근무 시간 진행률 + 출퇴근 버튼.
+// shiftStart/End 는 v2 me 에서 로드. 미설정이면 진행률 계산 skip.
+// 오늘 attendance 는 listAttendance(month=이번달) 결과에서 오늘 date 로 필터.
 function AttendanceCard() {
   const [now, setNow] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
   useEffect(() => {
     setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  const meV2Query = useQuery({
+    queryKey: ["v2", "me"] as const,
+    queryFn: getMeV2,
+  });
+  const meId = meV2Query.data?.id ?? null;
+  const shiftStart = meV2Query.data?.shiftStart; // "HH:MM"
+  const shiftEnd = meV2Query.data?.shiftEnd;
+
+  const monthKey = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+  const todayKey = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  const attendanceQuery = useQuery({
+    queryKey: ["v2", "attendance", { employeeId: meId, month: monthKey }] as const,
+    queryFn: () =>
+      listAttendance({ employeeId: meId ?? undefined, month: monthKey }),
+    enabled: !!meId,
+  });
+  const today = attendanceQuery.data?.find((r) => r.date === todayKey) ?? null;
+
+  const scanMutation = useMutation({
+    mutationFn: () => scanAttendance({}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["v2", "attendance"] });
+    },
+  });
 
   const clock = now
     ? [
@@ -102,16 +145,38 @@ function AttendanceCard() {
       ].join(" : ")
     : "-- : -- : --";
 
-  const percent = 0;
-  const checkedIn = "--:--";
-  const checkedOut = "--:--";
+  // 진행률 계산 — shiftStart~shiftEnd 사이의 현재 위치.
+  const percent = useMemo(() => {
+    if (!now || !shiftStart || !shiftEnd) return 0;
+    const startMin = hhmmToMin(shiftStart);
+    const endMin = hhmmToMin(shiftEnd);
+    if (endMin <= startMin) return 0;
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    return Math.max(0, Math.min(100, ((nowMin - startMin) / (endMin - startMin)) * 100));
+  }, [now, shiftStart, shiftEnd]);
+
+  const status = !today
+    ? "미출근"
+    : today.checkOut
+      ? "퇴근"
+      : "근무 중";
+  const statusStyle =
+    status === "근무 중"
+      ? "bg-primary/20 text-primary"
+      : status === "퇴근"
+        ? "bg-emerald-500/20 text-emerald-400"
+        : "bg-white/10 text-muted";
+
+  const scanLabel = !today ? "출근" : !today.checkOut ? "퇴근" : "재퇴근";
 
   return (
     <div className="rounded-lg border border-line bg-card px-6 py-5">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted">오늘 근무</p>
-        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-muted">
-          미출근
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-medium ${statusStyle}`}
+        >
+          {status}
         </span>
       </div>
       <p className="mt-2 text-center text-4xl font-black tracking-tighter text-fg tabular-nums">
@@ -124,22 +189,49 @@ function AttendanceCard() {
         />
       </div>
       <div className="mt-2 flex items-center justify-between text-sm">
-        <span className="text-muted tabular-nums">06:20</span>
-        <span className="font-semibold text-primary">{percent}%</span>
-        <span className="text-muted tabular-nums">18:20</span>
+        <span className="text-muted tabular-nums">{shiftStart ?? "--:--"}</span>
+        <span className="font-semibold text-primary">
+          {Math.round(percent)}%
+        </span>
+        <span className="text-muted tabular-nums">{shiftEnd ?? "--:--"}</span>
       </div>
       <div className="mt-6 flex items-center justify-between text-sm">
         <div className="flex items-center gap-3">
           <span className="text-muted">출근</span>
-          <span className="text-fg tabular-nums">{checkedIn}</span>
+          <span className="text-fg tabular-nums">
+            {formatCheckTime(today?.checkIn ?? null)}
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-muted">퇴근</span>
-          <span className="text-fg tabular-nums">{checkedOut}</span>
+          <span className="text-fg tabular-nums">
+            {formatCheckTime(today?.checkOut ?? null)}
+          </span>
         </div>
       </div>
+
+      {/* 출퇴근 버튼 */}
+      <button
+        type="button"
+        onClick={() => scanMutation.mutate()}
+        disabled={scanMutation.isPending || !meId}
+        className="mt-4 w-full rounded-md border border-emerald-400/60 bg-emerald-500/25 py-2 text-sm font-semibold text-emerald-300 shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {scanMutation.isPending ? "…" : scanLabel}
+      </button>
+      {scanMutation.isError && (
+        <p className="mt-2 flex items-start gap-1.5 text-xs text-red-300">
+          <ExclamationTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
+          {getV2ErrorMessage(scanMutation.error)}
+        </p>
+      )}
     </div>
   );
+}
+
+function hhmmToMin(s: string): number {
+  const [h, m] = s.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
 }
 
 // 앱 shortcut 카드 — 4열 그리드. 각 셀 : 컬러 아이콘 + 라벨 (+ 뱃지).

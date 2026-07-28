@@ -1,40 +1,84 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import {
+  CalendarIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/outline";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { createLeave, type LeaveType } from "@/lib/api/v2/attendance";
 import { DialogGradientHeader } from "../DialogGradientHeader";
 
-// 휴가 신청 모달 — UI 만. 저장 로직은 API 붙는 시점에.
-// 헤더는 DialogGradientHeader 공용 (일정 추가와 동일 톤).
+// 휴가 신청 — POST /leaves. 백엔드가 반차면 0.5 자동 계산.
+// 반차는 종료일 = 시작일 강제.
 
-interface LeaveType {
-  key: string;
+interface TypeOption {
+  key: LeaveType;
   label: string;
-  dot: string; // tailwind bg 클래스
+  dot: string;
 }
-const TYPES: LeaveType[] = [
-  { key: "annual", label: "연차", dot: "bg-primary" },
-  { key: "half", label: "반차", dot: "bg-violet-400" },
-  { key: "sick", label: "병가", dot: "bg-red-400" },
-  { key: "field", label: "외근", dot: "bg-emerald-400" },
-  { key: "etc", label: "기타", dot: "bg-slate-400" },
+const TYPES: TypeOption[] = [
+  { key: "ANNUAL", label: "연차", dot: "bg-primary" },
+  { key: "HALF", label: "반차", dot: "bg-violet-400" },
+  { key: "SICK", label: "병가", dot: "bg-red-400" },
+  { key: "FIELD", label: "외근", dot: "bg-emerald-400" },
+  { key: "ETC", label: "기타", dot: "bg-slate-400" },
 ];
 
 interface LeaveRequestDialogProps {
   open: boolean;
   onClose: () => void;
+  onCreated: () => void;
 }
 
-export function LeaveRequestDialog({ open, onClose }: LeaveRequestDialogProps) {
+export function LeaveRequestDialog({
+  open,
+  onClose,
+  onCreated,
+}: LeaveRequestDialogProps) {
   useEscapeKey(onClose, open);
 
-  const [type, setType] = useState<string>("annual");
+  const [type, setType] = useState<LeaveType>("ANNUAL");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
 
+  const mutation = useMutation({
+    mutationFn: createLeave,
+    onSuccess: () => onCreated(),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    setType("ANNUAL");
+    setStartDate("");
+    setEndDate("");
+    setReason("");
+    mutation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   if (!open) return null;
+
+  // 반차는 하루만.
+  const effectiveEnd = type === "HALF" ? startDate : endDate;
+  const canSubmit =
+    !!startDate &&
+    !!effectiveEnd &&
+    effectiveEnd >= startDate &&
+    !mutation.isPending;
+
+  function submit() {
+    if (!canSubmit) return;
+    mutation.mutate({
+      type,
+      startDate,
+      endDate: effectiveEnd,
+      reason: reason.trim() || undefined,
+    });
+  }
 
   return (
     <div
@@ -54,7 +98,6 @@ export function LeaveRequestDialog({ open, onClose }: LeaveRequestDialogProps) {
         />
 
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-          {/* 종류 — 5개 큰 chip (dot + 라벨) */}
           <Field label="종류">
             <div className="grid grid-cols-5 gap-2">
               {TYPES.map((t) => {
@@ -84,25 +127,22 @@ export function LeaveRequestDialog({ open, onClose }: LeaveRequestDialogProps) {
             </div>
           </Field>
 
-          {/* 시작일 / 종료일 */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="시작일">
-              <DateInput
-                value={startDate}
-                onChange={setStartDate}
-                placeholder="YYYY-MM-DD"
-              />
+              <DateInput value={startDate} onChange={setStartDate} />
             </Field>
-            <Field label="종료일">
+            <Field
+              label="종료일"
+              hint={type === "HALF" ? "(반차는 하루)" : undefined}
+            >
               <DateInput
-                value={endDate}
+                value={effectiveEnd}
                 onChange={setEndDate}
-                placeholder="YYYY-MM-DD"
+                disabled={type === "HALF"}
               />
             </Field>
           </div>
 
-          {/* 사유 */}
           <Field label="사유" hint="(선택)">
             <textarea
               value={reason}
@@ -112,22 +152,31 @@ export function LeaveRequestDialog({ open, onClose }: LeaveRequestDialogProps) {
               className="w-full resize-y rounded-md border border-line bg-card-hover px-3 py-2 text-sm text-fg placeholder-muted focus:border-primary focus:outline-none"
             />
           </Field>
+
+          {mutation.isError && (
+            <div className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              <ExclamationTriangleIcon className="size-4 shrink-0" />
+              <span>{getV2ErrorMessage(mutation.error)}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-line px-6 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-card-hover"
+            disabled={mutation.isPending}
+            className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-md border border-primary bg-primary/25 px-4 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
+            onClick={submit}
+            disabled={!canSubmit}
+            className="rounded-md border border-primary bg-primary/25 px-4 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            신청하기
+            {mutation.isPending ? "신청 중…" : "신청하기"}
           </button>
         </div>
       </div>
@@ -158,19 +207,22 @@ function Field({
 function DateInput({
   value,
   onChange,
-  placeholder,
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
-  placeholder: string;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-line bg-card-hover px-3 py-2.5 focus-within:border-primary">
+    <div
+      className={`flex items-center gap-2 rounded-md border border-line bg-card-hover px-3 py-2.5 focus-within:border-primary ${disabled ? "opacity-60" : ""}`}
+    >
       <input
+        type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="flex-1 bg-transparent text-sm tabular-nums text-fg placeholder-muted focus:outline-none"
+        disabled={disabled}
+        className="min-w-0 flex-1 bg-transparent text-sm tabular-nums text-fg placeholder-muted focus:outline-none disabled:cursor-not-allowed"
       />
       <CalendarIcon className="size-4 shrink-0 text-muted" />
     </div>
