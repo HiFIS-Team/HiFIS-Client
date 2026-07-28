@@ -26,6 +26,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#ffffff",
+  // 안드로이드 크롬 : 키보드가 뜨면 layout viewport 를 키보드 위 영역으로 축소.
+  // 이게 없으면 fixed inset-0 컨테이너(어드민 셸 · 사내톡 dialog 등) 가 화면 밖으로
+  // 밀리며 위로 잘리는 현상이 생김 (input 창이 화면 밖으로 사라진 것처럼 보임).
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
