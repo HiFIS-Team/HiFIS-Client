@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType, SVGProps } from "react";
+import { useState, type ComponentType, type SVGProps } from "react";
 import {
   ArrowPathIcon,
   CalendarIcon,
@@ -10,6 +10,7 @@ import {
   QueueListIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
+import { LeaveRequestDialog } from "./LeaveRequestDialog";
 
 // 근태·월차 페이지 — 월별 출퇴근 기록 + 휴가 신청 조회.
 // mock 데이터. 근태 API 미구현 (근무일·출퇴근·휴가 CRUD 모두 다음 스텝).
@@ -85,6 +86,7 @@ const LEAVES: Leave[] = [
 // ─────────────── page ───────────────
 
 export default function AttendancePage() {
+  const [leaveOpen, setLeaveOpen] = useState(false);
   return (
     <div>
       <PageTitle title="근태 · 월차" />
@@ -117,6 +119,7 @@ export default function AttendancePage() {
           </button>
           <button
             type="button"
+            onClick={() => setLeaveOpen(true)}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
             <PlusIcon className="size-4" />
@@ -162,6 +165,11 @@ export default function AttendancePage() {
           <LeavesCard />
         </div>
       </div>
+
+      <LeaveRequestDialog
+        open={leaveOpen}
+        onClose={() => setLeaveOpen(false)}
+      />
     </div>
   );
 }

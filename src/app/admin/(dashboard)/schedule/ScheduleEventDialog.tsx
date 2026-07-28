@@ -5,7 +5,6 @@ import {
   AcademicCapIcon,
   BriefcaseIcon,
   BuildingOffice2Icon,
-  CalendarDaysIcon,
   CalendarIcon,
   CheckIcon,
   ClockIcon,
@@ -21,9 +20,9 @@ import {
   UserIcon,
   UserPlusIcon,
   UsersIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { DialogGradientHeader } from "../DialogGradientHeader";
 
 // 일정 추가 모달 — 폼 저장은 다음 스텝(API 붙일 때).
 // 지금은 UI 만 : 로컬 state 로 선택 표시만 유지, 저장 시 alert / 콘솔.
@@ -120,30 +119,11 @@ export function ScheduleEventDialog({ open, onClose }: ScheduleEventDialogProps)
         className="animate-dialog-in flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 헤더 */}
-        <div className="flex items-start justify-between border-b border-line px-6 py-4">
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/25 text-primary">
-              <CalendarDaysIcon className="size-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-black tracking-tighter text-fg">
-                일정 추가
-              </h2>
-              <p className="mt-0.5 text-sm text-muted">
-                팀과 공유할 일정을 만들어보세요
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="rounded-md p-1.5 text-muted transition-colors hover:bg-card-hover hover:text-fg"
-          >
-            <XMarkIcon className="size-5" />
-          </button>
-        </div>
+        <DialogGradientHeader
+          kicker="NEW EVENT"
+          title="일정 추가"
+          onClose={onClose}
+        />
 
         {/* 본문 — 폼 필드들, 세로 스크롤 */}
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
