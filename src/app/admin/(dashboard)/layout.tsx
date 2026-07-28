@@ -21,6 +21,7 @@ import { GlobalHeader } from "./GlobalHeader";
 import { PageTitleProvider } from "./PageTitleProvider";
 import { MobileTabBar } from "./MobileTabBar";
 import { ChatFab } from "./ChatFab";
+import { AppGuide, hasSeenGuide } from "./guide/AppGuide";
 import { SubTabBar } from "./SubTabBar";
 import { MobileSubPage } from "./MobileSubPage";
 import { ProfileBody } from "./profile/ProfileBody";
@@ -122,6 +123,17 @@ export default function DashboardLayout({
     })();
   }, [router]);
 
+  // 앱 가이드 — 회원가입 후 최초 로그인 시 1회만 자동 노출.
+  // localStorage flag(hifis-guide-seen) 로 재노출 방지. 언제든 /admin/guide 로 다시 볼 수 있음.
+  const [guideOpen, setGuideOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!hasSeenGuide()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGuideOpen(true);
+    }
+  }, []);
+
   // getMe 실패(토큰 만료·무효) → 로그인 화면으로
   useEffect(() => {
     if (meQuery.isError) router.replace("/admin/login");
@@ -193,6 +205,8 @@ export default function DashboardLayout({
           onClose={dismissReleaseNotes}
         />
       )}
+      {/* 앱 가이드 — 첫 로그인 시 자동 노출. 닫으면 flag 세팅으로 재노출 X. */}
+      {guideOpen && <AppGuide onClose={() => setGuideOpen(false)} />}
       {/* 모바일 프로필 오버레이 — 헤더 사람 아이콘 → MobileSubPage 가 현재
           페이지 위에 슬라이드 인. parent 페이지(대시보드 등) 가 그대로 mount
           상태라 뒤에서 보이고, ← 누르면 슬라이드 아웃 후 unmount. */}

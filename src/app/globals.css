@@ -161,6 +161,28 @@ body {
   animation: page-slide-out-right 0.25s ease-in forwards;
 }
 
+/* 앱 가이드 아이콘 — 슬라이드 진입 시 작게 시작해 살짝 오른쪽으로 기울었다가 원상 복귀.
+   overshoot bezier + 회전 keyframe 로 통통 튀는 첫 인상. */
+@keyframes guide-icon-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.15) rotate(15deg);
+  }
+  70% {
+    transform: scale(1.02) rotate(-5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+.animate-guide-icon {
+  animation: guide-icon-in 650ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 /* Tiptap 에디터 — 노션 톤 회의록 편집 뷰.
    ProseMirror 는 tiptap 이 렌더하는 contenteditable 루트. 여기에 노드별 스타일
    (heading, list, quote, code 등) 을 직접 지정. tailwind typography 안 씀. */
