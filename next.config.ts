@@ -14,6 +14,8 @@ const withSerwist = withSerwistInit({
 const nextConfig: NextConfig = {
   // 정적 export — 빌드 결과(out/)를 홈서버에 파일로 서빙 (Node 불필요)
   output: "export",
+  // 좌하단 "N" dev 인디케이터 숨김 — 화면 하단 채팅 입력 · 하단 탭바랑 겹쳐 거슬림.
+  devIndicators: false,
   // dev server에 외부 origin(클플 터널 통한 dev.hifis.app) 허용 - 폰 테스트용.
   // 미설정 시 Next.js가 Cross-Origin 보호로 외부 host 요청 차단해서 hydrate 실패.
   allowedDevOrigins: ["dev.hifis.app", "v2.hifis.app"],
