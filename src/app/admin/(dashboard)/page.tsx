@@ -225,7 +225,7 @@ function AttendanceCard() {
           {status}
         </span>
       </div>
-      <p className="mt-2 text-center text-4xl font-black tracking-tighter text-fg tabular-nums">
+      <p className="mt-6 text-center text-4xl font-black tracking-tighter text-fg tabular-nums">
         {clock}
       </p>
       <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
