@@ -1,9 +1,15 @@
 import { apiFetch } from "./client";
 import type { Branch } from "./types";
 
-// GET /branches — 지점 목록 (공개)
-export function getBranches(): Promise<Branch[]> {
-  return apiFetch<Branch[]>("/branches");
+// GET /branches — 지점 목록.
+// v1 은 공개, v2 는 auth 필요 + shape 다름. v2 백엔드 환경에서는 아직 어댑터 미완이라 실패 시 [] 로 조용히.
+// 결과 : BranchProvider 가 empty branches 로 진행 (isReady=false), 셸은 정상 렌더.
+export async function getBranches(): Promise<Branch[]> {
+  try {
+    return await apiFetch<Branch[]>("/branches");
+  } catch {
+    return [];
+  }
 }
 
 // 지점 등록·수정 입력
