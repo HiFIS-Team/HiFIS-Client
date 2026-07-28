@@ -7,62 +7,23 @@ import {
   ChartBarIcon,
   ChevronRightIcon,
   DocumentTextIcon,
+  ExclamationTriangleIcon,
   FolderIcon,
   GlobeAltIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   SparklesIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { avatarTone, listEmployees } from "@/lib/api/v2/employees";
+import { listMeetings, type MeetingOut, type MeetingScope } from "@/lib/api/v2/meetings";
 import { PageTitle } from "../PageTitle";
 
-// 회의록 페이지 — 목록 + 필터/검색/정렬. mock 데이터. API 는 다음 스텝.
-// 카드는 full-width — 좁게 늘어놓지 않음.
-
-// ─────────────── mock ───────────────
-
-type Scope = "전사" | "프로젝트" | "특정 인원";
-interface Meeting {
-  id: string;
-  title: string;
-  author: string;
-  authorTone: string; // 아바타 배경 tailwind 클래스
-  meetingDateISO: string; // 회의 진행 일자 (정렬 · timeAgo · bucket 파생)
-  updatedISO: string; // 최근 수정 일시 (정렬)
-  scope: Scope;
-  projectName?: string; // 프로젝트 스코프일 때만
-}
-
-const MEETINGS: Meeting[] = [
-  {
-    id: "1",
-    title: "프로덕트 정기 회의 (5/8)",
-    author: "이앨리스",
-    authorTone: "bg-emerald-500",
-    meetingDateISO: "2026-07-26",
-    updatedISO: "2026-07-27T16:00",
-    scope: "전사",
-  },
-  {
-    id: "2",
-    title: "신규 기능 스펙 정리",
-    author: "박그레이스",
-    authorTone: "bg-violet-500",
-    meetingDateISO: "2026-07-25",
-    updatedISO: "2026-07-25T11:00",
-    scope: "프로젝트",
-    projectName: "화순점 리뉴얼 TF",
-  },
-  {
-    id: "3",
-    title: "5월 캠페인 브레인스토밍",
-    author: "최마틴",
-    authorTone: "bg-amber-500",
-    meetingDateISO: "2026-07-23",
-    updatedISO: "2026-07-23T14:00",
-    scope: "전사",
-  },
-];
+// 회의록 목록 — GET /meetings.
+// 서버 파라미터는 미사용 (스코프별 카운트가 필요해서 전체 로드). q · 정렬 · 필터는 클라이언트.
+// author 이름 · 아바타 색은 GET /employees 로 별도 로드해서 authorId → { name, color } lookup.
 
 type FilterKey = "all" | "mine" | "company" | "project" | "custom";
 const FILTERS: { key: FilterKey; label: string }[] = [
@@ -72,15 +33,22 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "project", label: "프로젝트" },
   { key: "custom", label: "특정 인원" },
 ];
+const FILTER_SCOPE: Record<Exclude<FilterKey, "all" | "mine">, MeetingScope> = {
+  company: "COMPANY",
+  project: "PROJECT",
+  custom: "PEOPLE",
+};
 
 type SortKey = "meeting" | "updated";
 
-// 오늘 기준 회의 날짜와의 상대 일수 → "1일 전" 표기
+// ISO date-part 기준 오늘과의 상대 일수.
 function daysAgo(iso: string, today: Date): number {
-  const [y, m, d] = iso.split("-").map(Number);
-  const target = new Date(y, m - 1, d);
-  const diff = today.getTime() - target.getTime();
-  return Math.floor(diff / 86_400_000);
+  const target = new Date(iso);
+  if (Number.isNaN(target.getTime())) return 0;
+  // 날짜 기준 비교 — 시각 절삭.
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const d = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  return Math.floor((t.getTime() - d.getTime()) / 86_400_000);
 }
 function timeAgoLabel(iso: string, today: Date): string {
   const n = daysAgo(iso, today);
@@ -90,7 +58,6 @@ function timeAgoLabel(iso: string, today: Date): string {
   if (n < 30) return `${Math.floor(n / 7)}주 전`;
   return `${Math.floor(n / 30)}달 전`;
 }
-// 그룹 라벨 : 7일 이내 → "이번 주", 그 이후 → "지난 주", 30일 이후 → "이번 달", 그 이전 → "예전"
 function bucketLabel(iso: string, today: Date): string {
   const n = daysAgo(iso, today);
   if (n < 7) return "이번 주";
@@ -99,9 +66,10 @@ function bucketLabel(iso: string, today: Date): string {
   return "예전";
 }
 function updatedLabel(iso: string): string {
-  const [date, time] = iso.split("T");
-  const [, m, d] = date.split("-").map(Number);
-  return `${m}. ${d}. ${time ?? ""}`.trim();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getMonth() + 1}. ${d.getDate()}. ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // ─────────────── page ───────────────
@@ -110,53 +78,67 @@ export default function MeetingsPage() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sort, setSort] = useState<SortKey>("meeting");
   const [q, setQ] = useState("");
-  // 오늘 — 매 렌더마다 새로 만들지 않도록 mount 시 1회 고정 (기간 라벨은 세션 내 안정)
   const [today] = useState(() => new Date());
 
   const meQuery = useQuery({ queryKey: ["admin", "me"], queryFn: getMe });
-  const myName = meQuery.data?.name ?? null;
+  const meId = meQuery.data?.id ?? null;
 
-  // 필터 → 검색 → 정렬 순으로 파이프.
+  const meetingsQuery = useQuery({
+    queryKey: ["v2", "meetings"] as const,
+    queryFn: () => listMeetings(),
+  });
+  const meetings = meetingsQuery.data ?? [];
+
+  const employeesQuery = useQuery({
+    queryKey: ["v2", "employees", "all"] as const,
+    queryFn: () => listEmployees({}),
+  });
+  const employeeLookup = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; avatarColor: string | undefined }
+    >();
+    for (const e of employeesQuery.data ?? []) {
+      map.set(e.id, { name: e.name, avatarColor: e.avatarColor });
+    }
+    return map;
+  }, [employeesQuery.data]);
+
   const filtered = useMemo(() => {
-    const scopeMap: Record<Exclude<FilterKey, "all" | "mine">, Scope> = {
-      company: "전사",
-      project: "프로젝트",
-      custom: "특정 인원",
-    };
-    let list = MEETINGS.filter((m) => {
+    let list = meetings.filter((m) => {
       if (filter === "all") return true;
-      if (filter === "mine") return myName != null && m.author === myName;
-      return m.scope === scopeMap[filter];
+      if (filter === "mine") return meId != null && m.authorId === meId;
+      return m.scope === FILTER_SCOPE[filter];
     });
     const kw = q.trim().toLowerCase();
     if (kw) {
-      list = list.filter(
-        (m) =>
+      list = list.filter((m) => {
+        const author = employeeLookup.get(m.authorId)?.name ?? "";
+        return (
           m.title.toLowerCase().includes(kw) ||
-          m.author.toLowerCase().includes(kw),
-      );
+          author.toLowerCase().includes(kw)
+        );
+      });
     }
-    const key = sort === "meeting" ? "meetingDateISO" : "updatedISO";
+    const key = sort === "meeting" ? "meetingAt" : "createdAt";
     return [...list].sort((a, b) => b[key].localeCompare(a[key]));
-  }, [filter, q, sort, myName]);
+  }, [meetings, filter, q, sort, meId, employeeLookup]);
 
-  // 시간대 그룹 렌더 : filtered 결과에 대해 파생 라벨로 그룹.
   const grouped = useMemo(() => {
-    const map = new Map<string, Meeting[]>();
+    const map = new Map<string, MeetingOut[]>();
     for (const m of filtered) {
-      const label = bucketLabel(m.meetingDateISO, today);
+      const label = bucketLabel(m.meetingAt, today);
       if (!map.has(label)) map.set(label, []);
       map.get(label)!.push(m);
     }
-    return Array.from(map.entries()); // 삽입 순서 유지 → 정렬 결과 순서 그대로.
+    return Array.from(map.entries());
   }, [filtered, today]);
 
-  // 통계 : 원본 MEETINGS 기준 (필터 · 검색과 무관하게 전체 현황).
-  const mineCount = myName
-    ? MEETINGS.filter((m) => m.author === myName).length
+  const mineCount = meId
+    ? meetings.filter((m) => m.authorId === meId).length
     : 0;
-  const thisWeekCount = MEETINGS.filter(
-    (m) => daysAgo(m.updatedISO.split("T")[0], today) < 7,
+  const thisWeekCount = meetings.filter(
+    (m) => daysAgo(m.createdAt, today) < 7,
   ).length;
 
   return (
@@ -185,7 +167,7 @@ export default function MeetingsPage() {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="전체 회의록"
-          value={String(MEETINGS.length)}
+          value={String(meetings.length)}
           icon={DocumentTextIcon}
           tone="primary"
         />
@@ -255,9 +237,29 @@ export default function MeetingsPage() {
         </div>
       </div>
 
-      {/* 회의록 목록 — full width. 정렬 시엔 그룹 라벨 노출 (회의 날짜 정렬일 때만 의미 있음) */}
+      {/* 회의록 목록 */}
       <div className="mt-6 space-y-6">
-        {filtered.length === 0 ? (
+        {meetingsQuery.isLoading ? (
+          <ul className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <MeetingSkeleton key={i} />
+            ))}
+          </ul>
+        ) : meetingsQuery.isError ? (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-line bg-card px-6 py-12 text-center">
+            <ExclamationTriangleIcon className="size-8 text-red-400" />
+            <p className="text-sm text-fg">
+              {getV2ErrorMessage(meetingsQuery.error)}
+            </p>
+            <button
+              type="button"
+              onClick={() => meetingsQuery.refetch()}
+              className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-fg hover:bg-card-hover"
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="rounded-lg border border-dashed border-line bg-card px-6 py-12 text-center text-sm text-muted">
             {q.trim()
               ? "검색 결과가 없어요."
@@ -271,7 +273,12 @@ export default function MeetingsPage() {
               <h3 className="mb-2 text-xs font-semibold text-muted">{label}</h3>
               <ul className="space-y-3">
                 {items.map((m) => (
-                  <MeetingCard key={m.id} meeting={m} today={today} />
+                  <MeetingCard
+                    key={m.id}
+                    meeting={m}
+                    today={today}
+                    author={employeeLookup.get(m.authorId)}
+                  />
                 ))}
               </ul>
             </section>
@@ -279,7 +286,12 @@ export default function MeetingsPage() {
         ) : (
           <ul className="space-y-3">
             {filtered.map((m) => (
-              <MeetingCard key={m.id} meeting={m} today={today} />
+              <MeetingCard
+                key={m.id}
+                meeting={m}
+                today={today}
+                author={employeeLookup.get(m.authorId)}
+              />
             ))}
           </ul>
         )}
@@ -354,24 +366,61 @@ function SortButton({
 
 // ─────────────── MeetingCard ───────────────
 
-const SCOPE_STYLE: Record<Scope, { bg: string; text: string; icon: ComponentType<SVGProps<SVGSVGElement>>; bar: string }> = {
-  전사: { bg: "bg-emerald-500/15", text: "text-emerald-400", icon: GlobeAltIcon, bar: "bg-emerald-400" },
-  프로젝트: { bg: "bg-violet-500/15", text: "text-violet-400", icon: FolderIcon, bar: "bg-violet-400" },
-  "특정 인원": { bg: "bg-amber-500/15", text: "text-amber-400", icon: FolderIcon, bar: "bg-amber-400" },
+const SCOPE_STYLE: Record<
+  MeetingScope,
+  {
+    bg: string;
+    text: string;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+    bar: string;
+    label: string;
+  }
+> = {
+  COMPANY: {
+    bg: "bg-emerald-500/15",
+    text: "text-emerald-400",
+    icon: GlobeAltIcon,
+    bar: "bg-emerald-400",
+    label: "전사",
+  },
+  PROJECT: {
+    bg: "bg-violet-500/15",
+    text: "text-violet-400",
+    icon: FolderIcon,
+    bar: "bg-violet-400",
+    label: "프로젝트",
+  },
+  PEOPLE: {
+    bg: "bg-amber-500/15",
+    text: "text-amber-400",
+    icon: UserGroupIcon,
+    bar: "bg-amber-400",
+    label: "특정 인원",
+  },
 };
 
-function MeetingCard({ meeting, today }: { meeting: Meeting; today: Date }) {
+function MeetingCard({
+  meeting,
+  today,
+  author,
+}: {
+  meeting: MeetingOut;
+  today: Date;
+  author: { name: string; avatarColor: string | undefined } | undefined;
+}) {
   const scope = SCOPE_STYLE[meeting.scope];
   const ScopeIcon = scope.icon;
-  const timeAgo = timeAgoLabel(meeting.meetingDateISO, today);
-  const updated = updatedLabel(meeting.updatedISO);
+  const timeAgo = timeAgoLabel(meeting.meetingAt, today);
+  const updated = updatedLabel(meeting.createdAt);
+  const authorName = author?.name ?? "…";
+  const tone = avatarTone(author?.avatarColor);
+
   return (
     <li>
       <Link
         href={`/admin/meetings/detail?id=${meeting.id}`}
         className="group relative flex w-full items-start gap-4 overflow-hidden rounded-lg border border-line bg-card p-5 text-left transition-colors hover:bg-card-hover"
       >
-        {/* 좌측 컬러 세로 바 */}
         <span className={`absolute top-0 bottom-0 left-0 w-1 ${scope.bar}`} />
 
         <div className="min-w-0 flex-1 pl-3">
@@ -383,26 +432,17 @@ function MeetingCard({ meeting, today }: { meeting: Meeting; today: Date }) {
               className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${scope.bg} ${scope.text}`}
             >
               <ScopeIcon className="size-3" />
-              {meeting.scope}
+              {scope.label}
             </span>
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
             <div className="flex items-center gap-2">
-              <Avatar name={meeting.author} tone={meeting.authorTone} />
-              <span className="font-medium text-fg">{meeting.author}</span>
+              <Avatar name={authorName} tone={tone} />
+              <span className="font-medium text-fg">{authorName}</span>
             </div>
             <span>·</span>
             <span>{timeAgo}</span>
-            {meeting.projectName && (
-              <>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1 text-fg">
-                  <span className="size-1.5 rounded-full bg-violet-400" />
-                  {meeting.projectName}
-                </span>
-              </>
-            )}
             <span className="ml-auto tabular-nums">수정 {updated}</span>
           </div>
         </div>
@@ -421,5 +461,18 @@ function Avatar({ name, tone }: { name: string; tone: string }) {
     >
       {name.charAt(0)}
     </span>
+  );
+}
+
+function MeetingSkeleton() {
+  return (
+    <li className="animate-pulse rounded-lg border border-line bg-card p-5">
+      <div className="h-4 w-2/3 rounded bg-card-hover" />
+      <div className="mt-3 flex items-center gap-2">
+        <div className="size-6 rounded-full bg-card-hover" />
+        <div className="h-3 w-16 rounded bg-card-hover" />
+        <div className="h-3 w-12 rounded bg-card-hover" />
+      </div>
+    </li>
   );
 }

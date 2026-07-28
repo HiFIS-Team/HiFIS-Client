@@ -2,30 +2,62 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeftIcon,
+  ExclamationTriangleIcon,
   FolderIcon,
   GlobeAltIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../../PageTitle";
 import { MeetingEditor } from "./MeetingEditor";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { createMeeting, type MeetingScope } from "@/lib/api/v2/meetings";
 
 // 새 회의록 작성 페이지.
-// 상단 : 뒤로가기 · 공개 범위 셀렉트 · 저장.
-// 본문 : 큰 제목 input + Tiptap 에디터 (노션 톤).
-// 저장 로직은 API 붙는 시점에 (지금은 alert / placeholder).
+// 저장 시 POST /meetings — tiptap JSON blocks 를 그대로 보냄.
+// meetingAt 은 현재 시각을 기본값 (지금 시점의 회의로 간주). 향후 날짜 피커 붙일 수 있음.
 
-type Scope = "company" | "project" | "custom";
-const SCOPES: { key: Scope; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }[] = [
-  { key: "company", label: "전사 공개", icon: GlobeAltIcon },
-  { key: "project", label: "프로젝트", icon: FolderIcon },
-  { key: "custom", label: "특정 인원", icon: UserGroupIcon },
+const SCOPES: {
+  key: MeetingScope;
+  label: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+}[] = [
+  { key: "COMPANY", label: "전사 공개", icon: GlobeAltIcon },
+  { key: "PROJECT", label: "프로젝트", icon: FolderIcon },
+  { key: "PEOPLE", label: "특정 인원", icon: UserGroupIcon },
 ];
 
 export default function NewMeetingPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
-  const [scope, setScope] = useState<Scope>("company");
+  const [scope, setScope] = useState<MeetingScope>("COMPANY");
+  const [blocks, setBlocks] = useState<unknown[]>([]);
+
+  const mutation = useMutation({
+    mutationFn: createMeeting,
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ["v2", "meetings"] });
+      router.push(`/admin/meetings/detail?id=${created.id}`);
+    },
+  });
+
+  const canSave = title.trim().length > 0 && !mutation.isPending;
+
+  function save() {
+    if (!canSave) return;
+    mutation.mutate({
+      title: title.trim(),
+      blocks,
+      scope,
+      attendeeIds: [],
+      projectId: null,
+      meetingAt: new Date().toISOString(),
+    });
+  }
 
   return (
     <div>
@@ -42,7 +74,6 @@ export default function NewMeetingPage() {
         </Link>
 
         <div className="flex items-center gap-2">
-          {/* 공개 범위 — 3 옵션 세그먼트 */}
           <div className="inline-flex rounded-md border border-line p-0.5">
             {SCOPES.map((s) => {
               const active = scope === s.key;
@@ -66,12 +97,21 @@ export default function NewMeetingPage() {
           </div>
           <button
             type="button"
-            className="rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
+            onClick={save}
+            disabled={!canSave}
+            className="rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            저장
+            {mutation.isPending ? "저장 중…" : "저장"}
           </button>
         </div>
       </div>
+
+      {mutation.isError && (
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-300">
+          <ExclamationTriangleIcon className="size-4 shrink-0" />
+          {getV2ErrorMessage(mutation.error)}
+        </div>
+      )}
 
       {/* 편집 카드 */}
       <div className="mt-6 rounded-lg border border-line bg-card px-6 py-8 sm:px-10 sm:py-10">
@@ -82,7 +122,7 @@ export default function NewMeetingPage() {
           className="w-full bg-transparent text-4xl font-black tracking-tighter text-fg placeholder-muted/60 focus:outline-none"
         />
         <div className="mt-6">
-          <MeetingEditor />
+          <MeetingEditor onChange={setBlocks} />
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -25,18 +26,29 @@ import type { ComponentType, SVGProps } from "react";
 
 // 노션 톤 회의록 에디터 — tiptap + starter-kit + task/placeholder/link.
 // BubbleMenu : 텍스트 선택 시 뜨는 인라인 툴바. 블록 변환(H1~3, 리스트, 인용) 도 여기서.
-// 슬래시 커맨드는 다음 스텝.
+// 저장 : editor.getJSON().content (블록 배열) 를 백엔드 blocks 로 저장.
+// 렌더 (read-only) : editable=false + initialBlocks 를 doc.content 로 감싸서 로드.
 
-export function MeetingEditor() {
+interface MeetingEditorProps {
+  initialBlocks?: unknown[];
+  editable?: boolean;
+  onChange?: (blocks: unknown[]) => void;
+  placeholder?: string;
+}
+
+export function MeetingEditor({
+  initialBlocks,
+  editable = true,
+  onChange,
+  placeholder = "여기에 텍스트를 입력하거나 텍스트를 선택해 서식을 지정하세요",
+}: MeetingEditorProps = {}) {
   const editor = useEditor({
     // Next.js hydration 안전 — SSR 시 즉시 렌더하지 않고 mount 후에.
     immediatelyRender: false,
+    editable,
     extensions: [
       StarterKit,
-      Placeholder.configure({
-        placeholder:
-          "여기에 텍스트를 입력하거나 텍스트를 선택해 서식을 지정하세요",
-      }),
+      Placeholder.configure({ placeholder }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Link.configure({
@@ -44,10 +56,27 @@ export function MeetingEditor() {
         HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
       }),
     ],
-    content: "",
+    content:
+      initialBlocks && initialBlocks.length > 0
+        ? { type: "doc", content: initialBlocks as JSONContent[] }
+        : "",
+    onUpdate: onChange
+      ? ({ editor: e }) => {
+          const doc = e.getJSON();
+          onChange((doc.content ?? []) as unknown[]);
+        }
+      : undefined,
   });
 
   if (!editor) return null;
+
+  if (!editable) {
+    return (
+      <div className="meeting-readonly">
+        <EditorContent editor={editor} />
+      </div>
+    );
+  }
 
   return (
     <>
