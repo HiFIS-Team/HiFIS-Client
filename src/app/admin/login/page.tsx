@@ -139,7 +139,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="mt-3 w-full rounded-lg bg-primary py-3.5 text-base font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
+              className="mt-3 w-full rounded-lg bg-primary px-4 py-3.5 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
             >
               {mutation.isPending ? "로그인 중..." : "로그인"}
             </button>

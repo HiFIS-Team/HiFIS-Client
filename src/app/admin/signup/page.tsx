@@ -165,7 +165,7 @@ export default function AdminSignupPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-3 w-full rounded-lg bg-primary py-3.5 text-base font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
+              className="mt-3 w-full rounded-lg bg-primary px-4 py-3.5 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
             >
               {submitting ? "가입 중..." : "가입하기"}
             </button>
