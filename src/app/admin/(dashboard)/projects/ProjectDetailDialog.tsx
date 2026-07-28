@@ -1,34 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useMutation } from "@tanstack/react-query";
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { avatarTone } from "@/lib/api/v2/employees";
+import {
+  computeDday,
+  statusLabel,
+  updateProject,
+  type ProjectOut,
+  type ProjectStatus,
+} from "@/lib/api/v2/projects";
 import { ExtensionRequestDialog } from "./ExtensionRequestDialog";
 
-// 프로젝트 상세 모달 — 카드 클릭 시 오픈. UI 만. 저장 로직은 v2 /projects/{id} PATCH 시점.
-// 상단: 제목 + D-day 뱃지 + X.
-// 헤더 카드 : 상태 chip + 진행률 바.
-// 담당자 · 목적 · 절차 → 하단 진행률 슬라이더 + 완료 · 기한 연장 요청 액션.
+// 프로젝트 상세 다이얼로그 — PATCH /projects/{id} 로 진행률 저장.
+// 완료 버튼 = progress 100 (백엔드가 status=DONE 파생).
+// 담당자는 progress 만 수정 가능 (백엔드가 강제). 기타 필드는 편집 UI 없음 (읽기 전용).
 
-export interface ProjectDetail {
-  id: string;
-  title: string;
-  status: "대기" | "진행중" | "완료" | "누락";
-  progress: number;
-  assignees: string[];
-  due: string;
-  dday: number;
-  purpose?: string;
-  steps?: string[];
-}
-
-interface ProjectDetailDialogProps {
-  open: boolean;
-  project: ProjectDetail | null;
-  onClose: () => void;
-}
-
-// 아바타 배경 색 팔레트 (이름별 안정적 매핑) — 최대 6색 순환.
 const AVATAR_TONES = [
   "bg-primary",
   "bg-emerald-500",
@@ -43,30 +37,64 @@ function toneForName(name: string): string {
   return AVATAR_TONES[sum % AVATAR_TONES.length];
 }
 
+interface ProjectDetailDialogProps {
+  open: boolean;
+  project: ProjectOut | null;
+  today: Date;
+  nameOf: (id: string) => string;
+  colorOf: (id: string) => string | undefined;
+  onClose: () => void;
+  onChanged: () => void;
+}
+
 export function ProjectDetailDialog({
   open,
   project,
+  today,
+  nameOf,
+  colorOf,
   onClose,
+  onChanged,
 }: ProjectDetailDialogProps) {
   useEscapeKey(onClose, open);
 
-  // 진행률 슬라이더 로컬 상태 — 열릴 때마다 프로젝트 값으로 sync.
   const [progress, setProgress] = useState<number>(project?.progress ?? 0);
   const [extensionOpen, setExtensionOpen] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: ({ id, newProgress }: { id: string; newProgress: number }) =>
+      updateProject(id, { progress: newProgress }),
+    onSuccess: () => {
+      onChanged();
+      onClose();
+    },
+  });
+
   useEffect(() => {
-    if (open && project) setProgress(project.progress);
+    if (open && project) {
+      setProgress(project.progress);
+      mutation.reset();
+    }
     if (!open) setExtensionOpen(false);
-  }, [open, project]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, project?.id]);
 
   if (!open || !project) return null;
 
   const dirty = progress !== project.progress;
-  const finished = project.status === "완료" || progress >= 100;
+  const dday = computeDday(project.due, today);
+  const stepList = project.steps
+    ? project.steps.split(/\r?\n/).filter((s) => s.trim().length > 0)
+    : [];
 
   function complete() {
-    // TODO: v2 /projects/{id} PATCH { status: 완료, progress: 100 }.
-    onClose();
+    mutation.mutate({ id: project!.id, newProgress: 100 });
   }
+  function saveProgress() {
+    mutation.mutate({ id: project!.id, newProgress: progress });
+  }
+
+  const showFooter = project.status !== "DONE";
 
   return (
     <div
@@ -79,7 +107,7 @@ export function ProjectDetailDialog({
         className="animate-dialog-in flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-lg border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 헤더 카드 : 제목 · D-day · 상태 chip · 진행률 바 */}
+        {/* 헤더 */}
         <div className="relative border-b border-line px-6 pt-5 pb-5">
           <button
             type="button"
@@ -92,22 +120,22 @@ export function ProjectDetailDialog({
 
           <div className="flex items-start justify-between gap-3 pr-10">
             <h2 className="text-lg font-bold text-fg">{project.title}</h2>
-            <HeaderDday project={project} />
+            <HeaderDday status={project.status} dday={dday} />
           </div>
 
           <div className="mt-3">
             <StatusChip status={project.status} progress={project.progress} />
           </div>
 
-          {project.status !== "대기" && (
+          {project.status !== "WAITING" && (
             <div className="mt-4">
               <div className="flex items-center gap-3">
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-card-hover">
                   <div
                     className={`h-full rounded-full transition-all ${
-                      project.status === "완료"
+                      project.status === "DONE"
                         ? "bg-emerald-400"
-                        : project.status === "누락"
+                        : project.status === "MISSED"
                           ? "bg-red-400"
                           : "bg-primary"
                     }`}
@@ -122,21 +150,25 @@ export function ProjectDetailDialog({
           )}
         </div>
 
-        {/* 본문 스크롤 영역 */}
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           {/* 담당자 + 마감일 */}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-fg">담당자</p>
-              {project.assignees.length === 0 ? (
-                <p className="mt-2 text-sm text-muted">아직 지정되지 않았어요.</p>
+              {project.assigneeIds.length === 0 ? (
+                <p className="mt-2 text-sm text-muted">
+                  아직 지정되지 않았어요.
+                </p>
               ) : (
                 <ul className="mt-2 flex flex-wrap gap-2">
-                  {project.assignees.map((name) => {
-                    const tone = toneForName(name);
+                  {project.assigneeIds.map((id) => {
+                    const name = nameOf(id);
+                    const tone = colorOf(id)
+                      ? avatarTone(colorOf(id))
+                      : toneForName(name);
                     return (
                       <li
-                        key={name}
+                        key={id}
                         className="flex items-center gap-1.5 rounded-full border border-line bg-card-hover py-0.5 pr-3 pl-1"
                       >
                         <span
@@ -155,24 +187,24 @@ export function ProjectDetailDialog({
             <div className="text-right">
               <p className="text-sm font-semibold text-muted">마감일</p>
               <p className="mt-1 text-lg font-black tabular-nums text-fg">
-                {project.due}
+                {formatMD(project.due)}
               </p>
               <p
                 className={`mt-0.5 text-xs font-semibold tabular-nums ${
-                  project.status === "완료"
+                  project.status === "DONE"
                     ? "text-emerald-400"
-                    : project.dday <= 0
+                    : dday <= 0
                       ? "text-red-400"
-                      : project.dday <= 7
+                      : dday <= 7
                         ? "text-amber-400"
                         : "text-muted"
                 }`}
               >
-                {project.status === "완료"
+                {project.status === "DONE"
                   ? "완료됨"
-                  : project.dday >= 0
-                    ? `${project.dday}일 남음`
-                    : `${-project.dday}일 지남`}
+                  : dday >= 0
+                    ? `${dday}일 남음`
+                    : `${-dday}일 지남`}
               </p>
             </div>
           </div>
@@ -190,13 +222,13 @@ export function ProjectDetailDialog({
           )}
 
           {/* 절차 */}
-          {project.steps && project.steps.length > 0 && (
+          {stepList.length > 0 && (
             <div>
               <p className="flex items-center gap-1.5 text-sm font-semibold text-fg">
                 <span aria-hidden>📋</span>절차
               </p>
               <ol className="mt-2 space-y-2">
-                {project.steps.map((s, i) => (
+                {stepList.map((s, i) => (
                   <li
                     key={i}
                     className="flex items-center gap-3 rounded-md border border-line bg-card-hover px-4 py-2.5"
@@ -212,7 +244,7 @@ export function ProjectDetailDialog({
           )}
 
           {/* 진행률 조절 슬라이더 */}
-          {project.status !== "완료" && (
+          {project.status !== "DONE" && (
             <div className="border-t border-line pt-5">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-semibold text-fg">진행률 조절</p>
@@ -231,22 +263,34 @@ export function ProjectDetailDialog({
               />
             </div>
           )}
+
+          {mutation.isError && (
+            <div className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              <ExclamationTriangleIcon className="size-4 shrink-0" />
+              <span>{getV2ErrorMessage(mutation.error)}</span>
+            </div>
+          )}
         </div>
 
-        {/* 푸터 액션 */}
-        {project.status !== "완료" && (
+        {showFooter && (
           <div className="space-y-2 border-t border-line px-6 py-4">
             <button
               type="button"
-              onClick={complete}
-              className="w-full rounded-md border border-primary bg-primary/25 py-2.5 text-sm font-bold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
+              onClick={dirty ? saveProgress : complete}
+              disabled={mutation.isPending}
+              className="w-full rounded-md border border-primary bg-primary/25 py-2.5 text-sm font-bold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {finished ? "완료로 저장" : dirty ? "진행률 저장" : "완료"}
+              {mutation.isPending
+                ? "저장 중…"
+                : dirty
+                  ? "진행률 저장"
+                  : "완료"}
             </button>
             <button
               type="button"
               onClick={() => setExtensionOpen(true)}
-              className="w-full rounded-md border border-line py-2.5 text-sm font-semibold text-fg transition-colors hover:bg-card-hover"
+              disabled={mutation.isPending}
+              className="w-full rounded-md border border-line py-2.5 text-sm font-semibold text-fg transition-colors hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               기한 연장 요청
             </button>
@@ -256,17 +300,29 @@ export function ProjectDetailDialog({
 
       <ExtensionRequestDialog
         open={extensionOpen}
-        currentDue={project.due}
+        projectId={project.id}
+        currentDue={formatMD(project.due)}
+        overdue={dday < 0}
         onClose={() => setExtensionOpen(false)}
+        onSubmitted={() => {
+          setExtensionOpen(false);
+          onChanged();
+        }}
       />
     </div>
   );
 }
 
-// ─────────────── HeaderDday ───────────────
+// ─────────────── bits ───────────────
 
-function HeaderDday({ project }: { project: ProjectDetail }) {
-  if (project.status === "완료") {
+function HeaderDday({
+  status,
+  dday,
+}: {
+  status: ProjectStatus;
+  dday: number;
+}) {
+  if (status === "DONE") {
     return (
       <span className="inline-flex items-center gap-1 text-lg font-black text-emerald-400">
         <CheckCircleIcon className="size-5" />
@@ -275,35 +331,33 @@ function HeaderDday({ project }: { project: ProjectDetail }) {
     );
   }
   const tone =
-    project.dday <= 0
+    dday <= 0
       ? "text-red-400 drop-shadow-[0_0_12px_rgba(248,113,113,0.5)]"
-      : project.dday <= 7
+      : dday <= 7
         ? "text-amber-400"
         : "text-muted";
-  const label = project.dday >= 0 ? `D-${project.dday}` : `D+${-project.dday}`;
+  const label = dday >= 0 ? `D-${dday}` : `D+${-dday}`;
   return (
     <span className={`text-2xl font-black tabular-nums ${tone}`}>{label}</span>
   );
 }
 
-// ─────────────── StatusChip ───────────────
-
 function StatusChip({
   status,
   progress,
 }: {
-  status: ProjectDetail["status"];
+  status: ProjectStatus;
   progress: number;
 }) {
   const style =
-    status === "진행중"
+    status === "IN_PROGRESS"
       ? "bg-sky-500/15 text-sky-400"
-      : status === "완료"
+      : status === "DONE"
         ? "bg-emerald-500/15 text-emerald-400"
-        : status === "누락"
+        : status === "MISSED"
           ? "bg-red-500/15 text-red-400"
           : "bg-card-hover text-muted";
-  const label = status === "진행중" ? `${progress}%` : status;
+  const label = status === "IN_PROGRESS" ? `${progress}%` : statusLabel(status);
   return (
     <span
       className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${style}`}
@@ -311,4 +365,10 @@ function StatusChip({
       {label}
     </span>
   );
+}
+
+function formatMD(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }

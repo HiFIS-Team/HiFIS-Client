@@ -1,141 +1,41 @@
 "use client";
 
 import { useMemo, useState, type ComponentType, type SVGProps } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircleIcon,
   ChevronRightIcon,
   ClockIcon,
+  ExclamationTriangleIcon,
   FolderIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { avatarTone, listEmployees } from "@/lib/api/v2/employees";
+import {
+  computeDday,
+  listProjects,
+  statusLabel,
+  type ProjectOut,
+  type ProjectStatus,
+} from "@/lib/api/v2/projects";
 import { PageTitle } from "../PageTitle";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { ProjectDetailDialog } from "./ProjectDetailDialog";
 
-// 프로젝트 페이지 — 회의록 페이지 톤 (풀-width 카드 + 상단 통계 + 검색·필터·정렬).
-// mock. API 는 다음 스텝.
-
-// ─────────────── mock ───────────────
-
-type ProjectStatus = "대기" | "진행중" | "완료" | "누락";
-
-interface Project {
-  id: string;
-  title: string;
-  status: ProjectStatus;
-  progress: number; // 0 ~ 100
-  assignees: string[];
-  due: string; // "7/31" 표기용
-  dday: number; // 음수 = 지남
-  createdAt: string; // "2026-07-15" — 등록 순 정렬용 (문자열 비교)
-  updated: string; // "7. 25."
-  createdBy: { name: string; tone: string };
-  purpose?: string;
-  steps?: string[]; // 절차 텍스트 리스트 (1., 2., 3. …)
-}
-
-const PROJECTS: Project[] = [
-  {
-    id: "p1",
-    title: "화순점 리뉴얼 2단계",
-    status: "진행중",
-    progress: 55,
-    assignees: ["이하나", "하이여", "A매니저"],
-    due: "7/31",
-    dday: -3,
-    createdAt: "2026-06-01",
-    updated: "7. 25.",
-    createdBy: { name: "이앨리스", tone: "bg-emerald-500" },
-    purpose:
-      "2층 확장 + 인테리어 리뉴얼. 트레이너 룸 · 그룹 PT 존 신설. 8/8 오픈 목표.",
-    steps: [
-      "시공 견적 3사 비교",
-      "자재 발주 · 시공 착수",
-      "부분 오픈 프로모션 페이지",
-      "회원 이관 안내 알림톡 발송",
-    ],
-  },
-  {
-    id: "p2",
-    title: "앱 · 홈페이지 개편",
-    status: "진행중",
-    progress: 30,
-    assignees: ["박그레이스", "이하나"],
-    due: "8/15",
-    dday: 18,
-    createdAt: "2026-07-15",
-    updated: "7. 26.",
-    createdBy: { name: "박그레이스", tone: "bg-violet-500" },
-    purpose: "회원 · 예약 유입 경로 통합. 모바일 반응형 리디자인.",
-    steps: [
-      "IA · 와이어프레임 확정",
-      "디자인 시스템 v2 반영",
-      "예약 흐름 개편 · A/B 테스트",
-    ],
-  },
-  {
-    id: "p3",
-    title: "트레이너 온보딩 프로세스 정립",
-    status: "대기",
-    progress: 0,
-    assignees: [],
-    due: "9/10",
-    dday: 44,
-    createdAt: "2026-07-10",
-    updated: "7. 10.",
-    createdBy: { name: "박그레이스", tone: "bg-violet-500" },
-    purpose:
-      "신규 트레이너 첫 2주 온보딩 체크리스트 · 메이트 매칭 가이드 정리 → 문서함 등록.",
-    steps: [
-      "체크리스트 초안",
-      "리드 리뷰 반영",
-      "문서함 등록 · 전사 알림",
-    ],
-  },
-  {
-    id: "p4",
-    title: "여름 리텐션 캠페인",
-    status: "완료",
-    progress: 100,
-    assignees: ["하이여", "정프로"],
-    due: "7/20",
-    dday: -8,
-    createdAt: "2026-05-01",
-    updated: "7. 20.",
-    createdBy: { name: "김데모", tone: "bg-primary" },
-    purpose:
-      "3개월 이상 미출석 회원 대상 재등록 인센티브. 목표 재등록률 15%.",
-    steps: [
-      "대상자 세그먼트",
-      "알림톡 A/B 발송",
-      "결과 리포트 공유",
-    ],
-  },
-  {
-    id: "p5",
-    title: "Q1 실적 회고 · 리포트",
-    status: "완료",
-    progress: 100,
-    assignees: ["김데모"],
-    due: "4/15",
-    dday: -104,
-    createdAt: "2026-03-10",
-    updated: "4. 15.",
-    createdBy: { name: "김데모", tone: "bg-primary" },
-    purpose: "Q1 매출 · 회원 · PT 지표 리뷰. Q2 계획 근거 자료.",
-    steps: ["데이터 수집", "리포트 작성", "발표 · 배포"],
-  },
-];
+// 프로젝트 페이지 — GET /projects.
+// 백엔드가 created_at desc 로 정렬. 상태는 서버 파생 (progress+due).
+// 서버 파라미터 미사용 — 통계·필터별 카운트가 필요해서 전체 로드 후 클라이언트 필터.
 
 type FilterKey = "all" | ProjectStatus;
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "전체" },
-  { key: "대기", label: "대기" },
-  { key: "진행중", label: "진행중" },
-  { key: "완료", label: "완료" },
-  { key: "누락", label: "누락" },
+  { key: "WAITING", label: "대기" },
+  { key: "IN_PROGRESS", label: "진행중" },
+  { key: "DONE", label: "완료" },
+  { key: "MISSED", label: "누락" },
 ];
 
 type SortKey = "created" | "due" | "updated" | "progress";
@@ -148,51 +48,74 @@ export default function ProjectsPage() {
   const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [today] = useState(() => new Date());
+  const queryClient = useQueryClient();
+
+  const projectsQuery = useQuery({
+    queryKey: ["v2", "projects"] as const,
+    queryFn: () => listProjects(),
+  });
+  const projects = projectsQuery.data ?? [];
+
+  const employeesQuery = useQuery({
+    queryKey: ["v2", "employees", "all"] as const,
+    queryFn: () => listEmployees({}),
+  });
+  const employeeLookup = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; avatarColor: string | undefined }
+    >();
+    for (const e of employeesQuery.data ?? []) {
+      map.set(e.id, { name: e.name, avatarColor: e.avatarColor });
+    }
+    return map;
+  }, [employeesQuery.data]);
+  const nameOf = (id: string) => employeeLookup.get(id)?.name ?? id.slice(0, 6);
+
   const detailProject = detailId
-    ? PROJECTS.find((p) => p.id === detailId) ?? null
+    ? projects.find((p) => p.id === detailId) ?? null
     : null;
 
   const filtered = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    const base = PROJECTS.filter((p) => {
+    const kw = q.trim().toLowerCase();
+    const base = projects.filter((p) => {
       if (filter !== "all" && p.status !== filter) return false;
-      if (!query) return true;
+      if (!kw) return true;
       return (
-        p.title.toLowerCase().includes(query) ||
-        p.assignees.some((a) => a.toLowerCase().includes(query))
+        p.title.toLowerCase().includes(kw) ||
+        p.assigneeIds.some((id) => nameOf(id).toLowerCase().includes(kw))
       );
     });
     const sorted = [...base];
     if (sort === "created") {
-      // 등록 순 — 최신(큰 날짜)이 위. ISO 형식이라 문자열 비교로 안전.
-      sorted.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     } else if (sort === "due") {
-      // 마감 임박 (작은 dday) → 지남 (음수) → 여유 (큰 dday)
-      // 완료/누락은 뒤로 미룸.
+      // 완료는 뒤로 · 그 외는 dday 오름차순 (지남 → 임박 → 여유)
       sorted.sort((a, b) => {
-        const finished = (p: Project) => (p.status === "완료" ? 1 : 0);
+        const finished = (p: ProjectOut) => (p.status === "DONE" ? 1 : 0);
         if (finished(a) !== finished(b)) return finished(a) - finished(b);
-        return a.dday - b.dday;
+        return computeDday(a.due, today) - computeDday(b.due, today);
       });
     } else if (sort === "updated") {
-      sorted.sort((a, b) => (a.updated < b.updated ? 1 : -1));
+      // 백엔드 updated_at 없음 → createdAt 대체 (사실상 등록순과 동일. 스펙 붙으면 교체).
+      sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     } else {
       sorted.sort((a, b) => b.progress - a.progress);
     }
     return sorted;
-  }, [filter, sort, q]);
+  }, [projects, filter, sort, q, today, employeeLookup]);
 
-  // 상태 그룹핑 없이 flat — 상단 정렬 세그먼트(등록 순/마감/진행률/수정) 가 실제 순서 결정.
-  // 상태별 보기는 상단 필터 pill 로 전환.
-
-  const totals = {
-    all: PROJECTS.length,
-    inProgress: PROJECTS.filter((p) => p.status === "진행중").length,
-    dueThisWeek: PROJECTS.filter(
-      (p) => p.status !== "완료" && p.dday >= 0 && p.dday <= 7,
-    ).length,
-    done: PROJECTS.filter((p) => p.status === "완료").length,
-  };
+  const totals = useMemo(() => {
+    const inProgress = projects.filter((p) => p.status === "IN_PROGRESS").length;
+    const done = projects.filter((p) => p.status === "DONE").length;
+    const dueThisWeek = projects.filter((p) => {
+      if (p.status === "DONE") return false;
+      const d = computeDday(p.due, today);
+      return d >= 0 && d <= 7;
+    }).length;
+    return { all: projects.length, inProgress, done, dueThisWeek };
+  }, [projects, today]);
 
   return (
     <div>
@@ -309,9 +232,29 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* 프로젝트 목록 — full width, 상단 정렬 순서 그대로 flat */}
+      {/* 프로젝트 목록 */}
       <div className="mt-6">
-        {filtered.length === 0 ? (
+        {projectsQuery.isLoading ? (
+          <ul className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <ProjectSkeleton key={i} />
+            ))}
+          </ul>
+        ) : projectsQuery.isError ? (
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-line bg-card px-6 py-12 text-center">
+            <ExclamationTriangleIcon className="size-8 text-red-400" />
+            <p className="text-sm text-fg">
+              {getV2ErrorMessage(projectsQuery.error)}
+            </p>
+            <button
+              type="button"
+              onClick={() => projectsQuery.refetch()}
+              className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-fg hover:bg-card-hover"
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-lg border border-line bg-card p-8 text-center">
             <FolderIcon className="size-8 text-muted/70" />
             <p className="text-sm text-muted">조건에 맞는 프로젝트가 없어요.</p>
@@ -322,6 +265,9 @@ export default function ProjectsPage() {
               <ProjectCard
                 key={p.id}
                 project={p}
+                today={today}
+                nameOf={nameOf}
+                colorOf={(id) => employeeLookup.get(id)?.avatarColor}
                 onOpen={() => setDetailId(p.id)}
               />
             ))}
@@ -329,11 +275,25 @@ export default function ProjectsPage() {
         )}
       </div>
 
-      <NewProjectDialog open={newOpen} onClose={() => setNewOpen(false)} />
+      <NewProjectDialog
+        open={newOpen}
+        onClose={() => setNewOpen(false)}
+        employees={employeesQuery.data ?? []}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ["v2", "projects"] });
+          setNewOpen(false);
+        }}
+      />
       <ProjectDetailDialog
         open={detailProject !== null}
         project={detailProject}
+        nameOf={nameOf}
+        colorOf={(id) => employeeLookup.get(id)?.avatarColor}
+        today={today}
         onClose={() => setDetailId(null)}
+        onChanged={() => {
+          queryClient.invalidateQueries({ queryKey: ["v2", "projects"] });
+        }}
       />
     </div>
   );
@@ -410,25 +370,25 @@ const STATUS_STYLE: Record<
   ProjectStatus,
   { bar: string; chipBg: string; chipText: string; bar2: string }
 > = {
-  진행중: {
+  IN_PROGRESS: {
     bar: "bg-sky-400",
     chipBg: "bg-sky-500/15",
     chipText: "text-sky-400",
     bar2: "bg-sky-400",
   },
-  대기: {
+  WAITING: {
     bar: "bg-neutral-500",
     chipBg: "bg-card-hover",
     chipText: "text-muted",
     bar2: "bg-neutral-500",
   },
-  완료: {
+  DONE: {
     bar: "bg-emerald-400",
     chipBg: "bg-emerald-500/15",
     chipText: "text-emerald-400",
     bar2: "bg-emerald-400",
   },
-  누락: {
+  MISSED: {
     bar: "bg-red-400",
     chipBg: "bg-red-500/15",
     chipText: "text-red-400",
@@ -438,12 +398,24 @@ const STATUS_STYLE: Record<
 
 function ProjectCard({
   project,
+  today,
+  nameOf,
+  colorOf,
   onOpen,
 }: {
-  project: Project;
+  project: ProjectOut;
+  today: Date;
+  nameOf: (id: string) => string;
+  colorOf: (id: string) => string | undefined;
   onOpen: () => void;
 }) {
   const s = STATUS_STYLE[project.status];
+  const dday = computeDday(project.due, today);
+  const assigneeNames = project.assigneeIds.map(nameOf);
+  const firstAssigneeColor = project.assigneeIds[0]
+    ? colorOf(project.assigneeIds[0])
+    : undefined;
+
   return (
     <li>
       <button
@@ -451,11 +423,9 @@ function ProjectCard({
         onClick={onOpen}
         className="group relative flex w-full items-start gap-4 overflow-hidden rounded-lg border border-line bg-card p-5 text-left transition-colors hover:bg-card-hover"
       >
-        {/* 좌측 컬러 세로 바 (회의록과 톤 통일) */}
         <span className={`absolute top-0 bottom-0 left-0 w-1 ${s.bar}`} />
 
         <div className="min-w-0 flex-1 pl-3">
-          {/* 제목 · 상태 chip */}
           <div className="flex items-start justify-between gap-2">
             <h4 className="truncate text-base font-bold text-fg">
               {project.title}
@@ -463,38 +433,38 @@ function ProjectCard({
             <span
               className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${s.chipBg} ${s.chipText}`}
             >
-              {project.status === "진행중"
+              {project.status === "IN_PROGRESS"
                 ? `${project.progress}%`
-                : project.status}
+                : statusLabel(project.status)}
             </span>
           </div>
 
-          {/* 담당자 · 등록 · 마감 · D-day */}
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-            {project.assignees.length > 0 ? (
+            {assigneeNames.length > 0 ? (
               <div className="flex items-center gap-2">
                 <Avatar
-                  name={project.assignees[0]}
-                  tone={project.createdBy.tone}
+                  name={assigneeNames[0]}
+                  tone={avatarTone(firstAssigneeColor)}
                 />
                 <span className="font-medium text-fg">
-                  {project.assignees.join(", ")}
+                  {assigneeNames.join(", ")}
                 </span>
               </div>
             ) : (
               <span className="text-muted">담당자 미지정</span>
             )}
             <span>·</span>
-            <span className="tabular-nums">등록 {formatMD(project.createdAt)}</span>
+            <span className="tabular-nums">
+              등록 {formatMD(project.createdAt)}
+            </span>
             <span>·</span>
-            <span>마감 {project.due}</span>
+            <span>마감 {formatMD(project.due)}</span>
             <span className="ml-auto">
-              <DdayBadge project={project} />
+              <DdayBadge status={project.status} dday={dday} />
             </span>
           </div>
 
-          {/* 진행률 바 (대기 상태는 숨김) */}
-          {project.status !== "대기" && (
+          {project.status !== "WAITING" && (
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-card-hover">
               <div
                 className={`h-full rounded-full transition-all ${s.bar2}`}
@@ -510,8 +480,8 @@ function ProjectCard({
   );
 }
 
-function DdayBadge({ project }: { project: Project }) {
-  if (project.status === "완료") {
+function DdayBadge({ status, dday }: { status: ProjectStatus; dday: number }) {
+  if (status === "DONE") {
     return (
       <span
         className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400"
@@ -523,21 +493,36 @@ function DdayBadge({ project }: { project: Project }) {
     );
   }
   const tone =
-    project.dday <= 0
+    dday <= 0
       ? "text-red-400"
-      : project.dday <= 7
+      : dday <= 7
         ? "text-amber-400"
         : "text-muted";
-  const label = project.dday >= 0 ? `D-${project.dday}` : `D+${-project.dday}`;
+  const label = dday >= 0 ? `D-${dday}` : `D+${-dday}`;
   return (
     <span className={`text-xs font-bold tabular-nums ${tone}`}>{label}</span>
   );
 }
 
-// ISO 문자열("2026-06-01") → "6/1" 표기용.
-function formatMD(iso: string): string {
-  const [, m, d] = iso.split("-");
-  return `${Number(m)}/${Number(d)}`;
+function ProjectSkeleton() {
+  return (
+    <li className="animate-pulse rounded-lg border border-line bg-card p-5">
+      <div className="h-4 w-1/2 rounded bg-card-hover" />
+      <div className="mt-3 flex gap-2">
+        <div className="h-3 w-20 rounded bg-card-hover" />
+        <div className="h-3 w-12 rounded bg-card-hover" />
+        <div className="h-3 w-16 rounded bg-card-hover" />
+      </div>
+      <div className="mt-3 h-1.5 w-full rounded-full bg-card-hover" />
+    </li>
+  );
+}
+
+// ISO ("2026-06-01" 또는 "2026-06-01T…") → "6/1"
+export function formatMD(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function Avatar({ name, tone }: { name: string; tone: string }) {
