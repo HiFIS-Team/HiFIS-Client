@@ -166,22 +166,27 @@ function formatWon(n: number): string {
 
 // ─────────────── page ───────────────
 
-// 내 신청 하위 필터 — 상태별.
-type StatusFilter = "approved" | "waiting" | "rejected";
-const FILTER_TO_STATUS: Record<StatusFilter, ApprovalStatus> = {
+// 내 신청 하위 필터 — 상태별. all 은 전체.
+type StatusFilter = "all" | "approved" | "waiting" | "rejected";
+const FILTER_TO_STATUS: Record<
+  Exclude<StatusFilter, "all">,
+  ApprovalStatus
+> = {
   approved: "승인 완료",
   waiting: "진행 중",
   rejected: "반려",
 };
 
 export default function ApprovalsPage() {
-  const [filter, setFilter] = useState<StatusFilter>("waiting");
+  const [filter, setFilter] = useState<StatusFilter>("all");
   const [newOpen, setNewOpen] = useState(false);
 
-  const filtered = APPROVALS.filter(
-    (a) => a.status === FILTER_TO_STATUS[filter],
-  );
+  const filtered =
+    filter === "all"
+      ? APPROVALS
+      : APPROVALS.filter((a) => a.status === FILTER_TO_STATUS[filter]);
   const counts: Record<StatusFilter, number> = {
+    all: APPROVALS.length,
     approved: APPROVALS.filter((a) => a.status === "승인 완료").length,
     waiting: APPROVALS.filter((a) => a.status === "진행 중").length,
     rejected: APPROVALS.filter((a) => a.status === "반려").length,
@@ -221,8 +226,16 @@ export default function ApprovalsPage() {
             <ArrowPathIcon className="size-4" />
           </button>
 
-          {/* 내 신청 상태별 세그먼트 (승인 / 대기 / 반려) */}
+          {/* 내 신청 상태별 세그먼트 (전체 / 승인 / 대기 / 반려) */}
           <div className="inline-flex rounded-full border border-line p-0.5">
+            <ScopeButton
+              active={filter === "all"}
+              onClick={() => setFilter("all")}
+              count={counts.all}
+              countTone="bg-card-hover text-fg"
+            >
+              전체
+            </ScopeButton>
             <ScopeButton
               active={filter === "approved"}
               onClick={() => setFilter("approved")}

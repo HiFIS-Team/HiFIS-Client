@@ -12,6 +12,8 @@ import {
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
 import { DialogGradientHeader } from "../DialogGradientHeader";
 
+// 결재선은 대표가 일괄 결재해서 사용자가 지정하지 않음 → 폼에서 제외.
+
 // 새 결재 올리기 모달 — UI 만. 저장 로직은 API 붙는 시점에.
 // 헤더는 DialogGradientHeader 공용.
 
@@ -30,22 +32,6 @@ const KINDS: Kind[] = [
   { key: "etc", label: "기타", icon: PlusIcon, tone: "text-muted" },
 ];
 
-interface Member {
-  id: string;
-  name: string;
-  team: string;
-  position: string;
-  avatarTone: string;
-}
-const MEMBERS: Member[] = [
-  { id: "m1", name: "이앨리스", team: "디자인팀", position: "리드", avatarTone: "bg-emerald-500" },
-  { id: "m2", name: "한이브", team: "운영팀", position: "팀장", avatarTone: "bg-violet-500" },
-  { id: "m3", name: "박그레이스", team: "개발팀", position: "팀장", avatarTone: "bg-pink-500" },
-  { id: "m4", name: "최마틴", team: "마케팅팀", position: "팀장", avatarTone: "bg-amber-500" },
-  { id: "m5", name: "강레오", team: "영업팀", position: "팀장", avatarTone: "bg-sky-500" },
-  { id: "m6", name: "윤소피아", team: "영업팀", position: "리드", avatarTone: "bg-red-500" },
-];
-
 interface NewApprovalDialogProps {
   open: boolean;
   onClose: () => void;
@@ -60,13 +46,6 @@ export function NewApprovalDialog({ open, onClose }: NewApprovalDialogProps) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [destination, setDestination] = useState("");
-  const [approvers, setApprovers] = useState<string[]>([]);
-
-  function toggleApprover(id: string) {
-    setApprovers((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  }
 
   if (!open) return null;
 
@@ -163,67 +142,6 @@ export function NewApprovalDialog({ open, onClose }: NewApprovalDialogProps) {
               className="w-full rounded-md border border-line bg-card-hover px-3 py-2.5 text-sm text-fg placeholder-muted focus:border-primary focus:outline-none"
             />
           </Field>
-
-          {/* 결재선 */}
-          <div>
-            <div className="flex items-baseline gap-1">
-              <p className="text-sm font-semibold text-fg">결재선</p>
-              <p className="text-xs text-muted">
-                (순서대로 결재됨 · {approvers.length}명)
-              </p>
-            </div>
-            <ul className="mt-2 max-h-64 divide-y divide-line overflow-y-auto rounded-md border border-line">
-              {MEMBERS.map((m) => {
-                const checked = approvers.includes(m.id);
-                return (
-                  <li key={m.id}>
-                    <button
-                      type="button"
-                      onClick={() => toggleApprover(m.id)}
-                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-card-hover"
-                    >
-                      <span
-                        aria-hidden
-                        className={`flex size-4 shrink-0 items-center justify-center rounded-sm border transition-colors ${
-                          checked
-                            ? "border-primary bg-primary"
-                            : "border-line bg-transparent"
-                        }`}
-                      >
-                        {checked && (
-                          <svg
-                            viewBox="0 0 12 12"
-                            className="size-3 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M2.5 6.5L5 9L9.5 3" />
-                          </svg>
-                        )}
-                      </span>
-                      <span
-                        className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${m.avatarTone}`}
-                        aria-hidden
-                      >
-                        {m.name.charAt(0)}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-fg">
-                          {m.name}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-muted">
-                          {m.position} · {m.team}
-                        </p>
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
         </div>
 
         {/* 푸터 : 좌 템플릿 저장 · 우 취소/상신 */}
