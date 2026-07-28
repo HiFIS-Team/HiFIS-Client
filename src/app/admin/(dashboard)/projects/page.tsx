@@ -1,19 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentType, type SVGProps } from "react";
 import {
-  ArrowPathIcon,
   CheckCircleIcon,
   ChevronRightIcon,
+  ClockIcon,
   FolderIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
 import { NewProjectDialog } from "./NewProjectDialog";
 
-// 프로젝트 페이지 (v2, PC 우선) — 좌 목록 + 우 상세 split.
-// mock. 실제 저장/할당/알림은 API 붙는 시점에.
+// 프로젝트 페이지 — 회의록 페이지 톤 (풀-width 카드 + 상단 통계 + 검색·필터·정렬).
+// mock. API 는 다음 스텝.
 
 // ─────────────── mock ───────────────
 
@@ -24,13 +25,11 @@ interface Project {
   title: string;
   status: ProjectStatus;
   progress: number; // 0 ~ 100
-  assignees: string[]; // 이름 리스트 (담당자 미배정이면 [])
-  due: string; // "7/31" 등 표기용
+  assignees: string[];
+  due: string; // "7/31" 표기용
   dday: number; // 음수 = 지남
-  purpose?: string;
-  steps?: { done: boolean; text: string }[];
-  createdBy?: { name: string; tone: string };
-  updated?: string;
+  updated: string; // "7. 25."
+  createdBy: { name: string; tone: string };
 }
 
 const PROJECTS: Project[] = [
@@ -42,34 +41,19 @@ const PROJECTS: Project[] = [
     assignees: ["이하나", "하이여", "A매니저"],
     due: "7/31",
     dday: -3,
-    purpose:
-      "2층 확장 + 인테리어 리뉴얼. 트레이너 룸 · 그룹 PT 존 신설. 8/8 오픈 목표.",
-    steps: [
-      { done: true, text: "시공 견적 3사 비교" },
-      { done: true, text: "자재 발주" },
-      { done: false, text: "부분 오픈 프로모션 페이지" },
-      { done: false, text: "회원 이관 안내 알림톡" },
-    ],
-    createdBy: { name: "이앨리스", tone: "bg-emerald-500" },
     updated: "7. 25.",
+    createdBy: { name: "이앨리스", tone: "bg-emerald-500" },
   },
   {
     id: "p2",
-    title: "여름 리텐션 캠페인",
-    status: "완료",
-    progress: 100,
-    assignees: ["하이여", "정프로"],
-    due: "7/20",
-    dday: -8,
-    purpose:
-      "3개월 이상 미출석 회원 대상 재등록 인센티브. 목표 재등록률 15%.",
-    steps: [
-      { done: true, text: "대상자 추출 · 세그먼트" },
-      { done: true, text: "알림톡 A/B 발송" },
-      { done: true, text: "결과 리포트 공유" },
-    ],
-    createdBy: { name: "김데모", tone: "bg-primary" },
-    updated: "7. 20.",
+    title: "앱 · 홈페이지 개편",
+    status: "진행중",
+    progress: 30,
+    assignees: ["박그레이스", "이하나"],
+    due: "8/15",
+    dday: 18,
+    updated: "7. 26.",
+    createdBy: { name: "박그레이스", tone: "bg-violet-500" },
   },
   {
     id: "p3",
@@ -79,20 +63,35 @@ const PROJECTS: Project[] = [
     assignees: [],
     due: "9/10",
     dday: 44,
-    purpose:
-      "신규 트레이너 첫 2주 온보딩 체크리스트 · 메이트 매칭 가이드 초안 작성 → 리드 리뷰 → 문서함 등록.",
-    steps: [
-      { done: false, text: "체크리스트 초안" },
-      { done: false, text: "리드 리뷰" },
-      { done: false, text: "문서함 등록 · 알림" },
-    ],
-    createdBy: { name: "박그레이스", tone: "bg-violet-500" },
     updated: "7. 10.",
+    createdBy: { name: "박그레이스", tone: "bg-violet-500" },
+  },
+  {
+    id: "p4",
+    title: "여름 리텐션 캠페인",
+    status: "완료",
+    progress: 100,
+    assignees: ["하이여", "정프로"],
+    due: "7/20",
+    dday: -8,
+    updated: "7. 20.",
+    createdBy: { name: "김데모", tone: "bg-primary" },
+  },
+  {
+    id: "p5",
+    title: "Q1 실적 회고 · 리포트",
+    status: "완료",
+    progress: 100,
+    assignees: ["김데모"],
+    due: "4/15",
+    dday: -104,
+    updated: "4. 15.",
+    createdBy: { name: "김데모", tone: "bg-primary" },
   },
 ];
 
-type StatusFilter = "all" | ProjectStatus;
-const FILTERS: { key: StatusFilter; label: string }[] = [
+type FilterKey = "all" | ProjectStatus;
+const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "전체" },
   { key: "대기", label: "대기" },
   { key: "진행중", label: "진행중" },
@@ -100,35 +99,63 @@ const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "누락", label: "누락" },
 ];
 
+type SortKey = "due" | "updated" | "progress";
+
 // ─────────────── page ───────────────
 
 export default function ProjectsPage() {
-  const [filter, setFilter] = useState<StatusFilter>("all");
-  const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(PROJECTS[0].id);
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [sort, setSort] = useState<SortKey>("due");
+  const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return PROJECTS.filter((p) => {
+    const query = q.trim().toLowerCase();
+    const base = PROJECTS.filter((p) => {
       if (filter !== "all" && p.status !== filter) return false;
-      if (!q) return true;
+      if (!query) return true;
       return (
-        p.title.toLowerCase().includes(q) ||
-        p.assignees.some((a) => a.toLowerCase().includes(q))
+        p.title.toLowerCase().includes(query) ||
+        p.assignees.some((a) => a.toLowerCase().includes(query))
       );
     });
-  }, [filter, query]);
+    const sorted = [...base];
+    if (sort === "due") {
+      // 마감 임박 (작은 dday) → 지남 (음수) → 여유 (큰 dday)
+      // 완료/누락은 뒤로 미룸.
+      sorted.sort((a, b) => {
+        const finished = (p: Project) => p.status === "완료" ? 1 : 0;
+        if (finished(a) !== finished(b)) return finished(a) - finished(b);
+        return a.dday - b.dday;
+      });
+    } else if (sort === "updated") {
+      sorted.sort((a, b) => (a.updated < b.updated ? 1 : -1));
+    } else {
+      sorted.sort((a, b) => b.progress - a.progress);
+    }
+    return sorted;
+  }, [filter, sort, q]);
 
-  const inFiltered = filtered.some((p) => p.id === selectedId);
-  const effectiveId = inFiltered ? selectedId : filtered[0]?.id ?? null;
-  const selected = effectiveId
-    ? PROJECTS.find((p) => p.id === effectiveId) ?? null
-    : null;
+  // 상태별 그룹핑 (전체 필터일 때만 그룹 헤더 노출).
+  const groups = useMemo(() => {
+    if (filter !== "all") return [{ label: null, items: filtered }];
+    const order: ProjectStatus[] = ["진행중", "대기", "완료", "누락"];
+    return order
+      .map((status) => ({
+        label: status,
+        items: filtered.filter((p) => p.status === status),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [filter, filtered]);
 
-  const totalCount = PROJECTS.length;
-  const inProgress = PROJECTS.filter((p) => p.status === "진행중").length;
-  const done = PROJECTS.filter((p) => p.status === "완료").length;
+  const totals = {
+    all: PROJECTS.length,
+    inProgress: PROJECTS.filter((p) => p.status === "진행중").length,
+    dueThisWeek: PROJECTS.filter(
+      (p) => p.status !== "완료" && p.dday >= 0 && p.dday <= 7,
+    ).length,
+    done: PROJECTS.filter((p) => p.status === "완료").length,
+  };
 
   return (
     <div>
@@ -137,87 +164,134 @@ export default function ProjectsPage() {
       {/* 상단 */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs text-muted">업무</p>
-          <h1 className="mt-0.5 text-2xl font-black tracking-tighter text-fg">
+          <h1 className="text-2xl font-black tracking-tighter text-fg">
             프로젝트
           </h1>
           <p className="mt-1 text-sm text-muted">
-            전체 <span className="font-bold text-fg">{totalCount}</span>{" "}
-            <span className="text-line">·</span> 진행중{" "}
-            <span className="font-bold text-fg">{inProgress}</span>{" "}
-            <span className="text-line">·</span> 완료{" "}
-            <span className="font-bold text-fg">{done}</span>
+            팀이 함께 진행하는 일들을 목적 · 절차 · 마감까지 한 곳에서 관리하세요.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            aria-label="새로고침"
-            className="rounded-full border border-line p-2 text-muted transition-colors hover:bg-card-hover hover:text-fg"
-          >
-            <ArrowPathIcon className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setNewOpen(true)}
-            className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
-          >
-            <PlusIcon className="size-4" />새 프로젝트
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setNewOpen(true)}
+          className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
+        >
+          <PlusIcon className="size-4" />새 프로젝트
+        </button>
       </div>
 
-      {/* 검색 */}
-      <div className="relative mt-5">
-        <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="프로젝트 · 담당자로 검색"
-          className="w-full rounded-md border border-line bg-card-hover py-2.5 pr-3 pl-9 text-sm text-fg placeholder-muted focus:border-primary focus:outline-none"
+      {/* 통계 4 카드 */}
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard
+          label="전체 프로젝트"
+          value={String(totals.all)}
+          icon={FolderIcon}
+          tone="primary"
+        />
+        <StatCard
+          label="진행 중"
+          value={String(totals.inProgress)}
+          icon={SparklesIcon}
+          tone="sky"
+        />
+        <StatCard
+          label="이번 주 마감"
+          value={String(totals.dueThisWeek)}
+          icon={ClockIcon}
+          tone="amber"
+        />
+        <StatCard
+          label="완료"
+          value={String(totals.done)}
+          icon={CheckCircleIcon}
+          tone="emerald"
         />
       </div>
 
-      {/* 필터 chips + 총 개수 */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`rounded-lg border px-4 py-1.5 text-sm font-semibold transition-colors ${
-                active
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-line text-fg hover:bg-card-hover"
-              }`}
-            >
-              {f.label}
-            </button>
-          );
-        })}
-        <span className="ml-auto text-sm text-muted tabular-nums">
-          {filtered.length}개
-        </span>
+      {/* 검색·필터·정렬 카드 */}
+      <div className="mt-6 rounded-lg border border-line bg-card p-4">
+        <label className="flex items-center gap-2 rounded-md border border-line bg-card-hover px-3 py-2">
+          <MagnifyingGlassIcon className="size-4 text-muted" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="프로젝트 · 담당자로 검색"
+            className="flex-1 bg-transparent text-sm text-fg placeholder-muted focus:outline-none"
+          />
+        </label>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            {FILTERS.map((f) => {
+              const active = filter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+                    active
+                      ? "bg-primary text-white"
+                      : "text-muted hover:bg-card-hover hover:text-fg"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted">{filtered.length}개</span>
+            <div className="inline-flex rounded-full border border-line p-0.5">
+              <SortButton
+                active={sort === "due"}
+                onClick={() => setSort("due")}
+              >
+                마감 순
+              </SortButton>
+              <SortButton
+                active={sort === "progress"}
+                onClick={() => setSort("progress")}
+              >
+                진행률
+              </SortButton>
+              <SortButton
+                active={sort === "updated"}
+                onClick={() => setSort("updated")}
+              >
+                최근 수정
+              </SortButton>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 본문 : lg 에서 좌 1/3 + 우 2/3 split */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div>
-          <ProjectListCard
-            projects={filtered}
-            selectedId={effectiveId}
-            onSelect={setSelectedId}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          {selected ? (
-            <ProjectDetail project={selected} />
-          ) : (
-            <EmptyState />
-          )}
-        </div>
+      {/* 프로젝트 목록 — full width, 상태 그룹핑 */}
+      <div className="mt-6 space-y-6">
+        {groups.length === 0 ? (
+          <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-lg border border-line bg-card p-8 text-center">
+            <FolderIcon className="size-8 text-muted/70" />
+            <p className="text-sm text-muted">조건에 맞는 프로젝트가 없어요.</p>
+          </div>
+        ) : (
+          groups.map((g, gi) => (
+            <section key={g.label ?? gi}>
+              {g.label && (
+                <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted">
+                  <span>{g.label}</span>
+                  <span className="text-muted/70 tabular-nums">
+                    · {g.items.length}
+                  </span>
+                </h3>
+              )}
+              <ul className="space-y-3">
+                {g.items.map((p) => (
+                  <ProjectCard key={p.id} project={p} />
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
       </div>
 
       <NewProjectDialog open={newOpen} onClose={() => setNewOpen(false)} />
@@ -225,118 +299,179 @@ export default function ProjectsPage() {
   );
 }
 
-// ─────────────── ProjectListCard ───────────────
+// ─────────────── StatCard ───────────────
 
-function ProjectListCard({
-  projects,
-  selectedId,
-  onSelect,
+type StatTone = "primary" | "sky" | "amber" | "emerald";
+const STAT_TONE: Record<StatTone, { bg: string; text: string }> = {
+  primary: { bg: "bg-primary/15", text: "text-primary" },
+  sky: { bg: "bg-sky-500/15", text: "text-sky-400" },
+  amber: { bg: "bg-amber-500/15", text: "text-amber-400" },
+  emerald: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
+};
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
 }: {
-  projects: Project[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
+  label: string;
+  value: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  tone: StatTone;
 }) {
+  const t = STAT_TONE[tone];
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-card">
-      <div className="flex items-center justify-between px-5 pt-5 pb-4">
-        <h2 className="text-base font-bold text-fg">프로젝트 목록</h2>
-        <span className="text-xs text-muted tabular-nums">
-          {projects.length}건
-        </span>
+    <div className="rounded-lg border border-line bg-card p-5">
+      <div className="flex items-center gap-4">
+        <div
+          className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${t.bg}`}
+        >
+          <Icon className={`size-6 ${t.text}`} />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm text-muted">{label}</p>
+          <p className="mt-0.5 text-2xl font-black tracking-tighter tabular-nums text-fg">
+            {value}
+          </p>
+        </div>
       </div>
-      {projects.length === 0 ? (
-        <p className="border-t border-line px-5 py-10 text-center text-sm text-muted">
-          조건에 맞는 프로젝트가 없어요.
-        </p>
-      ) : (
-        <ul className="divide-y divide-line">
-          {projects.map((p) => (
-            <ProjectRow
-              key={p.id}
-              project={p}
-              active={selectedId === p.id}
-              onClick={() => onSelect(p.id)}
-            />
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
 
-function ProjectRow({
-  project,
+// ─────────────── SortButton ───────────────
+
+function SortButton({
   active,
   onClick,
+  children,
 }: {
-  project: Project;
   active: boolean;
   onClick: () => void;
+  children: React.ReactNode;
 }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+        active ? "bg-card-hover text-fg" : "text-muted hover:text-fg"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─────────────── ProjectCard ───────────────
+
+const STATUS_STYLE: Record<
+  ProjectStatus,
+  { bar: string; chipBg: string; chipText: string; bar2: string }
+> = {
+  진행중: {
+    bar: "bg-sky-400",
+    chipBg: "bg-sky-500/15",
+    chipText: "text-sky-400",
+    bar2: "bg-sky-400",
+  },
+  대기: {
+    bar: "bg-neutral-500",
+    chipBg: "bg-card-hover",
+    chipText: "text-muted",
+    bar2: "bg-neutral-500",
+  },
+  완료: {
+    bar: "bg-emerald-400",
+    chipBg: "bg-emerald-500/15",
+    chipText: "text-emerald-400",
+    bar2: "bg-emerald-400",
+  },
+  누락: {
+    bar: "bg-red-400",
+    chipBg: "bg-red-500/15",
+    chipText: "text-red-400",
+    bar2: "bg-red-400",
+  },
+};
+
+function ProjectCard({ project }: { project: Project }) {
+  const s = STATUS_STYLE[project.status];
   return (
     <li>
       <button
         type="button"
-        onClick={onClick}
-        className={`flex w-full items-start gap-3 px-5 py-4 text-left transition-colors ${
-          active ? "bg-primary/15" : "hover:bg-card-hover"
-        }`}
+        className="group relative flex w-full items-start gap-4 overflow-hidden rounded-lg border border-line bg-card p-5 text-left transition-colors hover:bg-card-hover"
       >
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-fg">{project.title}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <StatusChip project={project} />
-            <p className="min-w-0 truncate text-xs text-muted">
-              {project.assignees.length > 0
-                ? project.assignees.join(", ")
-                : "미지정"}{" "}
-              <span className="text-line">·</span> 마감 {project.due}
-            </p>
+        {/* 좌측 컬러 세로 바 (회의록과 톤 통일) */}
+        <span className={`absolute top-0 bottom-0 left-0 w-1 ${s.bar}`} />
+
+        <div className="min-w-0 flex-1 pl-3">
+          {/* 제목 · 상태 chip */}
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="truncate text-base font-bold text-fg">
+              {project.title}
+            </h4>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${s.chipBg} ${s.chipText}`}
+            >
+              {project.status === "진행중"
+                ? `${project.progress}%`
+                : project.status}
+            </span>
           </div>
+
+          {/* 담당자 · 마감 · 수정 · D-day */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+            {project.assignees.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <Avatar
+                  name={project.assignees[0]}
+                  tone={project.createdBy.tone}
+                />
+                <span className="font-medium text-fg">
+                  {project.assignees.join(", ")}
+                </span>
+              </div>
+            ) : (
+              <span className="text-muted">담당자 미지정</span>
+            )}
+            <span>·</span>
+            <span>마감 {project.due}</span>
+            <span className="ml-auto flex items-center gap-2">
+              <DdayBadge project={project} />
+              <span className="tabular-nums">수정 {project.updated}</span>
+            </span>
+          </div>
+
+          {/* 진행률 바 (대기 상태는 숨김) */}
+          {project.status !== "대기" && (
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-card-hover">
+              <div
+                className={`h-full rounded-full transition-all ${s.bar2}`}
+                style={{ width: `${project.progress}%` }}
+              />
+            </div>
+          )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <DdayBadge project={project} />
-          <ChevronRightIcon className="size-4 text-muted" />
-        </div>
+
+        <ChevronRightIcon className="mt-1 size-4 shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
       </button>
     </li>
   );
 }
 
-function StatusChip({ project }: { project: Project }) {
-  switch (project.status) {
-    case "진행중":
-      return (
-        <span className="rounded-md bg-sky-500/15 px-2 py-0.5 text-xs font-bold text-sky-400">
-          {project.progress}%
-        </span>
-      );
-    case "완료":
-      return (
-        <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
-          완료
-        </span>
-      );
-    case "누락":
-      return (
-        <span className="rounded-md bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400">
-          누락
-        </span>
-      );
-    case "대기":
-    default:
-      return (
-        <span className="rounded-md bg-card-hover px-2 py-0.5 text-xs font-semibold text-muted">
-          대기
-        </span>
-      );
-  }
-}
-
 function DdayBadge({ project }: { project: Project }) {
   if (project.status === "완료") {
     return (
-      <CheckCircleIcon className="size-5 text-emerald-400" aria-label="완료" />
+      <span
+        className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400"
+        aria-label="완료"
+      >
+        <CheckCircleIcon className="size-3" />
+        완료
+      </span>
     );
   }
   const tone =
@@ -347,182 +482,17 @@ function DdayBadge({ project }: { project: Project }) {
         : "text-muted";
   const label = project.dday >= 0 ? `D-${project.dday}` : `D+${-project.dday}`;
   return (
-    <span className={`text-sm font-bold tabular-nums ${tone}`}>{label}</span>
+    <span className={`text-xs font-bold tabular-nums ${tone}`}>{label}</span>
   );
 }
 
-// ─────────────── ProjectDetail ───────────────
-
-function ProjectDetail({ project }: { project: Project }) {
+function Avatar({ name, tone }: { name: string; tone: string }) {
   return (
-    <div className="rounded-lg border border-line bg-card">
-      {/* 헤더 */}
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-6 py-5">
-        <div className="min-w-0">
-          <p className="text-xs text-muted">프로젝트</p>
-          <h2 className="mt-0.5 text-lg font-bold text-fg">{project.title}</h2>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <StatusChip project={project} />
-            <span className="text-xs text-muted">
-              담당{" "}
-              <span className="text-fg">
-                {project.assignees.length > 0
-                  ? project.assignees.join(", ")
-                  : "미지정"}
-              </span>{" "}
-              <span className="text-line">·</span> 마감{" "}
-              <span className="font-semibold text-fg">{project.due}</span>
-            </span>
-          </div>
-        </div>
-        <DdayBadge project={project} />
-      </div>
-
-      {/* 진행률 바 */}
-      {project.status !== "대기" && (
-        <div className="border-b border-line px-6 py-5">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold text-muted">진행률</p>
-            <p className="text-sm font-bold tabular-nums text-fg">
-              {project.progress}%
-            </p>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-card-hover">
-            <div
-              className={`h-full rounded-full transition-all ${
-                project.status === "완료"
-                  ? "bg-emerald-400"
-                  : project.status === "누락"
-                    ? "bg-red-400"
-                    : "bg-sky-400"
-              }`}
-              style={{ width: `${project.progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 목표 */}
-      {project.purpose && (
-        <div className="border-b border-line px-6 py-5">
-          <p className="text-xs font-semibold text-muted">목표</p>
-          <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-fg">
-            {project.purpose}
-          </p>
-        </div>
-      )}
-
-      {/* 단계 (steps) */}
-      {project.steps && project.steps.length > 0 && (
-        <div className="border-b border-line px-6 py-5">
-          <p className="text-xs font-semibold text-muted">
-            단계 <span className="text-muted/70 tabular-nums">· {project.steps.filter((s) => s.done).length} / {project.steps.length}</span>
-          </p>
-          <ul className="mt-3 space-y-2">
-            {project.steps.map((s, i) => (
-              <li
-                key={i}
-                className="flex items-center gap-2.5 rounded-md border border-line bg-card-hover px-3 py-2"
-              >
-                <span
-                  className={`flex size-4 shrink-0 items-center justify-center rounded ${
-                    s.done
-                      ? "bg-emerald-500/25 text-emerald-400"
-                      : "border border-line"
-                  }`}
-                >
-                  {s.done && (
-                    <svg
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      className="size-2.5"
-                      aria-hidden
-                    >
-                      <path
-                        d="M2 6l3 3 5-6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </span>
-                <span
-                  className={`text-sm ${
-                    s.done ? "text-muted line-through" : "text-fg"
-                  }`}
-                >
-                  {s.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* 담당자 */}
-      <div className="border-b border-line px-6 py-5">
-        <p className="text-xs font-semibold text-muted">담당자</p>
-        {project.assignees.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">아직 지정되지 않았어요.</p>
-        ) : (
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {project.assignees.map((name) => (
-              <li
-                key={name}
-                className="flex items-center gap-2 rounded-full border border-line bg-card-hover px-3 py-1"
-              >
-                <span
-                  className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
-                  aria-hidden
-                >
-                  {name.charAt(0)}
-                </span>
-                <span className="text-sm text-fg">{name}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* 하단 메타 + 액션 */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4">
-        <p className="text-xs text-muted tabular-nums">
-          {project.createdBy && (
-            <>
-              작성 <span className="text-fg">{project.createdBy.name}</span>{" "}
-              <span className="text-line">·</span>{" "}
-            </>
-          )}
-          최근 수정 {project.updated}
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-fg hover:bg-card-hover"
-          >
-            편집
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-primary bg-primary/25 px-3 py-1.5 text-xs font-semibold text-primary shadow-lg shadow-primary/20 hover:bg-primary/35"
-          >
-            달성 · 코멘트
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────── EmptyState ───────────────
-
-function EmptyState() {
-  return (
-    <div className="flex h-full min-h-72 flex-col items-center justify-center gap-3 rounded-lg border border-line bg-card p-8 text-center">
-      <FolderIcon className="size-8 text-muted/70" />
-      <p className="text-sm text-muted">목록에서 프로젝트를 선택해주세요.</p>
-    </div>
+    <span
+      className={`inline-flex size-6 items-center justify-center rounded-full text-xs font-bold text-white ${tone}`}
+      aria-hidden
+    >
+      {name.charAt(0)}
+    </span>
   );
 }
