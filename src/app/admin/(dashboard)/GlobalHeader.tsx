@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { PaperAirplaneIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import {
+  ChatBubbleOvalLeftIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 import { BuildingOffice2Icon } from "@heroicons/react/16/solid";
 import { useBranch } from "@/providers/BranchProvider";
 import { BranchPicker, branchShortName } from "@/components/BranchPicker";
@@ -12,15 +15,14 @@ import { adminRoleLabel } from "@/lib/format";
 import type { Admin } from "@/lib/api/types";
 
 // 어드민 sticky 상단 헤더.
-// 모바일 : 햄버거 + 지점 + (우)알림벨.
-// PC     : 지점 + 페이지 타이틀 + (우)알림벨 + 사용자 프로필 카드.
+// 모바일 : 지점 + (우) [사내톡] [알림] [프로필].
+// PC     : 지점 + 페이지 타이틀 + (우)알림 + 사용자 프로필 카드. 사내톡은 ChatFab.
 //          페이지 타이틀은 PageTitleProvider 를 통해 페이지의 <PageTitle/> 에서 받음.
-//          프로필 카드(아바타 + 이름 + 역할) 는 PC 헤더 우측을 채워 휑함을 해소.
 export function GlobalHeader({
   admin,
   onOpenProfile,
   onOpenNotifications,
-  onOpenAlimtalk,
+  onOpenChat,
 }: {
   admin: Admin;
   // 모바일 헤더 사람 아이콘 — 누르면 layout 의 profile 오버레이 state on.
@@ -29,9 +31,8 @@ export function GlobalHeader({
   // 모바일 알림 벨 — 누르면 layout 의 notification 오버레이 state on.
   // PC 는 NotificationsPopover 가 내부 dropdown 으로 처리.
   onOpenNotifications: () => void;
-  // 모바일 알림톡 아이콘 — 누르면 layout 의 alimtalk 오버레이 state on.
-  // PC 는 사이드바·라우트로 접근 — 헤더 아이콘 자체가 lg:hidden.
-  onOpenAlimtalk: () => void;
+  // 모바일 사내톡 아이콘 — 누르면 ChatFab 팝오버가 열림. PC 는 우측 하단 FAB.
+  onOpenChat: () => void;
 }) {
   const { selectedBranchId, setSelectedBranchId, branches, isSuper } =
     useBranch();
@@ -72,16 +73,16 @@ export function GlobalHeader({
         </div>
       )}
       <div className="ml-auto flex items-center gap-2 lg:gap-3">
-        <NotificationsPopover onMobileOpen={onOpenNotifications} />
-        {/* 모바일 : 알림 ↔ 프로필 사이 메시지(알림톡) 아이콘 — state 기반 오버레이로 이력·관리. */}
+        {/* 모바일 : 사내톡 아이콘 — ChatFab 팝오버 open 트리거. PC 는 FAB 이 별도로 있어 헤더 아이콘 hidden. */}
         <button
           type="button"
-          onClick={onOpenAlimtalk}
-          aria-label="메시지"
+          onClick={onOpenChat}
+          aria-label="사내톡"
           className="rounded-md p-1.5 text-muted hover:bg-card-hover hover:text-fg lg:hidden"
         >
-          <PaperAirplaneIcon className="size-6" />
+          <ChatBubbleOvalLeftIcon className="size-6" />
         </button>
+        <NotificationsPopover onMobileOpen={onOpenNotifications} />
         {/* 모바일 : 알림 옆 사람 아이콘 — state 기반 오버레이로 프로필 띄움
             (route 가 아니라 button → layout 의 profileOpen state on).
             그래야 슬라이드 인/아웃 동안 parent 페이지가 뒤에서 그대로 보임. */}
@@ -91,7 +92,7 @@ export function GlobalHeader({
           aria-label="내 정보"
           className="rounded-md p-1.5 text-muted hover:bg-card-hover hover:text-fg lg:hidden"
         >
-          <UserCircleIcon className="size-6" />
+          <UserIcon className="size-6" />
         </button>
         {/* PC : 사용자 프로필 카드 (이니셜 아바타 + 이름 + 역할). 클릭 시 프로필 페이지로. */}
         <Link

@@ -26,7 +26,6 @@ import { SubTabBar } from "./SubTabBar";
 import { MobileSubPage } from "./MobileSubPage";
 import { ProfileBody } from "./profile/ProfileBody";
 import { NotificationsBody } from "./NotificationBell";
-import { AlimtalkBody } from "./AlimtalkBody";
 
 // 관리자 대시보드 셸 — 로그인 확인 후 사이드바 + 본문.
 // 모바일: 햄버거 + 슬라이드 드로어. 데스크탑(lg+): sticky 사이드바.
@@ -43,13 +42,21 @@ export default function DashboardLayout({
   // 인/아웃 동안 뒤가 흰 배경으로 보이게 됨. state 면 parent 그대로 mount 유지.
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [alimtalkOpen, setAlimtalkOpen] = useState(false);
+  // 사내톡 — 모바일 헤더 아이콘 트리거 + PC ChatFab 이 공유. ChatFab 이 open/onOpenChange 를 controlled 로 소비.
+  const [chatOpen, setChatOpen] = useState(false);
 
-  // 로그인한 관리자 정보 (사이드바 권한 분기 + 본문 페이지에서 캐시 재사용)
+  // bootstrap 완료 상태 — hard reload 시 memory access 가 비어있어
+  // 이걸 gate 로 두지 않으면 meQuery / 각 페이지 useQuery 들이 access 없이
+  // 먼저 발사돼 콘솔에 401 이 잔뜩 찍힌다 (auto-refresh 로 회복은 되지만).
+  const [bootstrapped, setBootstrapped] = useState(false);
+
+  // 로그인한 관리자 정보 (사이드바 권한 분기 + 본문 페이지에서 캐시 재사용).
+  // bootstrap 완료 후에만 발사 → 401 → refresh → 재시도 왕복 제거.
   const meQuery = useQuery({
     queryKey: ["admin", "me"],
     queryFn: getMe,
     retry: false,
+    enabled: bootstrapped,
   });
 
   // 60초마다 heartbeat ping — SUPER_ADMIN 의 "관리자 관리" 화면에서 접속중 표시용.
@@ -116,10 +123,15 @@ export default function DashboardLayout({
   // v2 access 는 메모리만 — 하드 리프레시 시 비어있음.
   // refresh 토큰(storage) 이 살아있으면 그걸로 access 재발급 → 대시보드 유지.
   // 둘 다 없으면 로그인 화면으로.
+  // 성공 후에만 setBootstrapped(true) → meQuery / 각 페이지 useQuery 시작 gate 해제.
   useEffect(() => {
     (async () => {
       const ok = await bootstrapAccessToken();
-      if (!ok) router.replace("/admin/login");
+      if (!ok) {
+        router.replace("/admin/login");
+        return;
+      }
+      setBootstrapped(true);
     })();
   }, [router]);
 
@@ -139,7 +151,9 @@ export default function DashboardLayout({
     if (meQuery.isError) router.replace("/admin/login");
   }, [meQuery.isError, router]);
 
-  if (meQuery.isLoading) {
+  // bootstrap 대기 or meQuery 로딩 중 — 둘 다 스피너 화면 유지.
+  // children 을 mount 하지 않아 하위 페이지의 useQuery 도 이 지점 전까진 발사되지 않음.
+  if (!bootstrapped || meQuery.isLoading) {
     return (
       <div
         data-theme="dark"
@@ -175,7 +189,7 @@ export default function DashboardLayout({
           admin={meQuery.data}
           onOpenProfile={() => setProfileOpen(true)}
           onOpenNotifications={() => setNotificationOpen(true)}
-          onOpenAlimtalk={() => setAlimtalkOpen(true)}
+          onOpenChat={() => setChatOpen(true)}
         />
         {/* 모바일 전용 상단 서브탭 — 현재 그룹의 하위 페이지들을 한 줄로. */}
         <SubTabBar />
@@ -197,8 +211,8 @@ export default function DashboardLayout({
         {/* 모바일 전용 하단 5탭 — PC 는 lg:hidden 으로 숨고 기존 사이드바가 보임. */}
         <MobileTabBar />
       </div>
-      {/* 사내톡 FAB — 모든 어드민 페이지 공용. 우측 하단 고정. */}
-      <ChatFab />
+      {/* 사내톡 — PC 는 우측 하단 FAB, 모바일은 헤더 아이콘 트리거 (open state 공유). */}
+      <ChatFab open={chatOpen} onOpenChange={setChatOpen} />
       {pendingNotes && (
         <ReleaseNotesDialog
           notes={pendingNotes}
@@ -227,16 +241,6 @@ export default function DashboardLayout({
           onClose={() => setNotificationOpen(false)}
         >
           <NotificationsBody onItemClick={() => setNotificationOpen(false)} />
-        </MobileSubPage>
-      )}
-      {/* 모바일 메시지(알림톡) 오버레이 — 헤더 종이비행기 아이콘 → 이력/관리 탭 wrap.
-          PC 는 헤더 아이콘 자체가 lg:hidden 이라 도달하지 않음. */}
-      {alimtalkOpen && (
-        <MobileSubPage
-          title="메시지"
-          onClose={() => setAlimtalkOpen(false)}
-        >
-          <AlimtalkBody />
         </MobileSubPage>
       )}
     </div>

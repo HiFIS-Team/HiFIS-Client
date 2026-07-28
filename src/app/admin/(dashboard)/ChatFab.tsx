@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpIcon,
@@ -39,8 +39,27 @@ type View =
   | { kind: "chat"; roomId: string }
   | { kind: "settings"; roomId: string };
 
-export function ChatFab() {
-  const [open, setOpen] = useState(false);
+// open/onOpenChange 를 넘기면 controlled — layout 이 open state 를 소유해서
+// 모바일 헤더 아이콘 · PC FAB 모두 같은 팝오버를 열 수 있게 한다.
+// 안 넘기면 (하위호환) 내부 state 로 동작.
+export function ChatFab({
+  open: openProp,
+  onOpenChange,
+}: {
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+} = {}) {
+  const [openInternal, setOpenInternal] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openInternal;
+  const setOpen = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      const value = typeof next === "function" ? next(open) : next;
+      if (isControlled) onOpenChange?.(value);
+      else setOpenInternal(value);
+    },
+    [open, isControlled, onOpenChange],
+  );
   const [view, setView] = useState<View>({ kind: "list" });
   const queryClient = useQueryClient();
 
@@ -54,7 +73,7 @@ export function ChatFab() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, setOpen]);
 
   function close() {
     setOpen(false);
@@ -95,7 +114,7 @@ export function ChatFab() {
         <div
           role="dialog"
           aria-label="사내톡"
-          className="animate-fade-in fixed right-5 bottom-40 z-40 flex h-[70vh] max-h-[640px] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-line bg-card shadow-2xl lg:bottom-24"
+          className="animate-fade-in fixed top-14 right-3 bottom-20 z-40 flex w-[calc(100vw-1.5rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-line bg-card shadow-2xl lg:top-auto lg:right-5 lg:bottom-24 lg:h-[70vh] lg:max-h-[640px]"
         >
           {view.kind === "list" && (
             <ListView
@@ -152,12 +171,13 @@ export function ChatFab() {
         </div>
       )}
 
+      {/* PC 전용 FAB — 모바일은 헤더 아이콘이 트리거 (lg:hidden 반대). */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "사내톡 닫기" : "사내톡 열기"}
         aria-expanded={open}
-        className="fixed right-5 bottom-24 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 lg:bottom-6"
+        className="fixed right-5 bottom-6 z-40 hidden size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 lg:flex"
       >
         {open ? (
           <XMarkIcon className="size-6" />
