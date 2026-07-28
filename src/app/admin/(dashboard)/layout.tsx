@@ -4,8 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
-import { getMe } from "@/lib/api/auth";
-import { getAccessToken } from "@/lib/api/tokenStore";
+import { getMe } from "@/lib/api/v2/auth";
+import { bootstrapAccessToken } from "@/lib/api/v2/client";
 import { useHeartbeat } from "@/lib/hooks/useHeartbeat";
 import { useNotificationNavigate } from "@/lib/hooks/useNotificationNavigate";
 import {
@@ -111,9 +111,14 @@ export default function DashboardLayout({
     setPendingNotes(null);
   }
 
-  // 토큰이 아예 없으면 즉시 로그인 화면으로
+  // v2 access 는 메모리만 — 하드 리프레시 시 비어있음.
+  // refresh 토큰(storage) 이 살아있으면 그걸로 access 재발급 → 대시보드 유지.
+  // 둘 다 없으면 로그인 화면으로.
   useEffect(() => {
-    if (!getAccessToken()) router.replace("/admin/login");
+    (async () => {
+      const ok = await bootstrapAccessToken();
+      if (!ok) router.replace("/admin/login");
+    })();
   }, [router]);
 
   // getMe 실패(토큰 만료·무효) → 로그인 화면으로
