@@ -766,11 +766,16 @@ function ChatView({
     }
   }, [messages.length]);
 
+  // input 을 send 후에도 계속 focus 상태로 유지 — 안드로이드 키보드가 내려가지 않게.
+  const inputRef = useRef<HTMLInputElement>(null);
+
   function submit() {
     if (!canSend || sendMutation.isPending) return;
     const body = draft.trim();
     setDraft("");
     sendMutation.mutate(body);
+    // send 버튼 클릭이 focus 를 훔친 경우 대비 — draft 리셋 직후 다시 focus.
+    inputRef.current?.focus();
   }
 
   return (
@@ -850,7 +855,11 @@ function ChatView({
         )}
         <div className="flex items-center gap-2">
           <label className="flex flex-1 items-center gap-2 rounded-full border border-line bg-card-hover px-4 py-2">
+            {/* disabled 안 씀 — 안드로이드는 input focus 잃으면 키보드가 즉시
+                내려가는데, sendMutation 중 disabled 로 잠깐 focus 잃으면 사용자가
+                다시 클릭해야 함. draft 리셋만으로 충분. */}
             <input
+              ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -860,12 +869,14 @@ function ChatView({
                 }
               }}
               placeholder="메시지를 입력하세요"
-              disabled={sendMutation.isPending}
-              className="flex-1 bg-transparent text-sm text-fg placeholder-muted focus:outline-none disabled:opacity-60"
+              className="flex-1 bg-transparent text-sm text-fg placeholder-muted focus:outline-none"
             />
           </label>
+          {/* onMouseDown preventDefault — 버튼 클릭이 input focus 를 훔치지 않게.
+              모바일에서 focus 잃으면 키보드가 내려가고 input 바도 함께 밀림. */}
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={submit}
             aria-label="보내기"
             disabled={!canSend || sendMutation.isPending}
