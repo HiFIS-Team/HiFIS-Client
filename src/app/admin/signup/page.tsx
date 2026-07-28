@@ -3,11 +3,14 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { signup } from "@/lib/api/v2/auth";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
 import { useToast } from "@/providers/ToastProvider";
 
-// v2 초대키 기반 가입 (mock UI) — 관리자가 발급한 초대키 + 기본 정보로 워크스페이스 합류.
-// 지점 선택 / 이메일 인증 / 승인 대기는 v2 스펙에서 제외 (초대키가 자체 검증).
-// API 는 다음 스텝 — 지금은 mock submit → login 으로.
+// v2 초대키 기반 가입 — HiFIS-Server-V2 /auth/signup 연동.
+// 초대키 유효 → { result: "JOINED" } · 바로 로그인 화면으로.
+// 초대키 없음/무효 → { result: "PENDING" } · 관리자 승인 대기 상태 안내.
 export default function AdminSignupPage() {
   const router = useRouter();
   const toast = useToast();
@@ -18,7 +21,27 @@ export default function AdminSignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      signup({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        // 백엔드는 미입력 시 PENDING 로 처리 — 빈 문자열 안 보내고 아예 필드 제외.
+        inviteKey: inviteKey.trim() || undefined,
+      }),
+    onSuccess: (res) => {
+      if (res.result === "JOINED") {
+        toast.success("가입 완료! 로그인해 주세요.");
+        router.replace("/admin/login");
+      } else {
+        // PENDING — 초대키 없이 신청, 관리자 승인 대기.
+        setPending(true);
+      }
+    },
+  });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,13 +54,7 @@ export default function AdminSignupPage() {
       errs.passwordConfirm = "비밀번호가 일치하지 않습니다.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
-
-    // TODO: v2 초대키 검증 + 계정 생성 API 연동
-    setSubmitting(true);
-    setTimeout(() => {
-      toast.success("가입 요청을 접수했어요.");
-      router.replace("/admin/login");
-    }, 400);
+    mutation.mutate();
   }
 
   return (
@@ -61,6 +78,10 @@ export default function AdminSignupPage() {
       {/* 폼 — 상단에서 고정 offset (로그인 페이지와 타이틀 위치 정렬) */}
       <div className="flex flex-1 justify-center px-6 pt-[20vh] pb-10">
         <div className="w-full max-w-md">
+          {pending ? (
+            <PendingPanel email={email} />
+          ) : (
+            <>
           <h1 className="text-center text-3xl font-black tracking-tighter text-fg">
             함께 시작해요
           </h1>
@@ -162,12 +183,18 @@ export default function AdminSignupPage() {
               </div>
             </div>
 
+            {mutation.isError && (
+              <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
+                {getV2ErrorMessage(mutation.error)}
+              </p>
+            )}
+
             <button
               type="submit"
-              disabled={submitting}
+              disabled={mutation.isPending}
               className="mt-3 w-full rounded-lg bg-primary px-4 py-3.5 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
             >
-              {submitting ? "가입 중..." : "가입하기"}
+              {mutation.isPending ? "가입 중..." : "가입하기"}
             </button>
           </form>
 
@@ -181,8 +208,51 @@ export default function AdminSignupPage() {
               로그인
             </Link>
           </p>
+            </>
+          )}
         </div>
       </div>
     </main>
+  );
+}
+
+// ─────────────── PendingPanel ───────────────
+
+// 초대키 없이 신청 → JoinRequest 생성됨. 관리자 승인 후에 로그인 가능.
+function PendingPanel({ email }: { email: string }) {
+  return (
+    <>
+      <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-8"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      </div>
+      <h1 className="mt-5 text-center text-2xl font-black tracking-tighter text-fg">
+        승인 대기 중이에요
+      </h1>
+      <p className="mt-2 text-center text-sm text-muted">
+        <span className="font-semibold text-fg">{email}</span> 로 가입 요청이
+        접수됐어요.
+        <br />
+        관리자 승인 후에 로그인할 수 있어요.
+      </p>
+      <div className="mt-6 text-center">
+        <Link
+          href="/admin/login"
+          className="inline-block rounded-lg border border-line bg-card px-5 py-2.5 text-sm font-semibold text-fg transition-colors hover:bg-card-hover"
+        >
+          로그인 화면으로
+        </Link>
+      </div>
+    </>
   );
 }

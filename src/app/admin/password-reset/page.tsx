@@ -7,7 +7,9 @@ import { useToast } from "@/providers/ToastProvider";
 
 // v2 비밀번호 재설정 (mock) — 이메일로 재설정 링크 발송 방식.
 // 기존 4단계(이메일 → 6자리 인증 → 새 비번 → 완료) 대신 매직 링크 1단계로 단순화.
-// 실제 링크 발송·토큰 검증 API 는 다음 스텝.
+//
+// ⚠️ HiFIS-Server-V2 는 password-reset 엔드포인트가 아직 없음 (backend-api.md §12 미구현).
+// 지금은 UI 만 mock 으로 동작 (400ms 후 sent 상태). 백엔드가 준비되면 요청/재발송을 실제 API 로 교체.
 export default function AdminPasswordResetPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");

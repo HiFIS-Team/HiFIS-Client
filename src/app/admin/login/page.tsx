@@ -4,27 +4,35 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { login } from "@/lib/api/auth";
-import { getAccessToken, setTokens } from "@/lib/api/tokenStore";
-import { getErrorMessage } from "@/lib/api/client";
+import { login } from "@/lib/api/v2/auth";
+import { bootstrapAccessToken, getV2ErrorMessage } from "@/lib/api/v2/client";
+import { setSession } from "@/lib/api/v2/tokenStore";
 import { useToast } from "@/providers/ToastProvider";
 
-// v2 로그인 — 다크 톤 워크스페이스 진입. AuthLayout(라이트 카드) 대신 자체 셸.
+// v2 로그인 — HiFIS-Server-V2 /auth/login 연동.
+// 다크 톤 워크스페이스 진입. AuthLayout(라이트 카드) 대신 자체 셸.
 // signup·password-reset 은 여전히 AuthLayout 사용.
 export default function AdminLoginPage() {
   const router = useRouter();
   const toast = useToast();
 
-  // PWA start_url 이 /admin/login → 토큰 살아있으면 곧장 대시보드.
+  // PWA start_url 이 /admin/login → refresh 토큰 살아있으면 access 부트스트랩 후 대시보드로.
   // checking 동안 폼 안 보여 — 깜빡임 방지.
   const [checking, setChecking] = useState(true);
   useEffect(() => {
-    if (getAccessToken()) {
-      router.replace("/admin");
-    } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setChecking(false);
-    }
+    let mounted = true;
+    (async () => {
+      const ok = await bootstrapAccessToken();
+      if (!mounted) return;
+      if (ok) {
+        router.replace("/admin");
+      } else {
+        setChecking(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   const [email, setEmail] = useState("");
@@ -38,7 +46,7 @@ export default function AdminLoginPage() {
   const mutation = useMutation({
     mutationFn: () => login(email.trim(), password),
     onSuccess: (res) => {
-      setTokens(res.access_token, res.refresh_token, remember);
+      setSession(res.accessToken, res.refreshToken, remember);
       toast.success("로그인되었습니다.");
       router.replace("/admin");
     },
@@ -132,7 +140,7 @@ export default function AdminLoginPage() {
 
             {mutation.isError && (
               <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
-                {getErrorMessage(mutation.error)}
+                {getV2ErrorMessage(mutation.error)}
               </p>
             )}
 

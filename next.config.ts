@@ -33,9 +33,15 @@ const nextConfig: NextConfig = {
   // 프로덕션은 output:"export"라 정적 파일 + 친구 nginx 라우팅이라 rewrites 자동 무시.
   async rewrites() {
     return [
+      // v1 백엔드 (HiFIS-Server, 레거시) — 아직 안 옮긴 어드민 페이지가 사용.
       {
         source: "/api/:path*",
         destination: "http://localhost:8000/:path*",
+      },
+      // v2 백엔드 (HiFIS-Server-V2) — 새 인증 · 문서함 · 결재 등 v2 페이지 대상.
+      {
+        source: "/api-v2/:path*",
+        destination: "http://localhost:8001/:path*",
       },
     ];
   },
