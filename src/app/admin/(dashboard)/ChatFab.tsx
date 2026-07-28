@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowUpIcon,
   ChatBubbleOvalLeftIcon,
   ChevronLeftIcon,
   MagnifyingGlassIcon,
-  PaperClipIcon,
   UserPlusIcon,
   UsersIcon,
   XMarkIcon,
@@ -14,6 +14,8 @@ import {
 // 사내톡 진입 FAB + 팝오버 (전체 어드민 공용).
 // 뷰 3 : list (대화 목록) / new (새 대화 만들기) / chat (특정 대화).
 // mock — 실제 채팅 API·소켓·업로드는 다음 스텝.
+// state 는 팝오버 최상위 (ChatFab) 에서 : 대화 목록·대화별 메시지.
+// new 뷰에서 방 만들면 conversations 에 append + 그 방으로 chat 뷰 오픈.
 
 // ─────────────── mock ───────────────
 
@@ -27,7 +29,7 @@ interface Conversation {
   timeAgo: string;
   online?: boolean;
 }
-const CONVERSATIONS: Conversation[] = [
+const INITIAL_CONVERSATIONS: Conversation[] = [
   {
     id: "c1",
     type: "direct",
@@ -77,29 +79,55 @@ interface Message {
   id: string;
   from: "me" | "other";
   text: string;
-  time: string; // "오전 11:35"
-  read?: number; // 안 읽음 카운트 (숫자)
+  time: string;
+  read?: number;
   reactions?: { emoji: string; count: number }[];
 }
-const MOCK_MESSAGES: Message[] = [
-  { id: "m1", from: "me", text: "…내려간 컨텍스트로 떠봤어서요.", time: "오전 11:27", reactions: [{ emoji: "🙏", count: 1 }, { emoji: "👀", count: 1 }] },
-  { id: "m2", from: "other", text: "감사합니다 🙏 오늘 안에 PR 올려둘게요!", time: "오전 11:35", read: 1 },
-  { id: "m3", from: "me", text: "👍", time: "오전 11:36" },
-  { id: "m4", from: "other", text: "+ 스프린트 회고 시점 맞춰서 v2.1 같이 묶어서 가는 거 어떠세요?", time: "오후 2:25", read: 1 },
-  { id: "m5", from: "me", text: "좋습니다. 박그레이스님께도 공유드릴게요.", time: "오후 2:30" },
-  { id: "m6", from: "other", text: "👍 확인했습니다 — 내일 보고 드릴게요!", time: "오후 2:32", read: 1, reactions: [{ emoji: "🙌", count: 1 }] },
+const INITIAL_MESSAGES: Record<string, Message[]> = {
+  c1: [
+    { id: "m1", from: "me", text: "…내려간 컨텍스트로 떠봤어서요.", time: "오전 11:27", reactions: [{ emoji: "🙏", count: 1 }, { emoji: "👀", count: 1 }] },
+    { id: "m2", from: "other", text: "감사합니다 🙏 오늘 안에 PR 올려둘게요!", time: "오전 11:35", read: 1 },
+    { id: "m3", from: "me", text: "👍", time: "오전 11:36" },
+    { id: "m4", from: "other", text: "+ 스프린트 회고 시점 맞춰서 v2.1 같이 묶어서 가는 거 어떠세요?", time: "오후 2:25", read: 1 },
+    { id: "m5", from: "me", text: "좋습니다. 박그레이스님께도 공유드릴게요.", time: "오후 2:30" },
+    { id: "m6", from: "other", text: "👍 확인했습니다 — 내일 보고 드릴게요!", time: "오후 2:32", read: 1, reactions: [{ emoji: "🙌", count: 1 }] },
+  ],
+  c2: [],
+  c3: [],
+};
+
+// 새 방 아바타 랜덤 톤 (id 해시로 결정 — hydration 안전)
+const GROUP_TONES = [
+  "bg-teal-500",
+  "bg-violet-500",
+  "bg-amber-500",
+  "bg-sky-500",
+  "bg-pink-500",
+  "bg-emerald-500",
 ];
+
+// 현재 시각 → "오전 HH:MM" 형식. 클릭 이벤트에서만 호출 → hydration 무관.
+function formatNowKo(): string {
+  const d = new Date();
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const isPM = h >= 12;
+  const hh12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${isPM ? "오후" : "오전"} ${String(hh12).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
 
 // ─────────────── ChatFab ───────────────
 
 type View =
   | { kind: "list" }
   | { kind: "new" }
-  | { kind: "chat"; conv: Conversation };
+  | { kind: "chat"; convId: string };
 
 export function ChatFab() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "list" });
+  const [conversations, setConversations] = useState<Conversation[]>(INITIAL_CONVERSATIONS);
+  const [messagesByConv, setMessagesByConv] = useState<Record<string, Message[]>>(INITIAL_MESSAGES);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -111,12 +139,67 @@ export function ChatFab() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // 팝오버 닫을 때 뷰 초기화 (다음 열림 시 list 부터)
   function close() {
     setOpen(false);
-    // 애니메이션 없이 즉시 리셋 — 팝오버 unmount 됨
     setTimeout(() => setView({ kind: "list" }), 0);
   }
+
+  // new 뷰에서 확정 : 새 conv 만들고 chat 뷰로. 초기 메시지 없음 (빈 방).
+  function createConversation(name: string, memberIds: string[]) {
+    const id = `c-${conversations.length + 1}-${memberIds.length}`;
+    const isGroup = memberIds.length > 1;
+    // 1:1 이면 상대 이름·아바타 그대로. 그룹이면 그룹 이름 (없으면 자동).
+    let conv: Conversation;
+    if (!isGroup) {
+      const m = MEMBERS.find((x) => x.id === memberIds[0])!;
+      conv = {
+        id,
+        type: "direct",
+        name: m.name,
+        avatarTone: m.avatarTone,
+        preview: "새 대화가 생성됐어요",
+        timeAgo: "방금",
+      };
+    } else {
+      const displayName = name.trim() || `그룹 · ${memberIds.length}명`;
+      const toneIndex = conversations.length % GROUP_TONES.length;
+      conv = {
+        id,
+        type: "group",
+        name: displayName,
+        avatarTone: GROUP_TONES[toneIndex],
+        memberCount: memberIds.length,
+        preview: "새 그룹이 생성됐어요",
+        timeAgo: "방금",
+      };
+    }
+    setConversations((prev) => [conv, ...prev]);
+    setMessagesByConv((prev) => ({ ...prev, [id]: [] }));
+    setView({ kind: "chat", convId: id });
+  }
+
+  function sendMessage(convId: string, text: string) {
+    const now = formatNowKo();
+    const msg: Message = {
+      id: `msg-${convId}-${(messagesByConv[convId]?.length ?? 0) + 1}`,
+      from: "me",
+      text,
+      time: now,
+    };
+    setMessagesByConv((prev) => ({
+      ...prev,
+      [convId]: [...(prev[convId] ?? []), msg],
+    }));
+    // 목록 preview 도 갱신
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === convId ? { ...c, preview: text, timeAgo: "방금" } : c,
+      ),
+    );
+  }
+
+  const currentConv =
+    view.kind === "chat" ? conversations.find((c) => c.id === view.convId) : null;
 
   return (
     <div ref={rootRef}>
@@ -128,22 +211,26 @@ export function ChatFab() {
         >
           {view.kind === "list" && (
             <ListView
+              conversations={conversations}
               onClose={close}
               onNew={() => setView({ kind: "new" })}
-              onOpen={(conv) => setView({ kind: "chat", conv })}
+              onOpen={(conv) => setView({ kind: "chat", convId: conv.id })}
             />
           )}
           {view.kind === "new" && (
             <NewView
               onBack={() => setView({ kind: "list" })}
               onClose={close}
+              onCreate={createConversation}
             />
           )}
-          {view.kind === "chat" && (
+          {view.kind === "chat" && currentConv && (
             <ChatView
-              conv={view.conv}
+              conv={currentConv}
+              messages={messagesByConv[currentConv.id] ?? []}
               onBack={() => setView({ kind: "list" })}
               onClose={close}
+              onSend={(t) => sendMessage(currentConv.id, t)}
             />
           )}
         </div>
@@ -169,10 +256,12 @@ export function ChatFab() {
 // ─────────────── List view ───────────────
 
 function ListView({
+  conversations,
   onClose,
   onNew,
   onOpen,
 }: {
+  conversations: Conversation[];
   onClose: () => void;
   onNew: () => void;
   onOpen: (conv: Conversation) => void;
@@ -200,7 +289,7 @@ function ListView({
       </div>
 
       <ul className="mt-3 flex-1 divide-y divide-line overflow-y-auto">
-        {CONVERSATIONS.map((c) => (
+        {conversations.map((c) => (
           <li key={c.id}>
             <button
               type="button"
@@ -237,9 +326,11 @@ function ListView({
 function NewView({
   onBack,
   onClose,
+  onCreate,
 }: {
   onBack: () => void;
   onClose: () => void;
+  onCreate: (name: string, memberIds: string[]) => void;
 }) {
   const [groupName, setGroupName] = useState("");
   const [q, setQ] = useState("");
@@ -260,6 +351,11 @@ function NewView({
       else next.add(id);
       return next;
     });
+  }
+
+  function confirm() {
+    if (selected.size === 0) return;
+    onCreate(groupName, Array.from(selected));
   }
 
   return (
@@ -332,12 +428,11 @@ function NewView({
         </div>
       </div>
 
-      {/* 하단 확인 (선택된 게 있으면 활성) */}
       <div className="border-t border-line px-5 py-3">
         <button
           type="button"
           disabled={selected.size === 0}
-          onClick={onBack}
+          onClick={confirm}
           className="w-full rounded-md border border-primary bg-primary/25 px-4 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35 disabled:opacity-40"
         >
           {selected.size > 0 ? `${selected.size}명 대화 시작` : "멤버를 선택하세요"}
@@ -351,16 +446,35 @@ function NewView({
 
 function ChatView({
   conv,
+  messages,
   onBack,
   onClose,
+  onSend,
 }: {
   conv: Conversation;
+  messages: Message[];
   onBack: () => void;
   onClose: () => void;
+  onSend: (text: string) => void;
 }) {
   const [draft, setDraft] = useState("");
   const subtitle =
     conv.type === "direct" ? "1:1 대화" : `그룹 · ${conv.memberCount ?? 0}명`;
+  const canSend = draft.trim().length > 0;
+
+  const listRef = useRef<HTMLUListElement>(null);
+  // 메시지 늘어나면 하단으로 스크롤
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [messages.length]);
+
+  function submit() {
+    if (!canSend) return;
+    onSend(draft.trim());
+    setDraft("");
+  }
 
   return (
     <>
@@ -380,26 +494,52 @@ function ChatView({
         </RoundIconButton>
       </div>
 
-      <ul className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-        {MOCK_MESSAGES.map((m) => (
-          <MessageRow key={m.id} conv={conv} msg={m} />
-        ))}
-      </ul>
+      {messages.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-card-hover">
+            <ChatBubbleOvalLeftIcon className="size-6 text-muted" />
+          </div>
+          <p className="text-sm text-muted">첫 메시지를 보내볼까요?</p>
+        </div>
+      ) : (
+        <ul
+          ref={listRef}
+          className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
+        >
+          {messages.map((m) => (
+            <MessageRow key={m.id} conv={conv} msg={m} />
+          ))}
+        </ul>
+      )}
 
       <div className="border-t border-line px-4 py-3">
-        <div className="flex items-center gap-2 rounded-full border border-line bg-card-hover px-4 py-2">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="메시지를 입력하세요"
-            className="flex-1 bg-transparent text-sm text-fg placeholder-muted focus:outline-none"
-          />
+        <div className="flex items-center gap-2">
+          <label className="flex flex-1 items-center gap-2 rounded-full border border-line bg-card-hover px-4 py-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              placeholder="메시지를 입력하세요"
+              className="flex-1 bg-transparent text-sm text-fg placeholder-muted focus:outline-none"
+            />
+          </label>
+          {/* send 버튼 : draft 있을 때만 부드럽게 등장. 자리는 항상 차지해 레이아웃 안정. */}
           <button
             type="button"
-            aria-label="파일 첨부"
-            className="rounded-md p-1 text-muted hover:text-fg"
+            onClick={submit}
+            aria-label="보내기"
+            className={`flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 transition-all duration-200 ${
+              canSend
+                ? "scale-100 opacity-100"
+                : "pointer-events-none scale-75 opacity-0"
+            }`}
           >
-            <PaperClipIcon className="size-5" />
+            <ArrowUpIcon className="size-5" />
           </button>
         </div>
       </div>
@@ -420,9 +560,7 @@ function MessageRow({ conv, msg }: { conv: Conversation; msg: Message }) {
       <div className={`flex max-w-[70%] flex-col ${me ? "items-end" : "items-start"}`}>
         <div
           className={`rounded-2xl px-3 py-2 text-sm ${
-            me
-              ? "bg-primary/25 text-fg"
-              : "bg-card-hover text-fg"
+            me ? "bg-primary/25 text-fg" : "bg-card-hover text-fg"
           }`}
         >
           {msg.text}
@@ -515,8 +653,7 @@ function Avatar({
 }) {
   const sizeCls =
     size === "sm" ? "size-8 text-xs" : size === "lg" ? "size-11 text-base" : "size-10 text-sm";
-  const badgeCls =
-    size === "sm" ? "size-2.5" : "size-3";
+  const badgeCls = size === "sm" ? "size-2.5" : "size-3";
   const groupBadgeCls = size === "sm" ? "size-3.5" : "size-4";
   return (
     <span className="relative shrink-0">
