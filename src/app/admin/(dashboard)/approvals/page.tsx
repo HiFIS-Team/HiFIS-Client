@@ -9,6 +9,7 @@ import {
   ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
+import { NewApprovalDialog } from "./NewApprovalDialog";
 
 // 전자결재 페이지 — 좌 신청 목록 + 우 상세.
 // mock. 실제 결재 워크플로우/API/알림은 다음 스텝.
@@ -165,13 +166,36 @@ function formatWon(n: number): string {
 
 // ─────────────── page ───────────────
 
-type ScopeTab = "mine" | "pending";
+// 내 신청 하위 필터 — 상태별.
+type StatusFilter = "approved" | "waiting" | "rejected";
+const FILTER_TO_STATUS: Record<StatusFilter, ApprovalStatus> = {
+  approved: "승인 완료",
+  waiting: "진행 중",
+  rejected: "반려",
+};
 
 export default function ApprovalsPage() {
-  const [scope, setScope] = useState<ScopeTab>("mine");
-  const [selectedId, setSelectedId] = useState<string>(APPROVALS[0].id);
+  const [filter, setFilter] = useState<StatusFilter>("waiting");
+  const [newOpen, setNewOpen] = useState(false);
 
-  const selected = APPROVALS.find((a) => a.id === selectedId) ?? APPROVALS[0];
+  const filtered = APPROVALS.filter(
+    (a) => a.status === FILTER_TO_STATUS[filter],
+  );
+  const counts: Record<StatusFilter, number> = {
+    approved: APPROVALS.filter((a) => a.status === "승인 완료").length,
+    waiting: APPROVALS.filter((a) => a.status === "진행 중").length,
+    rejected: APPROVALS.filter((a) => a.status === "반려").length,
+  };
+
+  // 필터 바뀌면 선택 초기화 (첫 항목 or null)
+  const [selectedId, setSelectedId] = useState<string | null>(APPROVALS[0].id);
+  const inFilteredSet = filtered.some((a) => a.id === selectedId);
+  const effectiveId = inFilteredSet
+    ? selectedId
+    : filtered[0]?.id ?? null;
+  const selected = effectiveId
+    ? APPROVALS.find((a) => a.id === effectiveId) ?? null
+    : null;
 
   return (
     <div>
@@ -197,28 +221,37 @@ export default function ApprovalsPage() {
             <ArrowPathIcon className="size-4" />
           </button>
 
-          {/* 내 신청 / 결재 대기 세그먼트 */}
+          {/* 내 신청 상태별 세그먼트 (승인 / 대기 / 반려) */}
           <div className="inline-flex rounded-full border border-line p-0.5">
             <ScopeButton
-              active={scope === "mine"}
-              onClick={() => setScope("mine")}
-              count={1}
-              countTone="text-fg bg-card"
+              active={filter === "approved"}
+              onClick={() => setFilter("approved")}
+              count={counts.approved}
+              countTone="bg-emerald-500/20 text-emerald-400"
             >
-              내 신청
+              승인
             </ScopeButton>
             <ScopeButton
-              active={scope === "pending"}
-              onClick={() => setScope("pending")}
-              count={2}
-              countTone="text-white bg-red-500"
+              active={filter === "waiting"}
+              onClick={() => setFilter("waiting")}
+              count={counts.waiting}
+              countTone="bg-yellow-400/20 text-yellow-400"
             >
-              결재 대기
+              대기
+            </ScopeButton>
+            <ScopeButton
+              active={filter === "rejected"}
+              onClick={() => setFilter("rejected")}
+              count={counts.rejected}
+              countTone="bg-red-500/20 text-red-400"
+            >
+              반려
             </ScopeButton>
           </div>
 
           <button
             type="button"
+            onClick={() => setNewOpen(true)}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
             <PlusIcon className="size-4" />새 결재
@@ -230,15 +263,25 @@ export default function ApprovalsPage() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div>
           <RequestListCard
-            approvals={APPROVALS}
-            selectedId={selectedId}
+            approvals={filtered}
+            selectedId={effectiveId}
             onSelect={setSelectedId}
           />
         </div>
         <div className="lg:col-span-2">
-          <DetailPanel approval={selected} />
+          {selected ? (
+            <DetailPanel approval={selected} />
+          ) : (
+            <div className="flex h-full min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-line bg-card p-8 text-center">
+              <p className="text-sm text-muted">
+                해당 상태의 결재가 없어요.
+              </p>
+            </div>
+          )}
         </div>
       </div>
+
+      <NewApprovalDialog open={newOpen} onClose={() => setNewOpen(false)} />
     </div>
   );
 }
@@ -284,7 +327,7 @@ function RequestListCard({
   onSelect,
 }: {
   approvals: Approval[];
-  selectedId: string;
+  selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
   return (
@@ -295,6 +338,11 @@ function RequestListCard({
           {approvals.length}건
         </span>
       </div>
+      {approvals.length === 0 ? (
+        <p className="border-t border-line px-5 py-10 text-center text-sm text-muted">
+          해당 상태의 결재가 없어요.
+        </p>
+      ) : (
       <ul className="divide-y divide-line">
         {approvals.map((a) => {
           const kind = KIND_META[a.kind];
@@ -333,6 +381,7 @@ function RequestListCard({
           );
         })}
       </ul>
+      )}
     </div>
   );
 }
