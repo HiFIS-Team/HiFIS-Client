@@ -2,7 +2,7 @@
 
 import { PageTitle } from "./PageTitle";
 import Link from "next/link";
-import { useEffect, useState, type ComponentType, type SVGProps } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRightIcon,
@@ -17,6 +17,12 @@ import {
   TrophyIcon,
 } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
+import { listEvents, type EventOut } from "@/lib/api/v2/events";
+import {
+  computeDday,
+  listProjects,
+  type ProjectOut,
+} from "@/lib/api/v2/projects";
 
 
 export default function AdminDashboardPage() {
@@ -227,78 +233,165 @@ function TeaseRow() {
   );
 }
 
-// 오늘 일정 — 시간 뱃지 + 라벨.
-interface ScheduleItem {
-  label: string;
-  time: string;
-  accent: string;
-}
-const SCHEDULES: ScheduleItem[] = [
-  { label: "팀 주간회의", time: "10:00", accent: "bg-primary" },
-  { label: "본사 방문", time: "14:00", accent: "bg-yellow-400" },
-  { label: "신입 오리엔테이션", time: "16:00", accent: "bg-sky-400" },
-];
-
+// 오늘 일정 — GET /events?from=오늘00:00&to=오늘23:59.
+// 시간 순 정렬은 서버가 제공.
 function ScheduleCard() {
+  // 오늘 [00:00, 다음날 00:00) — mount 시 1회 고정.
+  const range = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+    return {
+      from: start.toISOString(),
+      to: end.toISOString(),
+    };
+  }, []);
+
+  const eventsQuery = useQuery({
+    queryKey: ["v2", "events", "today", range] as const,
+    queryFn: () => listEvents(range),
+  });
+  const events = eventsQuery.data ?? [];
+  const display = events.slice(0, 3);
+
   return (
     <div className="rounded-lg border border-line bg-card px-6 py-5">
-      <ListCardHeader title="오늘 일정" count={SCHEDULES.length} href="/admin/schedule" />
-      <ul className="mt-4 space-y-3">
-        {SCHEDULES.map((s, i) => (
-          <li
-            key={i}
-            className="flex items-center gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0"
-          >
-            <span className={`h-8 w-1 rounded-full ${s.accent}`} />
-            <span className="flex-1 truncate font-semibold text-fg">
-              {s.label}
-            </span>
-            <span className="rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary">
-              {s.time}
-            </span>
-          </li>
-        ))}
-        <TeaseRow />
-        <TeaseRow />
-      </ul>
+      <ListCardHeader
+        title="오늘 일정"
+        count={events.length}
+        href="/admin/schedule"
+      />
+      {eventsQuery.isLoading ? (
+        <ul className="mt-4 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="flex items-center gap-3">
+              <span className="h-8 w-1 rounded-full bg-white/10" />
+              <span className="h-3 flex-1 rounded bg-white/10" />
+              <span className="h-4 w-12 rounded-full bg-white/10" />
+            </li>
+          ))}
+        </ul>
+      ) : events.length === 0 ? (
+        <p className="mt-4 py-6 text-center text-sm text-muted">
+          오늘 예정된 일정이 없어요.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {display.map((e) => (
+            <li
+              key={e.id}
+              className="flex items-center gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0"
+            >
+              <span
+                className="h-8 w-1 rounded-full"
+                style={{ backgroundColor: colorHint(e.color) }}
+              />
+              <span className="flex-1 truncate font-semibold text-fg">
+                {e.title}
+              </span>
+              <span className="rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary">
+                {formatHM(e.startAt)}
+              </span>
+            </li>
+          ))}
+          {events.length < 3 && (
+            <>
+              <TeaseRow />
+              <TeaseRow />
+            </>
+          )}
+        </ul>
+      )}
     </div>
   );
 }
 
-// 프로젝트 — 라벨 + D-day 뱃지 (임박은 노랑, 여유는 primary).
-interface ProjectItem {
-  label: string;
-  dday: number;
-  accent: string;
+// 백엔드가 저장하는 color 는 자유 문자열 (hex/이름). hex 는 그대로, 아니면 primary fallback.
+function colorHint(color: string): string {
+  if (/^#[0-9a-fA-F]{3,8}$/.test(color)) return color;
+  return "var(--color-primary)";
 }
-const PROJECTS: ProjectItem[] = [
-  { label: "환경 정비 리브랜딩", dday: 12, accent: "bg-primary" },
-  { label: "PT룸 장비 교체", dday: 20, accent: "bg-primary" },
-  { label: "여름 회원 이벤트", dday: 45, accent: "bg-yellow-400" },
-];
 
+function formatHM(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "--:--";
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+// 프로젝트 — GET /projects. 미완료(진행중·대기·누락) 중 마감 임박 순으로 3개.
 function ProjectsCard() {
+  const [today] = useState(() => new Date());
+  const projectsQuery = useQuery({
+    queryKey: ["v2", "projects"] as const,
+    queryFn: () => listProjects(),
+  });
+  const projects = projectsQuery.data ?? [];
+
+  const upcoming = useMemo(() => {
+    const active = projects.filter((p) => p.status !== "DONE");
+    return [...active].sort(
+      (a, b) => computeDday(a.due, today) - computeDday(b.due, today),
+    );
+  }, [projects, today]);
+  const display = upcoming.slice(0, 3);
+
   return (
     <div className="rounded-lg border border-line bg-card px-6 py-5">
-      <ListCardHeader title="프로젝트" count={PROJECTS.length} href="/admin/projects" />
-      <ul className="mt-4 space-y-3">
-        {PROJECTS.map((p, i) => (
-          <li
-            key={i}
-            className="flex items-center gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0"
-          >
-            <span className={`h-8 w-1 rounded-full ${p.accent}`} />
-            <span className="flex-1 truncate font-semibold text-fg">
-              {p.label}
-            </span>
-            <DdayBadge dday={p.dday} />
-          </li>
-        ))}
-        <TeaseRow />
-        <TeaseRow />
-      </ul>
+      <ListCardHeader
+        title="프로젝트"
+        count={upcoming.length}
+        href="/admin/projects"
+      />
+      {projectsQuery.isLoading ? (
+        <ul className="mt-4 space-y-3">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="flex items-center gap-3">
+              <span className="h-8 w-1 rounded-full bg-white/10" />
+              <span className="h-3 flex-1 rounded bg-white/10" />
+              <span className="h-4 w-10 rounded-full bg-white/10" />
+            </li>
+          ))}
+        </ul>
+      ) : upcoming.length === 0 ? (
+        <p className="mt-4 py-6 text-center text-sm text-muted">
+          진행 중인 프로젝트가 없어요.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {display.map((p) => (
+            <li
+              key={p.id}
+              className="flex items-center gap-3 border-b border-line pb-3 last:border-b-0 last:pb-0"
+            >
+              <span className={`h-8 w-1 rounded-full ${projectAccent(p)}`} />
+              <span className="flex-1 truncate font-semibold text-fg">
+                {p.title}
+              </span>
+              <DdayBadge dday={computeDday(p.due, today)} />
+            </li>
+          ))}
+          {upcoming.length < 3 && (
+            <>
+              <TeaseRow />
+              <TeaseRow />
+            </>
+          )}
+        </ul>
+      )}
     </div>
   );
+}
+
+function projectAccent(p: ProjectOut): string {
+  if (p.status === "MISSED") return "bg-red-400";
+  if (p.status === "WAITING") return "bg-neutral-500";
+  return "bg-primary";
 }
 
 function DdayBadge({ dday }: { dday: number }) {
