@@ -2,8 +2,9 @@
 
 import { PageTitle } from "./PageTitle";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ComponentType, type SVGProps } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type SVGProps } from "react";
 import { useQuery } from "@tanstack/react-query";
+import JsBarcode from "jsbarcode";
 import {
   ArrowRightIcon,
   BanknotesIcon,
@@ -38,6 +39,11 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <PageTitle title="대시보드" />
+      {/* 모바일 전용 — 인사말 위 출입/근태 바코드. 태블릿 스캐너 인식률을
+          위해 흰 배경 카드. PC 는 스캐너 없어 숨김. */}
+      <div className="mb-2 lg:hidden">
+        <AttendanceBarcodeCard />
+      </div>
       {/* 홈 인사말 — 카드 안 두 줄 (오늘 날짜 kicker + 한 줄 인사).
           이름에만 그라데이션 — 단색 보라 위에 한 군데 포인트. */}
       <div className="rounded-lg border border-line bg-card px-6 py-5">
@@ -65,6 +71,62 @@ export default function AdminDashboardPage() {
         <ProjectsCard />
       </div>
 
+    </div>
+  );
+}
+
+// 출입/근태 바코드 — 모바일 홈 최상단.
+// 태블릿 리더가 사번(empNo)을 스캔하면 /attendance/scan 이 그 사번으로 근태 기록.
+// Code128 (일반 헬스장/사무실 리더 표준). 흰 배경 + 검은 바 (인식률).
+// empNo 없으면 안내 카드로 대체.
+function AttendanceBarcodeCard() {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const meV2Query = useQuery({
+    queryKey: ["v2", "me"] as const,
+    queryFn: getMeV2,
+  });
+  const empNo = meV2Query.data?.empNo?.trim() || null;
+
+  useEffect(() => {
+    if (!svgRef.current || !empNo) return;
+    try {
+      JsBarcode(svgRef.current, empNo, {
+        format: "CODE128",
+        displayValue: false,
+        margin: 0,
+        height: 36,
+        width: 1.4,
+        background: "#ffffff",
+        lineColor: "#000000",
+      });
+    } catch {
+      // 값이 code128 로 인코딩 불가 (사실상 안 일어남) — 조용히 skip.
+    }
+  }, [empNo]);
+
+  if (meV2Query.isLoading) {
+    return (
+      <div className="flex h-16 items-center justify-center rounded-lg bg-white/5 text-xs text-muted">
+        바코드 준비 중…
+      </div>
+    );
+  }
+  if (!empNo) {
+    return (
+      <div className="rounded-lg border border-dashed border-line bg-card px-4 py-3 text-center text-xs text-muted">
+        사번이 없어 바코드를 만들 수 없어요.
+      </div>
+    );
+  }
+  // 인사말 카드와 같은 폭 (부모 폭 채움). 카드 안엔 바코드 svg 만.
+  // preserveAspectRatio="none" 으로 카드 폭에 맞춰 가로만 늘림.
+  return (
+    <div className="w-full rounded-lg bg-white px-6 py-4 shadow-lg">
+      <svg
+        ref={svgRef}
+        preserveAspectRatio="none"
+        className="block h-10 w-full"
+      />
     </div>
   );
 }
@@ -211,11 +273,13 @@ interface ShortcutItem {
   tone: string;
   badge?: number;
 }
+// 라벨은 2~4자로 통일 — 모바일 4열 셀 폭(~50px) 안에 wrap 없이 들어와야 함.
+// 페이지 자체 이름이 "근태 · 월차" 여도 그리드 셀에서는 "근태" 로 축약.
 const SHORTCUTS: ShortcutItem[] = [
   { label: "업무", href: "/admin/tasks", icon: ClipboardDocumentCheckIcon, tone: "text-primary", badge: 2 },
   { label: "프로젝트", href: "/admin/projects", icon: FolderIcon, tone: "text-yellow-400", badge: 2 },
   { label: "회의록", href: "/admin/meetings", icon: DocumentTextIcon, tone: "text-sky-400" },
-  { label: "근태 · 월차", href: "/admin/attendance", icon: ClockIcon, tone: "text-pink-400" },
+  { label: "근태", href: "/admin/attendance", icon: ClockIcon, tone: "text-pink-400" },
   { label: "랭킹", href: "/admin/ranking", icon: TrophyIcon, tone: "text-amber-400" },
   { label: "일정", href: "/admin/schedule", icon: CalendarIcon, tone: "text-violet-400" },
   { label: "급여", href: "/admin/payroll", icon: BanknotesIcon, tone: "text-emerald-400" },
@@ -237,11 +301,14 @@ function AppShortcutCard() {
 function ShortcutTile({ label, href, icon: Icon, tone, badge }: ShortcutItem) {
   // 클릭·hover 영역이 grid 셀 전체가 아니라 아이콘+라벨 크기까지만 되도록,
   // 링크 자체는 inline-flex 로 폭을 컨텐츠에 맞추고 셀 안에서 중앙 정렬.
+  // 모바일 좁은 셀에서 "프로젝트" 같은 4자 라벨이 두 줄로 깨지지 않게
+  // whitespace-nowrap. 여전히 부모 셀 폭을 넘으면 옆 셀을 살짝 침범하지만
+  // 4자 이하로만 유지하면 안전 (아이폰 SE 375px 기준).
   return (
     <div className="flex justify-center">
       <Link
         href={href}
-        className="inline-flex flex-col items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors hover:bg-card-hover"
+        className="inline-flex flex-col items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors hover:bg-card-hover"
       >
         <span className="relative inline-flex">
           <Icon className={`size-5 ${tone}`} />
@@ -251,7 +318,7 @@ function ShortcutTile({ label, href, icon: Icon, tone, badge }: ShortcutItem) {
             </span>
           ) : null}
         </span>
-        <span className="text-sm text-muted">{label}</span>
+        <span className="whitespace-nowrap text-sm text-muted">{label}</span>
       </Link>
     </div>
   );
