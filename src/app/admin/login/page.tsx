@@ -61,21 +61,17 @@ export default function AdminLoginPage() {
       data-theme="dark"
       className="fixed inset-0 flex flex-col bg-surface"
     >
-      {/* 상단 좌측 브랜드 */}
-      <div className="flex items-center gap-2.5 px-6 py-5">
+      {/* 상단 좌측 브랜드 로고 + 서브 라벨 */}
+      <div className="px-6 py-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/icons/logo.png"
-          alt=""
-          aria-hidden="true"
-          className="size-10 shrink-0 rounded-lg"
+          src="/icons/hifis-logo.png"
+          alt="HiFIS"
+          className="h-5 w-auto"
         />
-        <div className="leading-tight">
-          <p className="text-base font-black tracking-tight text-fg">HiNest</p>
-          <p className="text-[10px] font-semibold tracking-widest text-muted">
-            WORKPLACE PLATFORM
-          </p>
-        </div>
+        <p className="mt-1.5 text-xs text-muted">
+          피트니스스타 직원 관리 플랫폼
+        </p>
       </div>
 
       {/* 폼 — 세로 중앙 */}
