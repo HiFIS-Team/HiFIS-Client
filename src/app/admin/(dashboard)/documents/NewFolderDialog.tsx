@@ -1,39 +1,59 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useMutation } from "@tanstack/react-query";
+import { ExclamationTriangleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { createFolder } from "@/lib/api/v2/documents";
 import { SCOPE_OPTIONS, type Scope, ScopePicker } from "./scope";
 
-// 새 폴더 생성 다이얼로그 — UI 만. 저장 로직은 API 붙는 시점에.
-// 문서함 mockup 톤 — DialogGradientHeader 대신 슬림 헤더 (제목 + X + 얇은 border).
+// 새 폴더 생성 — POST /folders.
+// space 는 상위 페이지의 현재 workspace pill 값을 기본값으로 받음 (전체면 "" — 저장 안 함).
 
 interface NewFolderDialogProps {
   open: boolean;
   onClose: () => void;
+  defaultSpace: string;
+  onCreated: () => void;
 }
 
-export function NewFolderDialog({ open, onClose }: NewFolderDialogProps) {
+export function NewFolderDialog({
+  open,
+  onClose,
+  defaultSpace,
+  onCreated,
+}: NewFolderDialogProps) {
   useEscapeKey(onClose, open);
 
   const [name, setName] = useState("");
   const [scope, setScope] = useState<Scope>("all");
 
-  // 열릴 때마다 초기화 — 이전 입력이 남지 않게.
+  const mutation = useMutation({
+    mutationFn: createFolder,
+    onSuccess: () => onCreated(),
+  });
+
   useEffect(() => {
-    if (open) {
-      setName("");
-      setScope("all");
-    }
+    if (!open) return;
+    setName("");
+    setScope("all");
+    mutation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!open) return null;
 
-  const canSubmit = name.trim().length > 0;
+  const canSubmit = name.trim().length > 0 && !mutation.isPending;
 
   function submit() {
-    // TODO: v2 폴더 생성 API 연동.
-    onClose();
+    if (!canSubmit) return;
+    mutation.mutate({
+      name: name.trim(),
+      scope,
+      // space 는 필수 문자열 — workspace 미선택("전체") 이면 빈 문자열이라도 보내야 백엔드가 받음.
+      space: defaultSpace,
+    });
   }
 
   return (
@@ -47,7 +67,6 @@ export function NewFolderDialog({ open, onClose }: NewFolderDialogProps) {
         className="animate-dialog-in flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-lg border border-line bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 슬림 헤더 — 제목 + X. */}
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="text-base font-bold text-fg">새 폴더</h2>
           <button
@@ -61,9 +80,10 @@ export function NewFolderDialog({ open, onClose }: NewFolderDialogProps) {
         </div>
 
         <div className="space-y-5 px-5 py-5">
-          {/* 폴더 이름 */}
           <div>
-            <label className="block text-sm font-semibold text-fg">폴더 이름</label>
+            <label className="block text-sm font-semibold text-fg">
+              폴더 이름
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -74,21 +94,40 @@ export function NewFolderDialog({ open, onClose }: NewFolderDialogProps) {
             />
           </div>
 
-          {/* 공개 범위 */}
           <div>
-            <label className="block text-sm font-semibold text-fg">공개 범위</label>
+            <label className="block text-sm font-semibold text-fg">
+              공개 범위
+            </label>
             <div className="mt-2">
-              <ScopePicker value={scope} onChange={setScope} options={SCOPE_OPTIONS} />
+              <ScopePicker
+                value={scope}
+                onChange={setScope}
+                options={SCOPE_OPTIONS}
+              />
             </div>
           </div>
+
+          {defaultSpace && (
+            <p className="text-xs text-muted">
+              워크스페이스:{" "}
+              <span className="font-semibold text-fg">{defaultSpace}</span>
+            </p>
+          )}
+
+          {mutation.isError && (
+            <div className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              <ExclamationTriangleIcon className="size-4 shrink-0" />
+              <span>{getV2ErrorMessage(mutation.error)}</span>
+            </div>
+          )}
         </div>
 
-        {/* 푸터 : 우측 취소 / 생성 */}
         <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-card-hover"
+            disabled={mutation.isPending}
+            className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-fg hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             취소
           </button>
@@ -98,7 +137,7 @@ export function NewFolderDialog({ open, onClose }: NewFolderDialogProps) {
             onClick={submit}
             className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
-            생성
+            {mutation.isPending ? "생성 중…" : "생성"}
           </button>
         </div>
       </div>

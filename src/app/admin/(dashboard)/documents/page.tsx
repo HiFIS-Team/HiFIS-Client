@@ -1,148 +1,170 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowDownTrayIcon,
   ArrowUpTrayIcon,
-  ClockIcon,
+  ChevronLeftIcon,
   DocumentIcon,
+  ExclamationTriangleIcon,
   FolderIcon,
   FolderPlusIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { getMe } from "@/lib/api/auth";
+import { getV2ErrorMessage } from "@/lib/api/v2/client";
+import { avatarTone, listEmployees } from "@/lib/api/v2/employees";
+import {
+  deleteDocument,
+  deleteFolder,
+  downloadDocument,
+  listDocuments,
+  listFolders,
+  type DocumentOut,
+  type FolderOut,
+} from "@/lib/api/v2/documents";
 import { PageTitle } from "../PageTitle";
 import { NewFolderDialog } from "./NewFolderDialog";
 import { UploadDocumentDialog } from "./UploadDocumentDialog";
 
-// 문서함 페이지 — 워크스페이스 필터 · 팀 탭 · 폴더 그리드 · 문서 테이블.
-// mock. 실제 업로드/폴더 관리 API 는 다음 스텝.
+// 문서함 — GET /folders + GET /documents.
+// workspace pill = space, 팀 탭 = scope. 둘 다 자유 문자열 (백엔드는 그대로 저장).
+// 폴더 클릭 시 그 폴더의 문서만 표시 (breadcrumb 로 루트 복귀).
 
-// ─────────────── mock ───────────────
+// ─────────────── 프리셋 (프론트 정의) ───────────────
 
-interface Workspace {
-  key: string;
+interface WorkspacePreset {
+  key: string; // "all" 또는 실제 space 값
   label: string;
-  dotTone?: string; // 컬러 dot, 전체는 없음
+  dotTone?: string;
+  space?: string; // 백엔드로 보낼 space 값 (undefined = 필터 안 함)
 }
-const WORKSPACES: Workspace[] = [
+const WORKSPACES: WorkspacePreset[] = [
   { key: "all", label: "전체 문서함" },
-  { key: "renewal", label: "화순점 리뉴얼 TF", dotTone: "bg-primary" },
-  { key: "summer", label: "여름 프로모션 캠페인", dotTone: "bg-pink-400" },
-  { key: "trainer", label: "트레이너 교육 · 매뉴얼", dotTone: "bg-amber-400" },
+  {
+    key: "renewal",
+    label: "화순점 리뉴얼 TF",
+    dotTone: "bg-primary",
+    space: "화순점 리뉴얼 TF",
+  },
+  {
+    key: "summer",
+    label: "여름 프로모션 캠페인",
+    dotTone: "bg-pink-400",
+    space: "여름 프로모션 캠페인",
+  },
+  {
+    key: "trainer",
+    label: "트레이너 교육 · 매뉴얼",
+    dotTone: "bg-amber-400",
+    space: "트레이너 교육 · 매뉴얼",
+  },
 ];
 
-type TeamTab = "all" | "product" | "personal" | "custom";
-const TEAM_TABS: { key: TeamTab; label: string }[] = [
+interface ScopeTab {
+  key: string; // "all" 또는 실제 scope 값
+  label: string;
+  scope?: string;
+}
+const SCOPE_TABS: ScopeTab[] = [
   { key: "all", label: "전체" },
-  { key: "product", label: "프로덕트팀" },
-  { key: "personal", label: "개인" },
-  { key: "custom", label: "사용자지정" },
-];
-
-interface Folder {
-  id: string;
-  name: string;
-  updated: string;
-}
-const FOLDERS: Folder[] = [
-  { id: "f1", name: "회사 운영", updated: "2026. 1. 29." },
-  { id: "f2", name: "개발 자료", updated: "2026. 3. 30." },
-  { id: "f3", name: "디자인 리소스", updated: "2026. 4. 29." },
-  { id: "f4", name: "내 메모", updated: "2026. 6. 28." },
-];
-
-interface Document {
-  id: string;
-  title: string;
-  subtitle: string;
-  badge?: { label: string; tone: string }; // 팀 공개 · 개인 등
-  tags: string[];
-  author: { name: string; tone: string };
-  updated: string;
-}
-const DOCUMENTS: Document[] = [
-  {
-    id: "d1",
-    title: "복리후생 가이드 v3 — 2026 개정",
-    subtitle:
-      "연차 / 식대 / 교육비 / 자기계발 / 헬스 케어 / 경조사 정책 종합. 2026년 1월 개정안 반영본. 신규 입사자도 첫 주에 한 번 정독 권장.",
-    tags: ["HR", "복리후생", "2026개정"],
-    author: { name: "김데모", tone: "bg-primary" },
-    updated: "2026. 7. 25.",
-  },
-  {
-    id: "d2",
-    title: "신규 입사자 온보딩 체크리스트 (1 ~ 2주차)",
-    subtitle:
-      "Day 1 환경 셋업 / Day 2~5 도메인 학습 / 2주차 첫 PR 머지 까지의 단계별 체크리스트. 메이트 매칭 가이드 포함.",
-    tags: ["온보딩", "HR", "체크리스트"],
-    author: { name: "김데모", tone: "bg-primary" },
-    updated: "2026. 7. 18.",
-  },
-  {
-    id: "d3",
-    title: "API 컨벤션 — REST · 에러 · 페이지네이션",
-    subtitle:
-      "리소스 네이밍 / 동사 사용 / 에러 코드 (4xx / 5xx) / 페이지네이션 (cursor vs offset) / 버전 관리 정책. 전 백엔드 코드 리뷰 시 1차 기준.",
-    badge: { label: "팀 공개 · 개발팀", tone: "bg-primary/15 text-primary" },
-    tags: ["개발", "API", "컨벤션"],
-    author: { name: "박그레이스", tone: "bg-violet-500" },
-    updated: "2026. 7. 23.",
-  },
-  {
-    id: "d4",
-    title: "디자인 시스템 v2 — Figma 컬러 / 타이포 토큰",
-    subtitle:
-      "Light / Dark / Brand 3 모드 컬러 토큰. 본문 / 라벨 / 코드 블록 타이포 위계. CSS 변수 매핑표 동봉.",
-    badge: { label: "팀 공개 · 디자인팀", tone: "bg-emerald-500/15 text-emerald-400" },
-    tags: ["디자인", "토큰", "Figma"],
-    author: { name: "이앨리스", tone: "bg-emerald-500" },
-    updated: "2026. 7. 27.",
-  },
-  {
-    id: "d5",
-    title: "주간 업무 보고 템플릿 — 한 일 / 막힌 것 / 다음",
-    subtitle:
-      "매주 금요일 17시 까지 작성 / 공유. 한 일 (체크리스트), 막힌 것 (도움 요청), 다음 주 계획 3블록 구성.",
-    tags: ["템플릿", "주간보고"],
-    author: { name: "김데모", tone: "bg-primary" },
-    updated: "2026. 7. 21.",
-  },
-  {
-    id: "d6",
-    title: "내 회고 노트 (주간 모음)",
-    subtitle:
-      "매주 금요일 작성하는 개인 회고. KPT 형식 (Keep / Problem / Try). 분기 말 OKR 회고 원본 데이터로 활용.",
-    badge: { label: "개인", tone: "bg-pink-500/15 text-pink-400" },
-    tags: ["회고", "KPT", "개인"],
-    author: { name: "김데모", tone: "bg-primary" },
-    updated: "2026. 7. 28.",
-  },
+  { key: "team", label: "팀 공개", scope: "team" },
+  { key: "personal", label: "개인", scope: "personal" },
+  { key: "custom", label: "사용자지정", scope: "custom" },
 ];
 
 // ─────────────── page ───────────────
 
 export default function DocumentsPage() {
-  const [workspace, setWorkspace] = useState<string>("all");
-  const [teamTab, setTeamTab] = useState<TeamTab>("all");
+  const [workspaceKey, setWorkspaceKey] = useState("all");
+  const [scopeKey, setScopeKey] = useState("all");
   const [query, setQuery] = useState("");
+  const [folderId, setFolderId] = useState<string | null>(null);
 
-  // 다이얼로그 open 상태 — 새 폴더 · 문서 업로드(파일 or 폴더 모드).
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadMode, setUploadMode] = useState<"file" | "folder">("file");
 
+  const queryClient = useQueryClient();
+
+  const workspace = WORKSPACES.find((w) => w.key === workspaceKey);
+  const scopeTab = SCOPE_TABS.find((s) => s.key === scopeKey);
+
+  // 폴더 · 문서 리스트 : workspace/scope 를 서버 파라미터로.
+  const foldersQuery = useQuery({
+    queryKey: [
+      "v2",
+      "folders",
+      { space: workspace?.space, scope: scopeTab?.scope },
+    ] as const,
+    queryFn: () =>
+      listFolders({
+        space: workspace?.space,
+        scope: scopeTab?.scope,
+      }),
+  });
+  const folders = foldersQuery.data ?? [];
+
+  const documentsQuery = useQuery({
+    queryKey: [
+      "v2",
+      "documents",
+      {
+        space: workspace?.space,
+        scope: scopeTab?.scope,
+        folderId,
+      },
+    ] as const,
+    queryFn: () =>
+      listDocuments({
+        space: workspace?.space,
+        scope: scopeTab?.scope,
+        folderId: folderId ?? undefined,
+      }),
+  });
+  const documents = documentsQuery.data ?? [];
+
+  const employeesQuery = useQuery({
+    queryKey: ["v2", "employees", "all"] as const,
+    queryFn: () => listEmployees({}),
+  });
+  const employeeLookup = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; avatarColor: string | undefined }
+    >();
+    for (const e of employeesQuery.data ?? []) {
+      map.set(e.id, { name: e.name, avatarColor: e.avatarColor });
+    }
+    return map;
+  }, [employeesQuery.data]);
+
+  const meQuery = useQuery({ queryKey: ["admin", "me"], queryFn: getMe });
+  const meId = meQuery.data?.id ?? null;
+  const isAdmin = meQuery.data?.role === "SUPER_ADMIN";
+
+  const currentFolder = folderId
+    ? folders.find((f) => f.id === folderId) ?? null
+    : null;
+
   const filteredDocs = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return DOCUMENTS;
-    return DOCUMENTS.filter(
+    if (!q) return documents;
+    return documents.filter(
       (d) =>
-        d.title.toLowerCase().includes(q) ||
-        d.subtitle.toLowerCase().includes(q) ||
+        d.name.toLowerCase().includes(q) ||
+        (d.desc ?? "").toLowerCase().includes(q) ||
         d.tags.some((t) => t.toLowerCase().includes(q)),
     );
-  }, [query]);
+  }, [documents, query]);
+
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ["v2", "folders"] });
+    queryClient.invalidateQueries({ queryKey: ["v2", "documents"] });
+  }
 
   return (
     <div>
@@ -193,12 +215,15 @@ export default function DocumentsPage() {
       {/* 워크스페이스 필터 pill */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {WORKSPACES.map((w) => {
-          const active = workspace === w.key;
+          const active = workspaceKey === w.key;
           return (
             <button
               key={w.key}
               type="button"
-              onClick={() => setWorkspace(w.key)}
+              onClick={() => {
+                setWorkspaceKey(w.key);
+                setFolderId(null);
+              }}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
                 active
                   ? "border-primary bg-primary/25 text-primary"
@@ -216,13 +241,16 @@ export default function DocumentsPage() {
 
       {/* 팀 탭 (underline) */}
       <div className="mt-5 flex items-center gap-1 border-b border-line">
-        {TEAM_TABS.map((t) => {
-          const active = teamTab === t.key;
+        {SCOPE_TABS.map((t) => {
+          const active = scopeKey === t.key;
           return (
             <button
               key={t.key}
               type="button"
-              onClick={() => setTeamTab(t.key)}
+              onClick={() => {
+                setScopeKey(t.key);
+                setFolderId(null);
+              }}
               className={`relative px-4 py-2.5 text-sm font-semibold transition-colors ${
                 active ? "text-primary" : "text-muted hover:text-fg"
               }`}
@@ -239,8 +267,28 @@ export default function DocumentsPage() {
       {/* 브레드크럼 + 검색 */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-fg">
-          <FolderIcon className="size-4 text-amber-400" />
-          <span className="font-semibold">루트</span>
+          {currentFolder ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setFolderId(null)}
+                className="inline-flex items-center gap-1 text-muted transition-colors hover:text-fg"
+              >
+                <ChevronLeftIcon className="size-4" />
+                루트
+              </button>
+              <span className="text-muted">/</span>
+              <span className="flex items-center gap-1.5 font-semibold">
+                <FolderIcon className="size-4 text-amber-400" />
+                {currentFolder.name}
+              </span>
+            </>
+          ) : (
+            <>
+              <FolderIcon className="size-4 text-amber-400" />
+              <span className="font-semibold">루트</span>
+            </>
+          )}
         </div>
         <div className="relative w-full max-w-sm">
           <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
@@ -253,29 +301,52 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      {/* 폴더 섹션 */}
-      <p className="mt-6 text-xs font-semibold text-muted">
-        폴더 <span className="tabular-nums">{FOLDERS.length}</span>
-      </p>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {FOLDERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            className="flex items-center gap-3 rounded-lg border border-line bg-card p-4 text-left transition-colors hover:bg-card-hover"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-500/15">
-              <FolderIcon className="size-6 text-amber-400" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-fg">{f.name}</p>
-              <p className="mt-0.5 text-xs text-muted tabular-nums">
-                {f.updated}
-              </p>
+      {/* 에러 배너 */}
+      {(foldersQuery.isError || documentsQuery.isError) && (
+        <div className="mt-4 flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <ExclamationTriangleIcon className="size-4 shrink-0" />
+          <span>
+            {getV2ErrorMessage(
+              foldersQuery.error ?? documentsQuery.error,
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* 폴더 섹션 — 루트일 때만 표시 (폴더 안에서는 하위 폴더 개념 미구현) */}
+      {!currentFolder && (
+        <>
+          <p className="mt-6 text-xs font-semibold text-muted">
+            폴더 <span className="tabular-nums">{folders.length}</span>
+          </p>
+          {foldersQuery.isLoading ? (
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-[68px] animate-pulse rounded-lg border border-line bg-card"
+                />
+              ))}
             </div>
-          </button>
-        ))}
-      </div>
+          ) : folders.length === 0 ? (
+            <p className="mt-3 rounded-lg border border-dashed border-line bg-card px-5 py-8 text-center text-sm text-muted">
+              아직 폴더가 없어요. 상단 &ldquo;새 폴더&rdquo; 로 만들어 보세요.
+            </p>
+          ) : (
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {folders.map((f) => (
+                <FolderTile
+                  key={f.id}
+                  folder={f}
+                  onOpen={() => setFolderId(f.id)}
+                  canDelete={isAdmin || f.createdById === meId}
+                  onChanged={refresh}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       {/* 문서 섹션 */}
       <p className="mt-8 text-xs font-semibold text-muted">
@@ -287,19 +358,36 @@ export default function DocumentsPage() {
           <span>제목</span>
           <span>태그</span>
           <span>파일</span>
-          <span>작성자</span>
-          <span>수정</span>
+          <span>업로더</span>
+          <span>크기</span>
           <span />
         </div>
 
-        {filteredDocs.length === 0 ? (
+        {documentsQuery.isLoading ? (
+          <ul className="divide-y divide-line">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="animate-pulse px-5 py-4">
+                <div className="h-4 w-1/2 rounded bg-card-hover" />
+                <div className="mt-2 h-3 w-1/3 rounded bg-card-hover" />
+              </li>
+            ))}
+          </ul>
+        ) : filteredDocs.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted">
-            검색 결과가 없어요.
+            {query.trim()
+              ? "검색 결과가 없어요."
+              : "이 위치에 업로드된 문서가 없어요."}
           </p>
         ) : (
           <ul className="divide-y divide-line">
             {filteredDocs.map((d) => (
-              <DocumentRow key={d.id} doc={d} />
+              <DocumentRow
+                key={d.id}
+                doc={d}
+                uploader={employeeLookup.get(d.uploaderId)}
+                canDelete={isAdmin || d.uploaderId === meId}
+                onChanged={refresh}
+              />
             ))}
           </ul>
         )}
@@ -308,92 +396,241 @@ export default function DocumentsPage() {
       <NewFolderDialog
         open={newFolderOpen}
         onClose={() => setNewFolderOpen(false)}
+        defaultSpace={workspace?.space ?? ""}
+        onCreated={() => {
+          refresh();
+          setNewFolderOpen(false);
+        }}
       />
       <UploadDocumentDialog
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         mode={uploadMode}
+        defaultSpace={workspace?.space ?? ""}
+        folderId={folderId}
+        onUploaded={() => {
+          refresh();
+          setUploadOpen(false);
+        }}
       />
+    </div>
+  );
+}
+
+// ─────────────── FolderTile ───────────────
+
+function FolderTile({
+  folder,
+  onOpen,
+  canDelete,
+  onChanged,
+}: {
+  folder: FolderOut;
+  onOpen: () => void;
+  canDelete: boolean;
+  onChanged: () => void;
+}) {
+  const mutation = useMutation({
+    mutationFn: () => deleteFolder(folder.id),
+    onSuccess: () => onChanged(),
+  });
+
+  function del(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (
+      !confirm(
+        `"${folder.name}" 폴더를 삭제할까요? 안에 든 문서도 함께 삭제됩니다.`,
+      )
+    )
+      return;
+    mutation.mutate();
+  }
+
+  return (
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex w-full items-center gap-3 rounded-lg border border-line bg-card p-4 text-left transition-colors hover:bg-card-hover"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-500/15">
+          <FolderIcon className="size-6 text-amber-400" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-fg">{folder.name}</p>
+          <p className="mt-0.5 text-xs text-muted">{folder.scope}</p>
+        </div>
+      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={del}
+          aria-label="폴더 삭제"
+          disabled={mutation.isPending}
+          className="absolute top-2 right-2 rounded-md p-1.5 text-muted opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40"
+        >
+          <TrashIcon className="size-4" />
+        </button>
+      )}
     </div>
   );
 }
 
 // ─────────────── DocumentRow ───────────────
 
-function DocumentRow({ doc }: { doc: Document }) {
+function DocumentRow({
+  doc,
+  uploader,
+  canDelete,
+  onChanged,
+}: {
+  doc: DocumentOut;
+  uploader: { name: string; avatarColor: string | undefined } | undefined;
+  canDelete: boolean;
+  onChanged: () => void;
+}) {
+  const [downloading, setDownloading] = useState(false);
+  const [rowError, setRowError] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteDocument(doc.id),
+    onSuccess: () => onChanged(),
+    onError: (e) => setRowError(getV2ErrorMessage(e)),
+  });
+
+  async function download() {
+    setRowError(null);
+    setDownloading(true);
+    try {
+      await downloadDocument(doc);
+    } catch (e) {
+      setRowError(e instanceof Error ? e.message : "다운로드 실패");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  function del() {
+    if (!confirm(`"${doc.name}" 문서를 삭제할까요?`)) return;
+    deleteMutation.mutate();
+  }
+
   return (
     <li className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-card-hover lg:grid-cols-[minmax(0,1fr)_220px_60px_140px_120px_80px] lg:gap-4">
       {/* 제목 */}
       <div className="flex min-w-0 items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-card-hover text-[10px] font-black tracking-tight text-muted">
-          FILE
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-card-hover text-[10px] font-black tracking-tight text-muted uppercase">
+          {doc.ext || "FILE"}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="truncate text-sm font-bold text-fg">
-              {doc.title}
+              {doc.name}
             </span>
-            {doc.badge && (
+            {doc.scope && (
               <span
-                className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${doc.badge.tone}`}
+                className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${scopeToneClass(doc.scope)}`}
               >
-                {doc.badge.label}
+                {scopeLabel(doc.scope)}
               </span>
             )}
           </div>
-          <p className="mt-1 line-clamp-1 text-xs text-muted">{doc.subtitle}</p>
+          {doc.desc && (
+            <p className="mt-1 line-clamp-1 text-xs text-muted">{doc.desc}</p>
+          )}
+          {rowError && (
+            <p className="mt-1 text-xs text-red-400">{rowError}</p>
+          )}
         </div>
       </div>
 
       {/* 태그 */}
       <div className="flex flex-wrap gap-1">
-        {doc.tags.map((t) => (
-          <span
-            key={t}
-            className="rounded-md bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary"
-          >
-            #{t}
-          </span>
-        ))}
+        {doc.tags.length === 0 ? (
+          <span className="text-xs text-muted">—</span>
+        ) : (
+          doc.tags.map((t) => (
+            <span
+              key={t}
+              className="rounded-md bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary"
+            >
+              #{t}
+            </span>
+          ))
+        )}
       </div>
 
-      {/* 파일 */}
+      {/* 파일 아이콘 */}
       <div className="hidden text-sm text-muted lg:flex lg:items-center lg:gap-1.5">
         <DocumentIcon className="size-4 text-muted/70" aria-hidden="true" />
-        <span className="text-muted">—</span>
+        <span className="text-muted">{doc.ext || "-"}</span>
       </div>
 
-      {/* 작성자 */}
+      {/* 업로더 */}
       <div className="flex items-center gap-2">
         <span
-          className={`flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white ${doc.author.tone}`}
+          className={`flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white ${avatarTone(uploader?.avatarColor)}`}
           aria-hidden
         >
-          {doc.author.name.charAt(0)}
+          {(uploader?.name ?? "?").charAt(0)}
         </span>
-        <span className="truncate text-sm text-fg">{doc.author.name}</span>
+        <span className="truncate text-sm text-fg">
+          {uploader?.name ?? "알 수 없음"}
+        </span>
       </div>
 
-      {/* 수정일 */}
-      <p className="text-sm text-muted tabular-nums">{doc.updated}</p>
+      {/* 크기 */}
+      <p className="text-sm text-muted tabular-nums">
+        {formatBytes(doc.sizeBytes)}
+      </p>
 
       {/* 액션 */}
       <div className="flex items-center justify-end gap-1">
         <button
           type="button"
-          aria-label="이력"
-          className="rounded-md p-1.5 text-muted transition-colors hover:bg-card hover:text-fg"
+          aria-label="다운로드"
+          onClick={download}
+          disabled={downloading}
+          className="rounded-md p-1.5 text-muted transition-colors hover:bg-card hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <ClockIcon className="size-4" />
+          <ArrowDownTrayIcon className="size-4" />
         </button>
-        <button
-          type="button"
-          aria-label="삭제"
-          className="rounded-md p-1.5 text-red-400 transition-colors hover:bg-red-500/10"
-        >
-          <TrashIcon className="size-4" />
-        </button>
+        {canDelete && (
+          <button
+            type="button"
+            aria-label="삭제"
+            onClick={del}
+            disabled={deleteMutation.isPending}
+            className="rounded-md p-1.5 text-red-400 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <TrashIcon className="size-4" />
+          </button>
+        )}
       </div>
     </li>
   );
+}
+
+// ─────────────── helpers ───────────────
+
+function scopeLabel(scope: string): string {
+  if (scope === "all") return "전체 공개";
+  if (scope === "team") return "팀 공개";
+  if (scope === "personal") return "개인";
+  if (scope === "custom") return "사용자지정";
+  return scope;
+}
+
+function scopeToneClass(scope: string): string {
+  if (scope === "team") return "bg-primary/15 text-primary";
+  if (scope === "personal") return "bg-pink-500/15 text-pink-400";
+  if (scope === "custom") return "bg-amber-500/15 text-amber-400";
+  return "bg-emerald-500/15 text-emerald-400";
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
