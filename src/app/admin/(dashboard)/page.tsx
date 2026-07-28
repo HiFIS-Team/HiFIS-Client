@@ -16,15 +16,8 @@ import {
   MegaphoneIcon,
   TrophyIcon,
 } from "@heroicons/react/24/outline";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { getMe } from "@/lib/api/auth";
-import { getV2ErrorMessage } from "@/lib/api/v2/client";
-import {
-  formatCheckTime,
-  listAttendance,
-  scanAttendance,
-} from "@/lib/api/v2/attendance";
+import { formatCheckTime, listAttendance } from "@/lib/api/v2/attendance";
 import { getMe as getMeV2 } from "@/lib/api/v2/auth";
 import { listEvents } from "@/lib/api/v2/events";
 import {
@@ -93,12 +86,12 @@ function GreetingDate() {
   return <p className="text-xs text-muted">{text}</p>;
 }
 
-// 오늘 근무 카드 — 실시간 시계 + 근무 시간 진행률 + 출퇴근 버튼.
+// 오늘 근무 카드 — 실시간 시계 + 근무 시간 진행률 + 출퇴근 시각 표시 (읽기 전용).
+// 출퇴근 스캔은 태블릿 바코드에서만 — PC 홈엔 스캔 버튼 없음.
 // shiftStart/End 는 v2 me 에서 로드. 미설정이면 진행률 계산 skip.
 // 오늘 attendance 는 listAttendance(month=이번달) 결과에서 오늘 date 로 필터.
 function AttendanceCard() {
   const [now, setNow] = useState<Date | null>(null);
-  const queryClient = useQueryClient();
   useEffect(() => {
     setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -130,13 +123,6 @@ function AttendanceCard() {
   });
   const today = attendanceQuery.data?.find((r) => r.date === todayKey) ?? null;
 
-  const scanMutation = useMutation({
-    mutationFn: () => scanAttendance({}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["v2", "attendance"] });
-    },
-  });
-
   const clock = now
     ? [
         String(now.getHours()).padStart(2, "0"),
@@ -166,8 +152,6 @@ function AttendanceCard() {
       : status === "퇴근"
         ? "bg-emerald-500/20 text-emerald-400"
         : "bg-white/10 text-muted";
-
-  const scanLabel = !today ? "출근" : !today.checkOut ? "퇴근" : "재퇴근";
 
   return (
     <div className="rounded-lg border border-line bg-card px-6 py-5">
@@ -209,22 +193,6 @@ function AttendanceCard() {
           </span>
         </div>
       </div>
-
-      {/* 출퇴근 버튼 */}
-      <button
-        type="button"
-        onClick={() => scanMutation.mutate()}
-        disabled={scanMutation.isPending || !meId}
-        className="mt-4 w-full rounded-md border border-emerald-400/60 bg-emerald-500/25 py-2 text-sm font-semibold text-emerald-300 shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {scanMutation.isPending ? "…" : scanLabel}
-      </button>
-      {scanMutation.isError && (
-        <p className="mt-2 flex items-start gap-1.5 text-xs text-red-300">
-          <ExclamationTriangleIcon className="mt-0.5 size-3.5 shrink-0" />
-          {getV2ErrorMessage(scanMutation.error)}
-        </p>
-      )}
     </div>
   );
 }

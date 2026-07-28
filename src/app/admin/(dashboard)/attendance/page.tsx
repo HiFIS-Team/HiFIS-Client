@@ -7,7 +7,6 @@ import {
   CalendarIcon,
   ChevronDownIcon,
   ClockIcon,
-  ExclamationTriangleIcon,
   PlusIcon,
   QueueListIcon,
 } from "@heroicons/react/24/outline";
@@ -21,7 +20,6 @@ import {
   listAttendance,
   listLeaves,
   parseDateParts,
-  scanAttendance,
   type AttendanceOut,
   type LeaveRequestOut,
   type LeaveStatus,
@@ -73,25 +71,6 @@ export default function AttendancePage() {
     enabled: !!meId,
   });
   const leaves = leavesQuery.data ?? [];
-
-  const scanMutation = useMutation({
-    mutationFn: () => scanAttendance({}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["v2", "attendance"] });
-    },
-  });
-
-  // 오늘 근태 (스캔 버튼 라벨 결정용).
-  const todayKey = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
-  const todayRecord = records.find((r) => r.date === todayKey);
-  const scanLabel = !todayRecord
-    ? "출근하기"
-    : !todayRecord.checkOut
-      ? "퇴근하기"
-      : "재퇴근";
 
   // 통계.
   const stats = useMemo(() => {
@@ -147,15 +126,6 @@ export default function AttendancePage() {
           <MonthSelect value={month} onChange={setMonth} />
           <button
             type="button"
-            onClick={() => scanMutation.mutate()}
-            disabled={scanMutation.isPending}
-            className="flex items-center gap-1 rounded-md border border-emerald-400/60 bg-emerald-500/25 px-3 py-2 text-sm font-semibold text-emerald-300 shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ClockIcon className="size-4" />
-            {scanMutation.isPending ? "…" : scanLabel}
-          </button>
-          <button
-            type="button"
             onClick={() => setLeaveOpen(true)}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
@@ -164,13 +134,6 @@ export default function AttendancePage() {
           </button>
         </div>
       </div>
-
-      {scanMutation.isError && (
-        <div className="mt-4 flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-          <ExclamationTriangleIcon className="size-4 shrink-0" />
-          <span>{getV2ErrorMessage(scanMutation.error)}</span>
-        </div>
-      )}
 
       {/* 통계 4 카드 */}
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
