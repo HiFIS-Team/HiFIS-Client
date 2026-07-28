@@ -182,17 +182,8 @@ export default function ProjectsPage() {
     return sorted;
   }, [filter, sort, q]);
 
-  // 상태별 그룹핑 (전체 필터일 때만 그룹 헤더 노출).
-  const groups = useMemo(() => {
-    if (filter !== "all") return [{ label: null, items: filtered }];
-    const order: ProjectStatus[] = ["진행중", "대기", "완료", "누락"];
-    return order
-      .map((status) => ({
-        label: status,
-        items: filtered.filter((p) => p.status === status),
-      }))
-      .filter((g) => g.items.length > 0);
-  }, [filter, filtered]);
+  // 상태 그룹핑 없이 flat — 상단 정렬 세그먼트(등록 순/마감/진행률/수정) 가 실제 순서 결정.
+  // 상태별 보기는 상단 필터 pill 로 전환.
 
   const totals = {
     all: PROJECTS.length,
@@ -318,35 +309,23 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* 프로젝트 목록 — full width, 상태 그룹핑 */}
-      <div className="mt-6 space-y-6">
-        {groups.length === 0 ? (
+      {/* 프로젝트 목록 — full width, 상단 정렬 순서 그대로 flat */}
+      <div className="mt-6">
+        {filtered.length === 0 ? (
           <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-lg border border-line bg-card p-8 text-center">
             <FolderIcon className="size-8 text-muted/70" />
             <p className="text-sm text-muted">조건에 맞는 프로젝트가 없어요.</p>
           </div>
         ) : (
-          groups.map((g, gi) => (
-            <section key={g.label ?? gi}>
-              {g.label && (
-                <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted">
-                  <span>{g.label}</span>
-                  <span className="text-muted/70 tabular-nums">
-                    · {g.items.length}
-                  </span>
-                </h3>
-              )}
-              <ul className="space-y-3">
-                {g.items.map((p) => (
-                  <ProjectCard
-                    key={p.id}
-                    project={p}
-                    onOpen={() => setDetailId(p.id)}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))
+          <ul className="space-y-3">
+            {filtered.map((p) => (
+              <ProjectCard
+                key={p.id}
+                project={p}
+                onOpen={() => setDetailId(p.id)}
+              />
+            ))}
+          </ul>
         )}
       </div>
 
@@ -490,7 +469,7 @@ function ProjectCard({
             </span>
           </div>
 
-          {/* 담당자 · 마감 · 수정 · D-day */}
+          {/* 담당자 · 등록 · 마감 · D-day */}
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
             {project.assignees.length > 0 ? (
               <div className="flex items-center gap-2">
@@ -506,10 +485,11 @@ function ProjectCard({
               <span className="text-muted">담당자 미지정</span>
             )}
             <span>·</span>
+            <span className="tabular-nums">등록 {formatMD(project.createdAt)}</span>
+            <span>·</span>
             <span>마감 {project.due}</span>
-            <span className="ml-auto flex items-center gap-2">
+            <span className="ml-auto">
               <DdayBadge project={project} />
-              <span className="tabular-nums">수정 {project.updated}</span>
             </span>
           </div>
 
@@ -552,6 +532,12 @@ function DdayBadge({ project }: { project: Project }) {
   return (
     <span className={`text-xs font-bold tabular-nums ${tone}`}>{label}</span>
   );
+}
+
+// ISO 문자열("2026-06-01") → "6/1" 표기용.
+function formatMD(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${Number(m)}/${Number(d)}`;
 }
 
 function Avatar({ name, tone }: { name: string; tone: string }) {
