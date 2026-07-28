@@ -183,6 +183,20 @@ body {
   animation: guide-icon-in 650ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* 사내톡 타이핑 dots — 세 점이 순차로 통통 튀는 인디케이터. */
+@keyframes typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+
 /* Tiptap 에디터 — 노션 톤 회의록 편집 뷰.
    ProseMirror 는 tiptap 이 렌더하는 contenteditable 루트. 여기에 노드별 스타일
    (heading, list, quote, code 등) 을 직접 지정. tailwind typography 안 씀. */

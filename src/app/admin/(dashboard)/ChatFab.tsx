@@ -24,10 +24,12 @@ import {
   type ChatRoomOut,
   type MessageOut,
 } from "@/lib/api/v2/chat";
+import { useChatWs } from "@/lib/api/v2/chatWs";
 import type { EmployeeOut } from "@/lib/api/v2/types";
 
 // 사내톡 FAB — GET /chat/rooms · GET/POST /chat/rooms/{id}/messages · POST /chat/rooms/{id}/read.
-// 실시간 WS 는 별도 이터레이션. 지금은 방 열 때/전송 시 폴링·invalidate 로 갱신.
+// 실시간 : useChatWs 로 message/typing/read 수신. 전송은 REST 유지 (UX 명확).
+// 폴링 : WS 실패/재연결 창구용 백업.
 
 const POLL_MS = 15_000;
 
@@ -41,6 +43,9 @@ export function ChatFab() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ kind: "list" });
   const queryClient = useQueryClient();
+
+  // WS 는 팝오버 열려있는 동안만 유지 (배터리·연결 수 절약).
+  const ws = useChatWs(open);
 
   useEffect(() => {
     if (!open) return;
@@ -70,10 +75,11 @@ export function ChatFab() {
     return m;
   }, [employees]);
 
+  // WS 연결 상태에 따라 폴링 간격 조정 (WS 있으면 백업용 60초, 없으면 15초).
   const roomsQuery = useQuery({
     queryKey: ["v2", "chat", "rooms"] as const,
     queryFn: listRooms,
-    refetchInterval: open ? POLL_MS : false,
+    refetchInterval: open ? (ws.connected ? 60_000 : POLL_MS) : false,
     enabled: open,
   });
   const rooms = roomsQuery.data ?? [];
@@ -122,6 +128,9 @@ export function ChatFab() {
               room={currentRoom}
               meId={meId}
               employeeMap={employeeMap}
+              typingIds={ws.typingByRoom.get(currentRoom.id) ?? new Set()}
+              wsConnected={ws.connected}
+              wsSend={ws.send}
               onBack={() => setView({ kind: "list" })}
               onClose={close}
               onOpenSettings={() =>
@@ -483,6 +492,9 @@ function ChatView({
   room,
   meId,
   employeeMap,
+  typingIds,
+  wsConnected,
+  wsSend,
   onBack,
   onClose,
   onOpenSettings,
@@ -490,6 +502,9 @@ function ChatView({
   room: ChatRoomOut;
   meId: string | null;
   employeeMap: Map<string, EmployeeOut>;
+  typingIds: Set<string>;
+  wsConnected: boolean;
+  wsSend: (frame: object) => boolean;
   onBack: () => void;
   onClose: () => void;
   onOpenSettings: () => void;
@@ -503,7 +518,8 @@ function ChatView({
   const messagesQuery = useQuery({
     queryKey: ["v2", "chat", "messages", room.id] as const,
     queryFn: () => listMessages(room.id, { limit: 50 }),
-    refetchInterval: POLL_MS,
+    // WS 연결시엔 폴링 off (실시간 수신). 없으면 백업 폴링.
+    refetchInterval: wsConnected ? false : POLL_MS,
   });
   const messages = messagesQuery.data ?? [];
 
@@ -517,11 +533,15 @@ function ChatView({
     },
   });
 
-  // 방 열 때 read 마킹 (1회).
+  // 방 열 때 read 마킹 (WS 있으면 프레임, 아니면 REST).
   const readMarkedRef = useRef(false);
   useEffect(() => {
     if (readMarkedRef.current) return;
     readMarkedRef.current = true;
+    if (wsConnected && wsSend({ type: "read", roomId: room.id })) {
+      queryClient.invalidateQueries({ queryKey: ["v2", "chat", "rooms"] });
+      return;
+    }
     markRoomRead(room.id)
       .then(() =>
         queryClient.invalidateQueries({ queryKey: ["v2", "chat", "rooms"] }),
@@ -529,7 +549,42 @@ function ChatView({
       .catch(() => {
         // 실패 조용히
       });
-  }, [room.id, queryClient]);
+  }, [room.id, queryClient, wsConnected, wsSend]);
+
+  // 타이핑 send — draft 변경 시 즉시 true, 2초 정지 시 false.
+  const lastTypingSentRef = useRef<boolean>(false);
+  const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!wsConnected) return;
+    if (draft.length > 0) {
+      if (!lastTypingSentRef.current) {
+        wsSend({ type: "typing", roomId: room.id, isTyping: true });
+        lastTypingSentRef.current = true;
+      }
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+      typingStopTimerRef.current = setTimeout(() => {
+        wsSend({ type: "typing", roomId: room.id, isTyping: false });
+        lastTypingSentRef.current = false;
+      }, 2_000);
+    } else if (lastTypingSentRef.current) {
+      wsSend({ type: "typing", roomId: room.id, isTyping: false });
+      lastTypingSentRef.current = false;
+    }
+    return () => {
+      if (typingStopTimerRef.current) {
+        clearTimeout(typingStopTimerRef.current);
+        typingStopTimerRef.current = null;
+      }
+    };
+  }, [draft, room.id, wsConnected, wsSend]);
+
+  // 상대방 타이핑 이름 (나 제외).
+  const typingNames = Array.from(typingIds)
+    .filter((id) => id !== meId)
+    .map((id) => employeeMap.get(id)?.name ?? "누군가")
+    .slice(0, 3);
 
   const listRef = useRef<HTMLUListElement>(null);
   useEffect(() => {
@@ -607,6 +662,14 @@ function ChatView({
       )}
 
       <div className="border-t border-line px-4 py-3">
+        {typingNames.length > 0 && (
+          <p className="mb-1 flex items-center gap-1 text-xs text-muted">
+            <TypingDots />
+            <span className="tracking-tight">
+              {typingNames.join(", ")} 입력 중…
+            </span>
+          </p>
+        )}
         {sendMutation.isError && (
           <p className="mb-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
             {getV2ErrorMessage(sendMutation.error)}
@@ -860,6 +923,16 @@ function SearchInput({
         className="flex-1 bg-transparent text-sm text-fg placeholder-muted focus:outline-none"
       />
     </label>
+  );
+}
+
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      <span className="inline-block size-1 animate-[typing_1.2s_ease-in-out_infinite] rounded-full bg-muted [animation-delay:0ms]" />
+      <span className="inline-block size-1 animate-[typing_1.2s_ease-in-out_infinite] rounded-full bg-muted [animation-delay:200ms]" />
+      <span className="inline-block size-1 animate-[typing_1.2s_ease-in-out_infinite] rounded-full bg-muted [animation-delay:400ms]" />
+    </span>
   );
 }
 
