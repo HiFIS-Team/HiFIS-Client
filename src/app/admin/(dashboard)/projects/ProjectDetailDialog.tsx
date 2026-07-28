@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useEscapeKey } from "@/lib/hooks/useEscapeKey";
+import { ExtensionRequestDialog } from "./ExtensionRequestDialog";
 
 // 프로젝트 상세 모달 — 카드 클릭 시 오픈. UI 만. 저장 로직은 v2 /projects/{id} PATCH 시점.
 // 상단: 제목 + D-day 뱃지 + X.
@@ -51,8 +52,10 @@ export function ProjectDetailDialog({
 
   // 진행률 슬라이더 로컬 상태 — 열릴 때마다 프로젝트 값으로 sync.
   const [progress, setProgress] = useState<number>(project?.progress ?? 0);
+  const [extensionOpen, setExtensionOpen] = useState(false);
   useEffect(() => {
     if (open && project) setProgress(project.progress);
+    if (!open) setExtensionOpen(false);
   }, [open, project]);
 
   if (!open || !project) return null;
@@ -62,10 +65,6 @@ export function ProjectDetailDialog({
 
   function complete() {
     // TODO: v2 /projects/{id} PATCH { status: 완료, progress: 100 }.
-    onClose();
-  }
-  function requestExtension() {
-    // TODO: v2 /projects/{id}/extend 요청 API.
     onClose();
   }
 
@@ -246,7 +245,7 @@ export function ProjectDetailDialog({
             </button>
             <button
               type="button"
-              onClick={requestExtension}
+              onClick={() => setExtensionOpen(true)}
               className="w-full rounded-md border border-line py-2.5 text-sm font-semibold text-fg transition-colors hover:bg-card-hover"
             >
               기한 연장 요청
@@ -254,6 +253,12 @@ export function ProjectDetailDialog({
           </div>
         )}
       </div>
+
+      <ExtensionRequestDialog
+        open={extensionOpen}
+        currentDue={project.due}
+        onClose={() => setExtensionOpen(false)}
+      />
     </div>
   );
 }
