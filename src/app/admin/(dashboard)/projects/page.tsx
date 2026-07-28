@@ -29,6 +29,7 @@ interface Project {
   assignees: string[];
   due: string; // "7/31" 표기용
   dday: number; // 음수 = 지남
+  createdAt: string; // "2026-07-15" — 등록 순 정렬용 (문자열 비교)
   updated: string; // "7. 25."
   createdBy: { name: string; tone: string };
   purpose?: string;
@@ -44,6 +45,7 @@ const PROJECTS: Project[] = [
     assignees: ["이하나", "하이여", "A매니저"],
     due: "7/31",
     dday: -3,
+    createdAt: "2026-06-01",
     updated: "7. 25.",
     createdBy: { name: "이앨리스", tone: "bg-emerald-500" },
     purpose:
@@ -63,6 +65,7 @@ const PROJECTS: Project[] = [
     assignees: ["박그레이스", "이하나"],
     due: "8/15",
     dday: 18,
+    createdAt: "2026-07-15",
     updated: "7. 26.",
     createdBy: { name: "박그레이스", tone: "bg-violet-500" },
     purpose: "회원 · 예약 유입 경로 통합. 모바일 반응형 리디자인.",
@@ -80,6 +83,7 @@ const PROJECTS: Project[] = [
     assignees: [],
     due: "9/10",
     dday: 44,
+    createdAt: "2026-07-10",
     updated: "7. 10.",
     createdBy: { name: "박그레이스", tone: "bg-violet-500" },
     purpose:
@@ -98,6 +102,7 @@ const PROJECTS: Project[] = [
     assignees: ["하이여", "정프로"],
     due: "7/20",
     dday: -8,
+    createdAt: "2026-05-01",
     updated: "7. 20.",
     createdBy: { name: "김데모", tone: "bg-primary" },
     purpose:
@@ -116,6 +121,7 @@ const PROJECTS: Project[] = [
     assignees: ["김데모"],
     due: "4/15",
     dday: -104,
+    createdAt: "2026-03-10",
     updated: "4. 15.",
     createdBy: { name: "김데모", tone: "bg-primary" },
     purpose: "Q1 매출 · 회원 · PT 지표 리뷰. Q2 계획 근거 자료.",
@@ -132,13 +138,13 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "누락", label: "누락" },
 ];
 
-type SortKey = "due" | "updated" | "progress";
+type SortKey = "created" | "due" | "updated" | "progress";
 
 // ─────────────── page ───────────────
 
 export default function ProjectsPage() {
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [sort, setSort] = useState<SortKey>("due");
+  const [sort, setSort] = useState<SortKey>("created");
   const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -157,11 +163,14 @@ export default function ProjectsPage() {
       );
     });
     const sorted = [...base];
-    if (sort === "due") {
+    if (sort === "created") {
+      // 등록 순 — 최신(큰 날짜)이 위. ISO 형식이라 문자열 비교로 안전.
+      sorted.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    } else if (sort === "due") {
       // 마감 임박 (작은 dday) → 지남 (음수) → 여유 (큰 dday)
       // 완료/누락은 뒤로 미룸.
       sorted.sort((a, b) => {
-        const finished = (p: Project) => p.status === "완료" ? 1 : 0;
+        const finished = (p: Project) => (p.status === "완료" ? 1 : 0);
         if (finished(a) !== finished(b)) return finished(a) - finished(b);
         return a.dday - b.dday;
       });
@@ -280,6 +289,12 @@ export default function ProjectsPage() {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted">{filtered.length}개</span>
             <div className="inline-flex rounded-full border border-line p-0.5">
+              <SortButton
+                active={sort === "created"}
+                onClick={() => setSort("created")}
+              >
+                등록 순
+              </SortButton>
               <SortButton
                 active={sort === "due"}
                 onClick={() => setSort("due")}
