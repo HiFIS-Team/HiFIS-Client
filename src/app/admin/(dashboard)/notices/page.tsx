@@ -8,6 +8,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
+import { NewNoticeDialog } from "./NewNoticeDialog";
 
 // 사내공지 페이지 — 좌 목록 + 우 상세. mock. API 는 다음 스텝.
 
@@ -93,6 +94,8 @@ export default function NoticesPage() {
   );
   const selected = sorted.find((n) => n.id === selectedId) ?? null;
 
+  const [newOpen, setNewOpen] = useState(false);
+
   return (
     <div>
       <PageTitle title="사내공지" />
@@ -115,12 +118,15 @@ export default function NoticesPage() {
           </button>
           <button
             type="button"
+            onClick={() => setNewOpen(true)}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
             <PlusIcon className="size-4" />새 공지
           </button>
         </div>
       </div>
+
+      <NewNoticeDialog open={newOpen} onClose={() => setNewOpen(false)} />
 
       {/* 본문 : lg 에서 좌 1/3 · 우 2/3 */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
