@@ -140,19 +140,14 @@ export function AppGuide({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-label="앱 가이드"
-      // gradient 는 inline — 화면 전체가 확실히 primary 톤으로 보이도록 3-stop 유지
-      // 어두운 끝(black) 대신 violet-800 로 마무리해서 코너까지 컬러 유지.
+      // 어두운 베이스 + 상단 보라 · 우하단 핑크 · 중앙우측 시안 조명 (layered radial-gradient).
+      // 대부분 다크한 상태에서 코너에서 컬러가 부드럽게 번지는 무드.
       style={{
         background:
-          "linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #4c1d95 100%)",
+          "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124, 58, 237, 0.55) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 90% 100%, rgba(236, 72, 153, 0.35) 0%, transparent 55%), radial-gradient(ellipse 40% 40% at 75% 55%, rgba(45, 212, 191, 0.2) 0%, transparent 60%), linear-gradient(180deg, #0f0a1a 0%, #050510 100%)",
       }}
       className="animate-fade-in fixed inset-0 z-[60] flex flex-col overflow-hidden text-fg"
     >
-      {/* 은은한 조명 blob (그라데이션 위에 살짝 씌워 깊이감) */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -right-32 bottom-0 size-[32rem] rounded-full bg-pink-500/20 blur-3xl" />
-      </div>
 
       {/* 상단 바 */}
       <header className="relative flex items-center justify-between px-6 py-4">
