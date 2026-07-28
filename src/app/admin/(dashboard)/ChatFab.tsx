@@ -634,12 +634,11 @@ function MessageRow({ conv, msg }: { conv: Conversation; msg: Message }) {
 
 // ─────────────── Settings view ───────────────
 
-type ShareTab = "photo" | "video" | "file" | "code";
+type ShareTab = "photo" | "video" | "file";
 const SHARE_TABS: { key: ShareTab; label: string; count: number; emptyText: string }[] = [
   { key: "photo", label: "사진", count: 0, emptyText: "공유된 사진이 없어요" },
   { key: "video", label: "영상", count: 0, emptyText: "공유된 영상이 없어요" },
   { key: "file", label: "파일", count: 0, emptyText: "공유된 파일이 없어요" },
-  { key: "code", label: "코드", count: 1, emptyText: "공유된 코드가 없어요" },
 ];
 
 function SettingsView({
