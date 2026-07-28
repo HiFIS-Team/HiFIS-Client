@@ -12,6 +12,8 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { PageTitle } from "../PageTitle";
+import { NewFolderDialog } from "./NewFolderDialog";
+import { UploadDocumentDialog } from "./UploadDocumentDialog";
 
 // 문서함 페이지 — 워크스페이스 필터 · 팀 탭 · 폴더 그리드 · 문서 테이블.
 // mock. 실제 업로드/폴더 관리 API 는 다음 스텝.
@@ -25,9 +27,9 @@ interface Workspace {
 }
 const WORKSPACES: Workspace[] = [
   { key: "all", label: "전체 문서함" },
-  { key: "hinest", label: "HiNest v2", dotTone: "bg-primary" },
-  { key: "mkt", label: "마케팅 Q3 캠페인", dotTone: "bg-pink-400" },
-  { key: "internal", label: "사내 자료 정리", dotTone: "bg-primary" },
+  { key: "renewal", label: "화순점 리뉴얼 TF", dotTone: "bg-primary" },
+  { key: "summer", label: "여름 프로모션 캠페인", dotTone: "bg-pink-400" },
+  { key: "trainer", label: "트레이너 교육 · 매뉴얼", dotTone: "bg-amber-400" },
 ];
 
 type TeamTab = "all" | "product" | "personal" | "custom";
@@ -126,6 +128,11 @@ export default function DocumentsPage() {
   const [teamTab, setTeamTab] = useState<TeamTab>("all");
   const [query, setQuery] = useState("");
 
+  // 다이얼로그 open 상태 — 새 폴더 · 문서 업로드(파일 or 폴더 모드).
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadMode, setUploadMode] = useState<"file" | "folder">("file");
+
   const filteredDocs = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return DOCUMENTS;
@@ -155,18 +162,27 @@ export default function DocumentsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={() => setNewFolderOpen(true)}
             className="flex items-center gap-1 rounded-md border border-line px-3 py-2 text-sm font-semibold text-fg transition-colors hover:bg-card-hover"
           >
             <PlusIcon className="size-4" />새 폴더
           </button>
           <button
             type="button"
+            onClick={() => {
+              setUploadMode("folder");
+              setUploadOpen(true);
+            }}
             className="flex items-center gap-1 rounded-md border border-line px-3 py-2 text-sm font-semibold text-fg transition-colors hover:bg-card-hover"
           >
             <FolderPlusIcon className="size-4" />폴더 업로드
           </button>
           <button
             type="button"
+            onClick={() => {
+              setUploadMode("file");
+              setUploadOpen(true);
+            }}
             className="flex items-center gap-1 rounded-md border border-primary bg-primary/25 px-3 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35"
           >
             <ArrowUpTrayIcon className="size-4" />문서 업로드
@@ -288,6 +304,16 @@ export default function DocumentsPage() {
           </ul>
         )}
       </div>
+
+      <NewFolderDialog
+        open={newFolderOpen}
+        onClose={() => setNewFolderOpen(false)}
+      />
+      <UploadDocumentDialog
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        mode={uploadMode}
+      />
     </div>
   );
 }
