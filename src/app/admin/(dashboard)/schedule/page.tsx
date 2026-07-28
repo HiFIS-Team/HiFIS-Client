@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ChatBubbleOvalLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon,
@@ -220,15 +219,6 @@ export default function SchedulePage() {
         open={addOpen}
         onClose={() => setAddOpen(false)}
       />
-
-      {/* 사내톡 FAB — 우측 하단 고정. 모바일 하단탭바 위, PC 는 낮게. */}
-      <button
-        type="button"
-        aria-label="사내톡 열기"
-        className="fixed right-5 bottom-24 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 transition-transform hover:scale-105 active:scale-95 lg:bottom-6"
-      >
-        <ChatBubbleOvalLeftIcon className="size-6" />
-      </button>
     </div>
   );
 }

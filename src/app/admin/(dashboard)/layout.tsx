@@ -19,6 +19,7 @@ import { Sidebar } from "./Sidebar";
 import { GlobalHeader } from "./GlobalHeader";
 import { PageTitleProvider } from "./PageTitleProvider";
 import { MobileTabBar } from "./MobileTabBar";
+import { ChatFab } from "./ChatFab";
 import { SubTabBar } from "./SubTabBar";
 import { MobileSubPage } from "./MobileSubPage";
 import { ProfileBody } from "./profile/ProfileBody";
@@ -178,6 +179,8 @@ export default function DashboardLayout({
         {/* 모바일 전용 하단 5탭 — PC 는 lg:hidden 으로 숨고 기존 사이드바가 보임. */}
         <MobileTabBar />
       </div>
+      {/* 사내톡 FAB — 모든 어드민 페이지 공용. 우측 하단 고정. */}
+      <ChatFab />
       {pendingNotes && (
         <ReleaseNotesDialog
           notes={pendingNotes}
