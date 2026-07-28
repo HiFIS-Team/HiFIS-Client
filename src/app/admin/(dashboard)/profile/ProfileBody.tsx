@@ -98,6 +98,8 @@ export function ProfileBody() {
             message={statusMessage}
             onMessageChange={setStatusMessage}
           />
+          <PasswordCard />
+          <WithdrawCard />
         </div>
       </div>
     </div>
@@ -387,5 +389,94 @@ function StatusChip({
       <span aria-hidden>{emoji}</span>
       {label}
     </button>
+  );
+}
+
+// ─────────────── PasswordCard ───────────────
+
+function PasswordCard() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+
+  const canSubmit =
+    current.length > 0 && next.length >= 8 && next === confirm;
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-6">
+      <h2 className="text-base font-bold text-fg">비밀번호 변경</h2>
+
+      <div className="mt-5 space-y-4">
+        <div>
+          <label className="block text-sm font-semibold text-fg">
+            현재 비밀번호
+          </label>
+          <input
+            type="password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            className="mt-2 w-full rounded-md border border-line bg-card-hover px-3 py-2.5 text-sm text-fg placeholder-muted focus:border-primary focus:outline-none"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-semibold text-fg">
+              새 비밀번호 <span className="text-muted">(8자 이상)</span>
+            </label>
+            <input
+              type="password"
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              minLength={8}
+              className="mt-2 w-full rounded-md border border-line bg-card-hover px-3 py-2.5 text-sm text-fg placeholder-muted focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-fg">
+              새 비밀번호 확인
+            </label>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="mt-2 w-full rounded-md border border-line bg-card-hover px-3 py-2.5 text-sm text-fg placeholder-muted focus:border-primary focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          disabled={!canSubmit}
+          className="rounded-md border border-primary bg-primary/25 px-5 py-2 text-sm font-semibold text-primary shadow-lg shadow-primary/20 transition-colors hover:bg-primary/35 disabled:opacity-40"
+        >
+          비밀번호 변경
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────── WithdrawCard ───────────────
+
+function WithdrawCard() {
+  return (
+    <section className="rounded-lg border border-red-500/50 bg-card p-6">
+      <h2 className="text-base font-bold text-red-400">회원 탈퇴</h2>
+      <p className="mt-2 text-sm text-muted">
+        탈퇴하면 이름·연락처 등 개인 식별 정보와 로그인 수단이 삭제되고 계정이
+        비활성화돼요. 회사가 법적으로 보관해야 하는 근태·급여 기록은 익명
+        처리되어 일정 기간 보존될 수 있어요.
+      </p>
+      <div className="mt-4">
+        <button
+          type="button"
+          className="rounded-md border border-red-500/60 px-4 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/10"
+        >
+          회원 탈퇴하기
+        </button>
+      </div>
+    </section>
   );
 }
