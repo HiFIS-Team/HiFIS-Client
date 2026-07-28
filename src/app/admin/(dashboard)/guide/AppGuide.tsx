@@ -20,26 +20,21 @@ export function hasSeenGuide(): boolean {
 
 interface Slide {
   kicker: string;
-  kickerTone: string;
   emoji: string;
   title: string;
   body: string;
   bullets?: string[];
-  progressTone: string;
 }
 
 const SLIDES: Slide[] = [
   {
     kicker: "WELCOME",
-    kickerTone: "text-primary",
     emoji: "👋",
     title: "피트니스스타 워크스페이스에 오신 걸 환영해요",
     body: "회의록 · 결재 · 근태 · 문서 · 채팅까지 사내 협업에 필요한 모든 흐름을 한 곳에서 처리해요. 잠깐만 둘러보고 시작해볼까요?",
-    progressTone: "bg-primary",
   },
   {
     kicker: "NAVIGATION",
-    kickerTone: "text-sky-400",
     emoji: "🧭",
     title: "왼쪽 사이드바로 페이지 이동",
     body: "워크스페이스에는 일정 · 회의록 · 결재 · 근태 · 문서 등 자주 쓰는 메뉴가 모여있어요. 대기 항목이 있으면 옆에 빨간 카운트로 표시됩니다.",
@@ -48,23 +43,18 @@ const SLIDES: Slide[] = [
       "회의록 — 노션 스타일 리치 에디터",
       "전자결재 — 출장 · 외근 · 지출 · 구매",
     ],
-    progressTone: "bg-sky-400",
   },
   {
     kicker: "COMMUNICATION",
-    kickerTone: "text-pink-400",
     emoji: "💬",
     title: "우측 하단 채팅으로 팀과 소통",
     body: "1:1 DM 부터 팀방, 전사 공지방까지 사내톡으로 처리해요. 이모지 반응 · 이미지 공유 · 파일 첨부 모두 지원합니다.",
-    progressTone: "bg-pink-400",
   },
   {
     kicker: "GET STARTED",
-    kickerTone: "text-emerald-400",
     emoji: "🚀",
     title: "이제 시작해볼까요?",
     body: "궁금한 게 생기면 사이드바 > 앱 가이드 에서 언제든 다시 볼 수 있어요. 데모 데이터로 자유롭게 눌러보세요.",
-    progressTone: "bg-emerald-400",
   },
 ];
 
@@ -118,38 +108,42 @@ export function AppGuide({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-label="앱 가이드"
-      className="animate-fade-in fixed inset-0 z-[60] flex flex-col overflow-hidden bg-surface text-fg"
+      // gradient 는 inline — Tailwind purge/컴파일 이슈 및 SW 캐시 회피
+      style={{
+        background:
+          "linear-gradient(135deg, #7c3aed 0%, #6d28d9 45%, #1a1030 100%)",
+      }}
+      className="animate-fade-in fixed inset-0 z-[60] flex flex-col overflow-hidden text-fg"
     >
-      {/* 배경 blob — 뒤에서 은은한 컬러 조명 */}
+      {/* 은은한 조명 blob (그라데이션 위에 살짝 씌워 깊이감) */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 size-96 rounded-full bg-primary/25 blur-3xl" />
-        <div className="absolute -right-24 top-1/3 size-80 rounded-full bg-pink-500/15 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 size-80 rounded-full bg-emerald-500/15 blur-3xl" />
+        <div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -right-32 bottom-0 size-[32rem] rounded-full bg-pink-500/20 blur-3xl" />
       </div>
 
       {/* 상단 바 */}
       <header className="relative flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-md bg-primary/25 text-xs font-black text-primary">
+          <span className="flex size-7 items-center justify-center rounded-md bg-white/15 text-xs font-black text-white backdrop-blur-sm">
             H
           </span>
-          <p className="text-sm font-semibold text-fg">
-            HiFIS <span className="text-muted">· 앱 가이드</span>
+          <p className="text-sm font-semibold text-white">
+            HiFIS <span className="text-white/60">· 앱 가이드</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-sm text-muted tabular-nums">
+          <p className="text-sm text-white/70 tabular-nums">
             {String(index + 1).padStart(2, "0")}{" "}
-            <span className="text-line">/</span>{" "}
+            <span className="text-white/30">/</span>{" "}
             {String(SLIDES.length).padStart(2, "0")}
           </p>
           <button
             type="button"
             onClick={finish}
-            className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-fg transition-colors hover:bg-card-hover"
+            className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             건너뛰기{" "}
-            <kbd className="rounded bg-card-hover px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+            <kbd className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-white/80">
               ESC
             </kbd>
           </button>
@@ -158,31 +152,29 @@ export function AppGuide({ onClose }: { onClose: () => void }) {
 
       {/* 중앙 — 슬라이드 콘텐츠 */}
       <main className="relative flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <p
-          className={`text-xs font-black tracking-[0.35em] uppercase ${slide.kickerTone}`}
-        >
+        <p className="text-xs font-black tracking-[0.35em] text-white/80 uppercase">
           {slide.kicker}
         </p>
         <div
           key={iconKey}
-          className="animate-guide-icon mt-6 text-8xl select-none"
+          // font-size 는 inline — arbitrary value 컴파일 이슈 회피
+          style={{ fontSize: "10rem", lineHeight: 1 }}
+          className="animate-guide-icon mt-6 select-none drop-shadow-2xl"
           aria-hidden
         >
           {slide.emoji}
         </div>
-        <h2 className="mt-8 max-w-2xl text-3xl font-black tracking-tighter text-fg">
+        <h2 className="mt-8 max-w-2xl text-3xl font-black tracking-tighter text-white">
           {slide.title}
         </h2>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-muted">
+        <p className="mt-3 max-w-xl text-sm leading-6 text-white/80">
           {slide.body}
         </p>
         {slide.bullets && (
           <ul className="mt-6 space-y-2 text-left text-sm">
             {slide.bullets.map((b) => (
-              <li key={b} className="flex items-center gap-2 text-fg">
-                <span
-                  className={`size-1.5 shrink-0 rounded-full ${slide.progressTone}`}
-                />
+              <li key={b} className="flex items-center gap-2 text-white">
+                <span className="size-1.5 shrink-0 rounded-full bg-white/80" />
                 {b}
               </li>
             ))}
@@ -194,23 +186,23 @@ export function AppGuide({ onClose }: { onClose: () => void }) {
       <footer className="relative flex flex-col items-center gap-4 px-6 pb-8">
         {/* Progress bar */}
         <div className="flex gap-1">
-          {SLIDES.map((s, i) => (
+          {SLIDES.map((_, i) => (
             <span
               key={i}
               className={`h-0.5 w-16 rounded-full transition-colors ${
-                i <= index ? s.progressTone : "bg-line"
+                i <= index ? "bg-white" : "bg-white/25"
               }`}
             />
           ))}
         </div>
 
-        {/* Nav buttons */}
+        {/* Nav buttons — 그라데이션 위 대비를 위해 backdrop-blur + 강한 명도 */}
         <div className="flex gap-2">
           {index > 0 && (
             <button
               type="button"
               onClick={prev}
-              className="flex items-center gap-1 rounded-full bg-card px-5 py-2 text-sm font-semibold text-fg transition-colors hover:bg-card-hover"
+              className="flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
             >
               ← 이전
             </button>
@@ -218,26 +210,28 @@ export function AppGuide({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={isLast ? finish : next}
-            className="flex items-center gap-1 rounded-full bg-white px-5 py-2 text-sm font-semibold text-neutral-900 transition-colors hover:bg-white/90"
+            // 흰 배경 · 검은 글자 — inline 으로 확실히 강제 (data-theme dark 셀렉터 상속 방지)
+            style={{ backgroundColor: "#fff", color: "#171717" }}
+            className="flex items-center gap-1 rounded-full px-6 py-2.5 text-sm font-bold shadow-lg shadow-black/30 transition-transform hover:scale-[1.03]"
           >
             {isLast ? "시작하기" : "다음"} →
           </button>
         </div>
 
         {/* 키보드 힌트 */}
-        <p className="flex items-center gap-2 text-xs text-muted">
+        <p className="flex items-center gap-2 text-xs text-white/70">
           <span className="flex items-center gap-1">
-            <kbd className="rounded bg-card px-1.5 py-0.5 text-[10px] font-semibold text-fg">
+            <kbd className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-white">
               ←
             </kbd>
-            <kbd className="rounded bg-card px-1.5 py-0.5 text-[10px] font-semibold text-fg">
+            <kbd className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-white">
               →
             </kbd>
             이동
           </span>
-          <span className="text-line">·</span>
+          <span className="text-white/30">·</span>
           <span className="flex items-center gap-1">
-            <kbd className="rounded bg-card px-1.5 py-0.5 text-[10px] font-semibold text-fg">
+            <kbd className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-white">
               Enter
             </kbd>
             {isLast ? "시작" : "다음"}
