@@ -232,7 +232,7 @@ function DayCell({
   const dow = date.getDay();
   const events = inMonth ? eventsForDate(date) : [];
   return (
-    <div className="min-h-28 bg-card p-2 transition-colors hover:bg-card-hover sm:min-h-32">
+    <div className="min-h-20 bg-card p-2 transition-colors hover:bg-card-hover sm:min-h-24">
       {inMonth && (
         <>
           {isToday ? (
