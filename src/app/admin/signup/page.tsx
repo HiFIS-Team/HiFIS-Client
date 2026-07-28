@@ -16,6 +16,7 @@ export default function AdminSignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,6 +27,8 @@ export default function AdminSignupPage() {
     if (!name.trim()) errs.name = "이름을 입력해 주세요.";
     if (!email.trim()) errs.email = "이메일을 입력해 주세요.";
     if (password.length < 8) errs.password = "비밀번호는 8자 이상이어야 합니다.";
+    if (password !== passwordConfirm)
+      errs.passwordConfirm = "비밀번호가 일치하지 않습니다.";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -55,8 +58,8 @@ export default function AdminSignupPage() {
         </p>
       </div>
 
-      {/* 폼 — 세로 중앙 */}
-      <div className="flex flex-1 items-center justify-center px-6 py-10">
+      {/* 폼 — 상단에서 고정 offset (로그인 페이지와 타이틀 위치 정렬) */}
+      <div className="flex flex-1 justify-center px-6 pt-[12vh] pb-10">
         <div className="w-full max-w-md">
           <h1 className="text-center text-3xl font-black tracking-tighter text-fg">
             함께 시작해요
@@ -72,7 +75,7 @@ export default function AdminSignupPage() {
                 id="invite-key"
                 value={inviteKey}
                 onChange={(e) => setInviteKey(e.target.value)}
-                placeholder="초대키     ( 예 :  HN-XXXX-XXXX )"
+                placeholder="초대키     ( 예 :  FIS-XXXX-XXXX )"
                 aria-label="초대키"
                 autoComplete="off"
                 className="w-full rounded-lg border border-line bg-card px-4 py-3.5 text-sm text-fg placeholder-muted transition-colors focus:border-primary focus:outline-none"
@@ -121,23 +124,42 @@ export default function AdminSignupPage() {
               </div>
             </div>
 
-            {/* 비밀번호 */}
-            <div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="비밀번호 (8자 이상)"
-                aria-label="비밀번호"
-                autoComplete="new-password"
-                className="w-full rounded-lg border border-line bg-card px-4 py-3.5 text-sm text-fg placeholder-muted transition-colors focus:border-primary focus:outline-none"
-              />
-              {errors.password && (
-                <p className="mt-1.5 pl-1 text-xs text-red-400">
-                  {errors.password}
-                </p>
-              )}
+            {/* 비밀번호 + 비밀번호 확인 — 2열 (모바일은 stack) */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="비밀번호 (8자 이상)"
+                  aria-label="비밀번호"
+                  autoComplete="new-password"
+                  className="w-full rounded-lg border border-line bg-card px-4 py-3.5 text-sm text-fg placeholder-muted transition-colors focus:border-primary focus:outline-none"
+                />
+                {errors.password && (
+                  <p className="mt-1.5 pl-1 text-xs text-red-400">
+                    {errors.password}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  id="password-confirm"
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="비밀번호 확인"
+                  aria-label="비밀번호 확인"
+                  autoComplete="new-password"
+                  className="w-full rounded-lg border border-line bg-card px-4 py-3.5 text-sm text-fg placeholder-muted transition-colors focus:border-primary focus:outline-none"
+                />
+                {errors.passwordConfirm && (
+                  <p className="mt-1.5 pl-1 text-xs text-red-400">
+                    {errors.passwordConfirm}
+                  </p>
+                )}
+              </div>
             </div>
 
             <button

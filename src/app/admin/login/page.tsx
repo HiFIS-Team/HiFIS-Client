@@ -74,8 +74,8 @@ export default function AdminLoginPage() {
         </p>
       </div>
 
-      {/* 폼 — 세로 중앙 */}
-      <div className="flex flex-1 items-center justify-center px-6 pb-16">
+      {/* 폼 — 상단에서 고정 offset (가입 페이지와 타이틀 위치 정렬) */}
+      <div className="flex flex-1 justify-center px-6 pt-[12vh] pb-10">
         <div className="w-full max-w-sm">
           <h1 className="text-center text-3xl font-black tracking-tighter text-fg">
             어서 오세요
